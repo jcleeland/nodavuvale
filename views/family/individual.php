@@ -114,7 +114,7 @@ include("helpers/quickedit.php");
     <h3 class="text-2xl font-bold mt-8 mb-4">Photos</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
         <?php foreach ($photos as $photo): ?>
-            <div class="photo-item">
+            <div class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg">
                 <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
                 <?php if (!empty($photo['file_description'])): ?>
                     <p class="mt-2 text-sm text-gray-600"><?php echo $photo['file_description']; ?></p>
@@ -125,9 +125,9 @@ include("helpers/quickedit.php");
 
     <!-- Display Documents -->
     <h3 class="text-2xl font-bold mt-8 mb-4">Documents</h3>
-    <div class="document-list">
+    <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
         <?php foreach ($documents as $document): ?>
-            <div class="document-item mb-4">
+            <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
                 <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
                     View Document
                 </a>
