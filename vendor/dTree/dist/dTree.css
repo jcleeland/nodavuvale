@@ -89,10 +89,6 @@ foreignObject {
     width: 120px;
     height: 120px;
     background: linear-gradient(to right, #a8d5ba, #7bb38d);
-    border: 2px dashed #567a63;
-    border-radius: 10px;
-    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
-    display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
@@ -103,10 +99,6 @@ foreignObject {
     width: 120px;
     height: 120px;
     background: linear-gradient(to bottom, #f7d1a1, #e9b379);
-    border: 2px solid #b3874d;
-    border-radius: 50%;
-    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
-    display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
@@ -117,10 +109,6 @@ foreignObject {
     width: 120px;
     height: 120px;
     background: linear-gradient(to bottom, #c8c0e7, #a59bc6);
-    border: 2px solid #7b70a6;
-    border-radius: 10px;
-    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
-    display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;

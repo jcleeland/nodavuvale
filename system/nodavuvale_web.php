@@ -20,6 +20,25 @@ class Web {
             self::redirect('index.php?page=login');
         }
     }
+
+    public static function getRootId() {
+        // Set the root id for the tree
+        // If none has been set, default to 1
+        $rootId=1;
+
+        // If the user has a set preferred root id, use that instead
+        if(isset($_SESSION['preferred_root_id'])) {
+            $rootId = $_SESSION['preferred_root_id'];
+        }
+        // If the user has requested a different root id, use that instead
+        if(isset($_GET['root_id'])) {
+            $rootId = $_GET['root_id'];
+        }
+        if(isset($_POST['root_id'])) {
+            $rootId = $_POST['root_id'];
+        }
+        return $rootId;
+    }   
     
     // Add more utility functions, e.g., session validation, CSRF protection, etc.
 }

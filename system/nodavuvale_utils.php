@@ -57,7 +57,7 @@ class Utils {
 
             $node = [
                 'id' => $individual['id'],
-                'name' => $parentLinks . "<span class='nodeBodyText'><span class='bodyName' title='{$fullName}' onDblClick='window.location.href=\"?to=family/tree&root_id=" . $individual['id'] . "\"'>" . $briefName . "</span><br /><span style='font-size: 0.7rem'>" . $lifeSpan . "</span></span>" . $editButton . $addButton,
+                'name' => $parentLinks . "<span class='nodeBodyText'><span class='bodyName' title='{$fullName}' onClick='window.location.href=\"?to=family/individual&individual_id=" . $individual['id']."\"' onDblClick='window.location.href=\"?to=family/tree&root_id=" . $individual['id'] . "\"'>" . $briefName . "</span><br /><span style='font-size: 0.7rem'>" . $lifeSpan . "</span></span>" . $editButton . $addButton,
                 'class' => 'node treegender_'.$gender,
                 'depthOffset' => 0,
             ];
@@ -229,5 +229,39 @@ class Utils {
         $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds);
 
         return json_encode($treeData);
+    }
+
+    public static function getParents($individual_id) {
+        // Get the database instance
+        $db = Database::getInstance();
+        
+        // Fetch parents using the updated query
+        $query = "
+            SELECT individuals.* 
+            FROM relationships 
+            JOIN individuals ON relationships.individual_id_1 = individuals.id 
+            WHERE relationships.individual_id_2 = ? 
+            AND relationships.relationship_type = 'child'
+        ";
+        $parents = $db->fetchAll($query, [$individual_id]);
+        
+        return $parents;
+    }
+
+    public static function getChildren($individual_id) {
+        // Get the database instance
+        $db = Database::getInstance();
+        
+        // Fetch children using the updated query
+        $query = "
+            SELECT individuals.* 
+            FROM relationships 
+            JOIN individuals ON relationships.individual_id_2 = individuals.id 
+            WHERE relationships.individual_id_1 = ? 
+            AND relationships.relationship_type = 'child'
+        ";
+        $children = $db->fetchAll($query, [$individual_id]);
+        
+        return $children;
     }
 }

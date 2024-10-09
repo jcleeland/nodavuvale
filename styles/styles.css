@@ -7,6 +7,7 @@
     --ocean-blue: #0077b6;
     --warm-red: #b22222;
     --white: #ffffff;
+    --individual-item-height: 120px;
 }
 
 /* Background Colors */
@@ -168,33 +169,15 @@
     border-radius: 0.5rem;
 }
 
-.grid {
-    display: grid;
+
+.grid-scrollable-3 {
+    max-height: calc(var(--individual-item-height) *3.6);
+    overflow: hidden;
+    overflow-y: auto;
+    
 }
 
-.grid-cols-1 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-}
 
-.grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.md\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.lg\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.md\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.lg\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
 
 .gap-8 {
     gap: 2rem;
@@ -287,6 +270,15 @@
 }
 
 /**********************************************
+*  Individual View Styles
+***********************************************/
+.individual-item {
+    height: var(--individual-item-height);
+    width: 250px;
+    position: relative;
+}
+
+/**********************************************
 *  Family Tree Container
 ***********************************************/
 .familytree {
@@ -299,7 +291,7 @@
 ***********************************************/
 /* Style the "Edit" button */
 .edit-btn {
-    background-color: #6c63ff; /* Vibrant purple */
+    background-color: #6c63ff5e; /* Vibrant purple */
     color: white;
     border: none;
     border-radius: 50%; /* Circular button */
@@ -327,7 +319,7 @@
 ***********************************************/
 /* Style the "+" button */
 .dropdown-btn {
-    background-color: #ff6f61; /* Vibrant red-orange */
+    background-color: #ff6f6185; /* Vibrant red-orange */
     color: white;
     border: none;
     border-radius: 50%; /* Circular button */
@@ -381,6 +373,20 @@
     background-color: #e0e0e0;
 }
 
+.gender_female {
+    /* Earthy green with gradient */
+    background: linear-gradient(to right, #a8d5ba, #7bb38d);
+}
+
+.gender_male {
+    /* Warm amber with gradient */
+    background: linear-gradient(to bottom, #f7d1a1, #e9b379);
+}
+
+.gender_other {
+    /* Muted purple gradient */
+    background: linear-gradient(to bottom, #c8c0e7, #a59bc6);
+}
 
 /**********************************************
 *  Communications Section Styles
