@@ -1,6 +1,9 @@
 document.addEventListener("DOMContentLoaded", function() {
     // ------------------- Handling the "Edit" button and modal -------------------
 
+    //Reset the form to clear the previous data
+    document.getElementById('editForm').reset();
+
     // Get the modal and form elements for the "Edit" form
     const editModal = document.getElementById('editModal');
     const closeModalBtn = document.querySelector('.edit-close-btn');  // You may need to make sure this selector applies correctly
@@ -40,6 +43,8 @@ document.addEventListener("DOMContentLoaded", function() {
             editDeathMonthInput.value = individualData.death_month;
             editDeathDateInput.value = individualData.death_date;
             editGenderInput.value = individualData.gender;
+
+            document.getElementById('individual_name_display').innerHTML = individualData.first_names + ' ' + individualData.last_name;
 
             // Display the "Edit" modal
             editModal.style.display = 'block';

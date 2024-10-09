@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('modal-title').innerHTML = 'Add New Relationship';
         //document.getElementById('existing-individuals').style.display = 'block';
         document.getElementById('relationships').style.display = 'block';
-        document.getElementById('choose-second-parent').style.display = 'block';
+        document.getElementById('choose-second-parent').style.display = 'none';
         console.log(action);
         switch(action) {
             case 'add_individual':
@@ -131,6 +131,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 break;
             case 'add_child':
                 formActionRelationship.value='child';
+                document.getElementById('choose-second-parent').style.display = 'block';
                 break;
             case 'add_son':
                 formActionRelationship.value='child';
