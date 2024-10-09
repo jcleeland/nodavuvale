@@ -1,0 +1,19 @@
+{
+    "name": "jcleeland/nodavuvale",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "license": "GPL-1.0-or-later",
+    "autoload": {
+        "psr-4": {
+            "Jcleeland\\Nodavuvale\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jason Cleeland",
+            "email": "jason@cleeland.org"
+        }
+    ]
+}

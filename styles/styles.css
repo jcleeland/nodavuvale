@@ -1,0 +1,467 @@
+/* Custom Fijian-Inspired Colors */
+:root {
+    --brown: #6b4226;
+    --cream: #f5f5dc;
+    --burnt-orange: #cc5500;
+    --deep-green: #2f4f4f;
+    --ocean-blue: #0077b6;
+    --warm-red: #b22222;
+    --white: #ffffff;
+}
+
+/* Background Colors */
+.bg-brown {
+    background-color: var(--brown);
+}
+
+.bg-cream {
+    background-color: var(--cream);
+}
+
+.bg-burnt-orange {
+    background-color: var(--burnt-orange);
+}
+
+.bg-deep-green {
+    background-color: var(--deep-green);
+}
+
+.bg-ocean-blue {
+    background-color: var(--ocean-blue);
+}
+
+.bg-warm-red {
+    background-color: var(--warm-red);
+}
+
+/* Text Colors */
+.text-deep-green {
+    color: var(--deep-green);
+}
+
+.text-deep-green-disabled {
+    color: #2f4f4f94;
+}
+
+.text-brown {
+    color: var(--brown);
+}
+
+.text-brown-500 {
+    color: #6b422694;
+}
+
+.text-brown-700 {
+    color: #4b2c20;
+}
+
+.text-cream {
+    color: var(--cream);
+}
+
+.text-white {
+    color: var(--white);
+}
+
+.text-burnt-orange {
+    color: var(--burnt-orange);
+}
+
+.text-ocean-blue {
+    color: var(--ocean-blue);
+}
+
+.text-warm-red {
+    color: var(--warm-red);
+}
+
+.text-sm.text-gray-500 {
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+/* Button Styling */
+.custom-button {
+    background-color: var(--warm-red);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.custom-button:hover {
+    background-color: var(--burnt-orange);
+}
+
+/* Utility Classes */
+.p-4 {
+    padding: 1rem;
+}
+
+.px-6 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.pb-6 {
+    padding-bottom: 1.54rem;
+}
+
+.py-20 {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+}
+
+.py-12 {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+}
+.py-0 {
+    padding-top: 0;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+}
+
+.text-4xl {
+    font-size: 2.25rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.mt-0 {
+    margin-top: -0.5rem;
+}
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mt-8 {
+    margin-top: 2rem;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.rounded-lg {
+    border-radius: 0.5rem;
+}
+
+.grid {
+    display: grid;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gap-8 {
+    gap: 2rem;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--deep-green);
+    color: var(--white);
+    padding: 2rem 0;
+    text-align: center;
+}
+
+/* Hero Section Background */
+.hero {
+    background-image: url('../images/nataleira_banner.jpg');
+    background-size: cover;  /* Make sure the image covers the entire section */
+    background-position: center;  /* Center the image */
+    background-repeat: no-repeat;
+    position: relative;  /* For positioning the overlay */
+}
+
+/* Optional: Add a translucent overlay to improve text legibility */
+.hero-overlay {
+    background-color: rgba(0, 0, 0, 0.4);  /* Black with 40% transparency */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Ensure content inside the hero remains above the background/overlay */
+.hero-content {
+    position: relative;
+    z-index: 10;
+    color: white;
+    text-align: center;
+    padding: 5rem 2rem;
+    background-color: rgba(0, 0, 0, 0.5);  /* Black with 50% transparency */
+    border-radius: 8px;  /* Rounded corners for a cleaner look */
+    max-width: 80%;  /* Restrict content width */
+    margin: 0 auto;  /* Center the content */
+}
+
+
+
+
+
+
+/**********************************************
+*  Family Tree "Add" and "Edit" form Modal Styles
+***********************************************/
+
+/* Modal container */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Black background with opacity */
+}
+
+.modal-header {
+    cursor: pointer;
+}
+
+/* Modal content box */
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    width: 50%;
+    max-width: 500px;
+}
+
+/* Close button */
+.close-btn, .edit-close-btn {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/**********************************************
+*  Family Tree Container
+***********************************************/
+.familytree {
+    background-color: #f8f8e894;
+    border: 1px solid #d1d1ac;
+}
+
+/**********************************************
+* FAMILY TREE EDIT BUTTON
+***********************************************/
+/* Style the "Edit" button */
+.edit-btn {
+    background-color: #6c63ff; /* Vibrant purple */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular button */
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    position: absolute; /* Absolute positioning within the node */
+    bottom: 5px; /* Adjust for better placement */
+    left: 5px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    z-index: 1;
+    transition: transform 0.3s ease; /* Animation for hover effect */
+}
+
+/* Hover effect for edit button */
+.edit-btn:hover {
+    transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+/**********************************************
+*  Family Tree "Add" Button & Dropdown Menu 
+***********************************************/
+/* Style the "+" button */
+.dropdown-btn {
+    background-color: #ff6f61; /* Vibrant red-orange */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular button */
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    z-index: 1;
+    transition: transform 0.3s ease; /* Animation for hover effect */
+}
+
+/* Hover effect for add button */
+.dropdown-btn:hover {
+    transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+
+/* Dropdown menu, initially hidden */
+#dropdownMenu {
+    display: none;
+    position: absolute; /* Position absolutely relative to the page */
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    z-index: 9999;
+    white-space: nowrap;
+}
+
+/* Dropdown button styles */
+#dropdownMenu button {
+    background-color: white;
+    color: #333;
+    padding: 10px;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    display: block; 
+}
+
+/* Hover effect for dropdown buttons */
+#dropdownMenu button:hover {
+    background-color: #e0e0e0;
+}
+
+
+/**********************************************
+*  Communications Section Styles
+***********************************************/
+
+.comments {
+    position: relative;
+    margin-left: 1rem;
+    font-size: 0.9rem;
+}
+
+.discussion-reactions, .comment-reactions {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.like-image {
+    margin-right: 10px; /* Adjust as needed */
+}
+
+.reaction-buttons {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.remove-reaction-image {
+    margin-right: 10px; /* Adjust as needed */
+    cursor: pointer;
+}
+
+.remove-reaction-image:hover + .reaction-buttons,
+.reaction-buttons:hover {
+    display: block;
+}
+
+
+.like-image:hover + .reaction-buttons,
+.reaction-buttons:hover {
+    display: block;
+}
+
+.reaction-summary-container {
+    display: flex;
+    align-items: center;
+    margin-left: 10px; /* Adjust as needed */
+}
+
+.reaction-summary {
+    margin-right: 10px; /* Adjust as needed */
+}
+
+.reaction-item {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 5px; /* Adjust as needed */
+}
+
+.reaction-count {
+    font-size: 0.8em; /* Smaller font size */
+    margin-left: 2px; /* Adjust as needed */
+}
+
+.reaction-float-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.submit-button {
+    position: absolute;
+    right: 2px;
+    top: -5px;
+}
+
+
+
+
+

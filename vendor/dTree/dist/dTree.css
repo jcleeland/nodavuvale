@@ -1,0 +1,131 @@
+foreignObject {
+    overflow: visible;
+}
+
+/* Style for the div inside the foreignObject (which is your node) */
+#family-tree .node {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    border: 2px solid #ccc;  /* Border around the node */
+    border-radius: 8px;      /* Slightly rounded corners */
+    padding: 5px;
+    background-color: #fff;  /* Background color for better contrast */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);  /* Soft shadow for depth */
+    width: 200px;            /* Set a fixed width for the node */
+    height: 120px;            /* Set a fixed height for the node */
+    overflow: auto;        /* Ensure content doesn't overflow if it's too large */
+}
+
+/* Ensure text inside node is centered and fits the space */
+#family-tree .nodeText {
+    text-align: center;      /* Center align the text */
+    margin: 0;               /* Reset default margins */
+
+}
+
+#family-tree .nodeBodyText {
+    position: absolute;
+    text-align: center;
+    font-size: 1rem;   
+    top: 15px;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 0 5px 0 5px;
+}
+
+.parentLinks {
+    top: 0;
+    left: 0;
+    padding: 0;
+    margin: 0;
+    height: 15px;
+    width: 100%;
+    position: absolute;
+}
+
+.parent-link {
+    width: 40%;
+    top: -5px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+    position: relative;
+    display: inline-block;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.bodyName {
+    font-weight: bold; 
+    cursor: pointer
+}
+
+/* Adjust the linage class to ensure connector lines are narrow */
+#family-tree .linage {
+    stroke: #555;            /* Line color */
+    stroke-width: 1.0px;     /* Thin stroke for the lines */
+    fill: none;              /* Ensure there's no fill */
+}
+
+#family-tree .marriage {
+    stroke: #7109f8;
+    stroke-width: 1.5px;
+    fill: none;
+    /* make the stroke curved */
+    stroke-linecap: round;
+}
+
+/* Ensure foreignObject spacing and size is consistent */
+foreignObject {
+    overflow: visible;       /* Ensure the content inside foreignObject is fully visible */
+}
+
+.treegender_female {
+    /* Earthy green with gradient */
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(to right, #a8d5ba, #7bb38d);
+    border: 2px dashed #567a63;
+    border-radius: 10px;
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.treegender_male {
+    /* Warm amber with gradient */
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(to bottom, #f7d1a1, #e9b379);
+    border: 2px solid #b3874d;
+    border-radius: 50%;
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.treegender_other {
+    /* Muted purple gradient */
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(to bottom, #c8c0e7, #a59bc6);
+    border: 2px solid #7b70a6;
+    border-radius: 10px;
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+
+
+
