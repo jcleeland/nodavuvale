@@ -85,8 +85,6 @@ class Auth {
 
         // Hash the password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        ini_set('display_errors', 1);
-        error_reporting(E_ALL);
         echo "Inserting "."INSERT INTO users (email, password, relative_name, relationship, role, approved) VALUES (?, ?, ?, ?, 'unconfirmed', 0)";
         // Insert the new user into the database with 'unconfirmed' role and 'approved' = 0
         try {

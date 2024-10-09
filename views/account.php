@@ -61,7 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $sql .= " WHERE id = ?";
-        $db->update($sql, $params);
+
+        try {
+            $this->db->query(
+                $sql, 
+                $params
+            );
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return false;
+        }        
 
         // Optionally redirect to avoid form resubmission
         header('Location: index.php?to=account' . ($is_admin ? "&user_id=$user_id" : ''));
