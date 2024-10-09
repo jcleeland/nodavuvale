@@ -85,7 +85,7 @@ include("helpers/quickedit.php");
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
                 <?php foreach ($parents as $parent): ?>
                     <div class="individual-item text-center p-1 shadow-lg rounded-lg gender_<?= $parent['gender'] ?>">
-                        <h4 class="text-xl font-bold"><?php echo $parent['first_names'] . ' ' . $parent['last_name']; ?></h4>
+                        <h4 class="text-xl font-bold"><a href="?to=family/individual&individual_id=<?= $parent['id'] ?>"><?php echo $parent['first_names'] . ' ' . $parent['last_name']; ?></a></h4>
                         <p class="mt-2 text-sm text-gray-600"><?php echo $parent['birth_prefix']; ?> <?php echo $parent['birth_year']; ?> - <?php echo $parent['death_prefix']; ?> <?php echo $parent['death_year']; ?></p>
                         <button class="edit-btn" data-individual-id="<?= $parent['id'] ?>" title="Edit">&#9998;</button>
                     </div>
@@ -99,7 +99,7 @@ include("helpers/quickedit.php");
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
                 <?php foreach ($children as $child): ?>
                     <div class="individual-item text-center p-1 shadow-lg rounded-lg gender_<?= $child['gender'] ?>">
-                        <h4 class="text-xl font-bold"><?php echo $child['first_names'] . ' ' . $child['last_name']; ?></h4>
+                        <h4 class="text-xl font-bold"><a href="?to=family/individual&individual_id=<?= $child['id'] ?>"><?php echo $child['first_names'] . ' ' . $child['last_name']; ?></a></h4>
                         <p class="mt-2 text-sm text-gray-600"><?php echo $child['birth_prefix']; ?> <?php echo $child['birth_year']; ?> - <?php echo $child['death_prefix']; ?> <?php echo $child['death_year']; ?></p>
                         <button class="edit-btn" data-individual-id="<?= $child['id'] ?>" title="Edit">&#9998;</button>
                     </div>

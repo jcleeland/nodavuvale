@@ -61,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $sql .= " WHERE id = ?";
-
+        echo $sql;
+        print_r($params);
         try {
             $this->db->query(
                 $sql, 
@@ -71,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log($e->getMessage());
             return false;
         }        
-
         // Optionally redirect to avoid form resubmission
         header('Location: index.php?to=account' . ($is_admin ? "&user_id=$user_id" : ''));
         exit();
