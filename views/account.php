@@ -24,7 +24,6 @@ if ($is_admin && isset($_GET['user_id'])) {
 // Fetch the user’s account details to be edited
 $user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
 
-// Handle form submission to update user information
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $first_name = trim($_POST['first_name']);
     $last_name = trim($_POST['last_name']);
@@ -33,26 +32,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     
     // Admin-only fields
-    $approved = isset($_POST['approved']) ? 1 : 0; // Checkbox, so value is either 1 or 0
-    $role = $is_admin && isset($_POST['role']) ? $_POST['role'] : $user['role']; // Only allow admins to change role
+    $approved = isset($_POST['approved']) ? 1 : 0;
+    $role = $is_admin && isset($_POST['role']) ? $_POST['role'] : $user['role'];
 
     // Check if password reset is required
     $password = trim($_POST['password']);
     $confirm_password = trim($_POST['confirm_password']);
     if (!empty($password)) {
         if ($password === $confirm_password) {
-            // Hash the new password
             $password_hashed = password_hash($password, PASSWORD_DEFAULT);
         } else {
             $error = "Passwords do not match.";
         }
     }
 
-    // Validate fields (add more validation if needed)
+    // Validate other fields
     if (!isset($error) && !empty($first_name) && !empty($last_name) && !empty($relative_name) && !empty($relationship) && !empty($email)) {
+        // Process avatar upload
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = 'uploads/avatars/';
+            $avatar_file_name = $user_id . '_' . basename($_FILES['avatar']['name']);
+            $file_path = $upload_dir . $avatar_file_name;
+            $file_format = pathinfo($file_path, PATHINFO_EXTENSION);
+
+            // Validate file type
+            $allowed_formats = ['jpg', 'jpeg', 'png', 'gif'];
+            if (!in_array(strtolower($file_format), $allowed_formats)) {
+                $error = "Invalid file format. Allowed formats: jpg, jpeg, png, gif.";
+            } else {
+                // Move the uploaded file to the target directory
+                if (move_uploaded_file($_FILES['avatar']['tmp_name'], $file_path)) {
+                    // Update avatar path in the database
+                    $avatar = $file_path;
+                } else {
+                    $error = "Failed to upload avatar.";
+                }
+            }
+        }
+
         // Update the user's details in the database
-        $params = [$first_name, $last_name, $relative_name, $relationship, $email, $approved, $role, $user_id];
+        $params = [$first_name, $last_name, $relative_name, $relationship, $email, $approved, $role];
         $sql = "UPDATE users SET first_name = ?, last_name = ?, relative_name = ?, relationship = ?, email = ?, approved = ?, role = ?";
+
+        // Add the avatar if uploaded
+        if (isset($avatar)) {
+            $sql .= ", avatar = ?";
+            $params[] = $avatar;
+        }
 
         // Update password if provided
         if (!empty($password_hashed)) {
@@ -61,22 +87,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $sql .= " WHERE id = ?";
-        echo $sql;
-        print_r($params);
+        $params[] = $user_id;
+
+        // Function to safely escape and quote parameters
+        /*function quote($value) {
+            return "'" . addslashes($value) . "'";
+        }*/
+
+        // Replace placeholders with actual values
+        /*foreach ($params as $param) {
+            $fullsql = preg_replace('/\?/', quote($param), $sql, 1);
+        }*/
+
         try {
-            $this->db->query(
-                $sql, 
-                $params
-            );
+            $db->query($sql, $params);
         } catch (Exception $e) {
             error_log($e->getMessage());
-            return false;
-        }        
+            $error = "Failed to update account.";
+        }
+
         // Optionally redirect to avoid form resubmission
-        header('Location: index.php?to=account' . ($is_admin ? "&user_id=$user_id" : ''));
-        exit();
+        if (!isset($error)) {
+            //echo $fullsql; die();
+            header('Location: index.php?to=account' . ($is_admin ? "&user_id=$user_id" : ''));
+            exit();
+        }
     }
 }
+
+$avatar_path = $user['avatar'] ?? 'uploads/avatars/default-avatar.png';
 
 ?>
 
@@ -97,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="text-red-500"><?= htmlspecialchars($error) ?></p>
         <?php endif; ?>
         
-        <form action="index.php?to=account<?= $is_admin && $user_id !== $_SESSION['user_id'] ? "&user_id=$user_id" : '' ?>" method="POST">
+        <form action="index.php?to=account<?= $is_admin && $user_id !== $_SESSION['user_id'] ? "&user_id=$user_id" : '' ?>" method="POST" enctype="multipart/form-data">
             <!-- First Name -->
             <div class="mb-4">
                 <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
@@ -108,6 +147,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mb-4">
                 <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
                 <input type="text" name="last_name" id="last_name" value="<?= htmlspecialchars($user['last_name']) ?>" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+
+            <!-- Avatar Upload -->
+            <div class="mb-4">
+                <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-lg">
+                <label for="avatar" class="block text-sm font-medium text-gray-700">Upload Avatar</label>
+                <input type="file" name="avatar" id="avatar" accept="image/*" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm">
             </div>
 
             <!-- Relative Name -->

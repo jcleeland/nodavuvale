@@ -48,6 +48,7 @@ spl_autoload_register(function($class) use ($classMap) {
 // Instantiate the necessary objects
 $db = Database::getInstance();
 $auth = new Auth($db);
+$web = new Web($db);
 
 $site_name=$db->getSiteSettings()['site_name'];
 

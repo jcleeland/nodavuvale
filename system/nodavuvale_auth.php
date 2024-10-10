@@ -62,7 +62,21 @@ class Auth {
         }
         
         return null;  // Return null if not logged in or user not found
-    }    
+    }   
+    
+    public function getAvatarPath() {
+        if($this->isLoggedIn()) {
+            $user_id = $_SESSION['user_id'];
+            $user = $this->db->fetchOne("SELECT avatar FROM users WHERE id = ?", [$user_id]);
+            if($user) {
+                if($user['avatar'] == null) {
+                    return "images/default_avatar.webp";
+                } else {
+                    return $user['avatar'];
+                }
+            }
+        }
+    }
 
     public function logout() {
         Web::startSession();
