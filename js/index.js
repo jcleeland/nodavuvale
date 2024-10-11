@@ -23,6 +23,19 @@ async function getAjax(method, data) {
     return await response.json();
 }
 
+function toggleVisibility(divId, buttonId) {
+    var div = document.getElementById(divId);
+    var button = document.getElementById(buttonId);
+    if (div.classList.contains('hidden')) {
+        div.classList.remove('hidden');
+        button.textContent = 'Hide';
+    } else {
+        div.classList.add('hidden');
+        button.textContent = 'Show';
+    }
+}
+
+
 // Make a modal draggable
 function makeModalDraggable(modal, header) {
     let isDragging = false;

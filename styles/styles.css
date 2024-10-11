@@ -124,6 +124,11 @@
     text-align: center;
 }
 
+.text-normal {
+    font-size: 1rem;
+    font-weight: 400;
+}
+
 .text-xl {
     font-size: 1.25rem;
 }
@@ -515,6 +520,55 @@
     top: -5px;
 }
 
+/**********************************************
+*  Database Layouts
+***********************************************/
+.schema-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.schema-table-container {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: #f9f9f9;
+}
+
+.schema-table-header {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+    color: #333;
+}
+
+.schema-columns-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.schema-column {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.schema-column-name {
+    font-weight: bold;
+    color: #555;
+}
+
+.schema-column-type {
+    color: #888;
+}
 
 
 
