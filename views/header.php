@@ -8,22 +8,13 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="styles/styles.css" rel="stylesheet">
-    <style>
-        /* Custom colors reflecting Fijian traditional artwork */
-        :root {
-            --brown: #6b4226;
-            --cream: #f5f5dc;
-            --burnt-orange: #cc5500;
-            --deep-green: #2f4f4f;
-            --ocean-blue: #0077b6;
-            --warm-red: #b22222;
-        }
-    </style>
+
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="vendor/dTree/dist/dTree.css">
 
     <!-- Link to main js file -->
     <script src="js/index.js"></script>
+
     <!-- Link to dTree JavaScript -->
     <script src="vendor/lodash/lodash.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
@@ -36,14 +27,14 @@
 
     <!-- Header -->
     <header class="bg-brown text-white p-4">
-        <div class="container mx-auto grid grid-cols-3 items-center">
+        <div class="container mx-auto flex items-center justify-between">
             <!-- Sitename -->
-            <div class="text-left">
+            <div class="text-left whitespace-nowrap">
                 <h1 class="text-xl font-bold"><a href="index.php"><?= $site_name ?></a></h1>
             </div>
             
             <!-- Navigation Options -->
-            <nav class="hidden md:flex text-right space-x-4">
+            <nav class="hidden md:flex flex-grow justify-end text-right space-x-4">
                 <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/" class="text-white hover:text-burnt-orange">Family</a>
                 <a href="?to=village/" class="text-white hover:text-burnt-orange">Village</a>
@@ -51,12 +42,20 @@
             </nav>
             
             <!-- Mobile Navigation Toggle Button -->
-            <div class="md:hidden text-right">
+            <div class="flex-grow md:hidden text-right">
                 <button id="nav-toggle" class="text-white hover:text-burnt-orange focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M8 12h8m-4 6h2m-2"></path>
                     </svg>
                 </button>
+            </div>
+            
+            <!-- Mobile Navigation Menu -->
+            <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-brown text-white z-30 text-center">
+                <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
+                <a href="?to=family/" class="block px-4 py-2 text-white hover:text-burnt-orange">Family</a>
+                <a href="?to=village/" class="block px-4 py-2 text-white hover:text-burnt-orange">Village</a>
+                <a href="?to=communications/" class="block px-4 py-2 text-white hover:text-burnt-orange">Communications</a>
             </div>
             
             <!-- User Account/Login -->
@@ -87,25 +86,19 @@
                 <?php endif; ?>
             </div>
         </div>
-        
-        <!-- Mobile Navigation Menu -->
-        <div id="nav-menu" class="hidden md:hidden">
-            <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
-            <a href="?to=family/" class="block px-4 py-2 text-white hover:text-burnt-orange">Family</a>
-            <a href="?to=village/" class="block px-4 py-2 text-white hover:text-burnt-orange">Village</a>
-            <a href="?to=communications/" class="block px-4 py-2 text-white hover:text-burnt-orange">Communications</a>
-        </div>
     </header>
 
-    <style>
-        #nav-toggle:checked + #nav-menu {
-            display: block;
-        }
-    </style>
-    
     <script>
-    document.getElementById('user-menu-button').addEventListener('click', function() {
-        var menu = document.getElementById('user-menu');
-        menu.classList.toggle('hidden');
-    });
+        document.getElementById('nav-toggle').addEventListener('click', function() {
+            var navMenu = document.getElementById('nav-menu');
+            if (navMenu.classList.contains('hidden')) {
+                navMenu.classList.remove('hidden');
+            } else {
+                navMenu.classList.add('hidden');
+            }
+        });
+        document.getElementById('user-menu-button').addEventListener('click', function() {
+            var menu = document.getElementById('user-menu');
+            menu.classList.toggle('hidden');
+        });
     </script>
