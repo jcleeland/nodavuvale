@@ -36,15 +36,32 @@
 
     <!-- Header -->
     <header class="bg-brown text-white p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold"><a href="index.php"><?= $site_name ?></a></h1>
-            <nav class="relative">
-                <a href="index.php" class="ml-4 text-white hover:text-burnt-orange">Home</a>
-                <a href="?to=family/" class="ml-4 text-white hover:text-burnt-orange">Family</a>
-                <a href="?to=village/" class="ml-4 text-white hover:text-burnt-orange">Village</a>
-                <a href="?to=communications/" class="ml-4 text-white hover:text-burnt-orange">Communications</a>
-                <?php 
-                if (isset($_SESSION['user_id']) && $_SESSION['user_id'] !== ""): ?>
+        <div class="container mx-auto grid grid-cols-3 items-center">
+            <!-- Sitename -->
+            <div class="text-left">
+                <h1 class="text-xl font-bold"><a href="index.php"><?= $site_name ?></a></h1>
+            </div>
+            
+            <!-- Navigation Options -->
+            <nav class="hidden md:flex text-right space-x-4">
+                <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
+                <a href="?to=family/" class="text-white hover:text-burnt-orange">Family</a>
+                <a href="?to=village/" class="text-white hover:text-burnt-orange">Village</a>
+                <a href="?to=communications/" class="text-white hover:text-burnt-orange">Communications</a>
+            </nav>
+            
+            <!-- Mobile Navigation Toggle Button -->
+            <div class="md:hidden text-right">
+                <button id="nav-toggle" class="text-white hover:text-burnt-orange focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- User Account/Login -->
+            <div class="text-right">
+                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] !== ""): ?>
                     <?php
                     // Assuming you have the user's first and last name stored in the session
                     $firstName = $_SESSION['first_name'];
@@ -57,20 +74,34 @@
                                 <?php echo $initials; ?>
                             </span>
                         </button>
-                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden" id="user-menu" >
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden" id="user-menu">
                             <a href="?to=account" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Account</a>
-                        <?php if ($_SESSION['role'] === 'admin'): ?>
-                            <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin</a>
-                        <?php endif; ?>
+                            <?php if ($_SESSION['role'] === 'admin'): ?>
+                                <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin</a>
+                            <?php endif; ?>
                             <a href="?action=logout" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
                         </div>
                     </div>
                 <?php else: ?>
                     <a href="?to=login" class="ml-4 text-white hover:text-burnt-orange">Login</a>
                 <?php endif; ?>
-            </nav>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div id="nav-menu" class="hidden md:hidden">
+            <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
+            <a href="?to=family/" class="block px-4 py-2 text-white hover:text-burnt-orange">Family</a>
+            <a href="?to=village/" class="block px-4 py-2 text-white hover:text-burnt-orange">Village</a>
+            <a href="?to=communications/" class="block px-4 py-2 text-white hover:text-burnt-orange">Communications</a>
         </div>
     </header>
+
+    <style>
+        #nav-toggle:checked + #nav-menu {
+            display: block;
+        }
+    </style>
     
     <script>
     document.getElementById('user-menu-button').addEventListener('click', function() {

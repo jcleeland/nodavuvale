@@ -264,4 +264,74 @@ class Utils {
         
         return $children;
     }
+
+    public static function getSpouses($individual_id) {
+        // Get the database instance
+        $db = Database::getInstance();
+        
+        $spouses=[];
+        //First find explicit spouses as identified by the 'spouse' relationship type
+        $esquery = "
+            SELECT individuals.* 
+            FROM relationships 
+            JOIN individuals ON relationships.individual_id_2 = individuals.id 
+            WHERE relationships.individual_id_1 = ? 
+            AND relationships.relationship_type = 'spouse'";
+        $explicitspouses = $db->fetchAll($esquery, [$individual_id]);
+        foreach($explicitspouses as $spouse){
+            $spouses[$spouse['id']]=$spouse;
+        }
+
+
+        //Then find implicit spouses as identified by the 'child' relationship type
+        //First find any children of this person
+        $cquery = "
+            SELECT individuals.* 
+            FROM relationships 
+            JOIN individuals ON relationships.individual_id_2 = individuals.id 
+            WHERE relationships.individual_id_1 = ? 
+            AND relationships.relationship_type = 'child'";
+        $children = $db->fetchAll($cquery, [$individual_id]);
+        
+        //Then find any OTHER parent of those children
+        foreach($children as $child){
+            $pquery = "
+                SELECT individuals.* 
+                FROM relationships 
+                JOIN individuals ON relationships.individual_id_1 = individuals.id 
+                WHERE relationships.individual_id_2 = ? 
+                AND relationships.relationship_type = 'child'
+                AND individuals.id != ?";
+            $otherparent = $db->fetchAll($pquery, [$child['id'], $individual_id]);
+            if($otherparent){
+                foreach($otherparent as $op) {
+                    $spouses[$op['id']]=$op;
+                }
+            }
+        }        
+        return $spouses;
+    }
+
+    public static function getSiblings($individual_id) {
+        // Get the database instance
+        $db = Database::getInstance();
+        
+        // Fetch siblings using the updated query
+        $query = "
+            SELECT distinct individuals.* 
+            FROM relationships 
+            JOIN individuals ON relationships.individual_id_2 = individuals.id 
+            WHERE relationships.individual_id_1 IN (
+                SELECT individual_id_1 
+                FROM relationships 
+                WHERE individual_id_2 = ? 
+                AND relationship_type = 'child'
+            ) 
+            AND relationships.individual_id_2 != ? 
+            AND relationships.relationship_type = 'child'
+        ";
+        $siblings = $db->fetchAll($query, [$individual_id, $individual_id]);
+        
+        return $siblings;
+    }
 }

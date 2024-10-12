@@ -13,12 +13,21 @@ if(!isset($rootId)) {
 if ($individual_id) {
     // Fetch the individual details
     $individual = $db->fetchOne("SELECT * FROM individuals WHERE id = ?", [$individual_id]);
+    // Extract just the first word from $individual['first_names']
+    $individual['first_name'] = explode(' ', $individual['first_names'])[0];
+    $individual['fullname']=$individual['first_name'] . ' ' . $individual['last_name'];
 
     //Fetch parents
     $parents = Utils::getParents($individual_id);
 
     //Fetch children
     $children = Utils::getChildren($individual_id);
+
+    //Fetch spouses
+    $spouses = Utils::getSpouses($individual_id);
+    
+    //Fetch siblings
+    $siblings = Utils::getSiblings($individual_id);
 
     // Fetch associated files (photos and documents)
     $photos = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'photo'", [$individual_id]);
@@ -77,7 +86,35 @@ include("helpers/quickedit.php");
     </div>
 </section>
 
-<section class="container mx-auto py-12">
+<section class="container mx-auto pb-6 pt-0">
+    <div class="">
+        <div class="text-center p-2">
+            <!-- Display Siblings -->
+            <h3 class="text-2xl font-bold mt-8 mb-4">Details</h3>
+            <div class="p-6 bg-white shadow-lg rounded-lg">
+                <p class="text-lg text-gray-600">
+                    This is where a general summary of <?= $individual['fullname'] ?> will be placed, along with the some photos.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container mx-auto py-6">
+    <div class="">
+        <div class="text-center p-2">
+            <!-- Display Siblings -->
+            <h3 class="text-2xl font-bold mt-8 mb-4">Stories</h3>
+            <div class="p-6 bg-white shadow-lg rounded-lg">
+                <p class="text-lg text-gray-600">
+                    This is where any stories that have been posted about <?= $individual['first_name'] ?> will appear.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container mx-auto py-6">
     <div class="grid grid-cols-1 lg:grid-cols-2">
         <div class="text-center p-2">
             <!-- Display Parents -->
@@ -92,10 +129,38 @@ include("helpers/quickedit.php");
                 <?php endforeach; ?>
             </div>
         </div>
+
+        <div class="text-center p-2">
+            <!-- Display Siblings -->
+            <h3 class="text-2xl font-bold mt-8 mb-4">Siblings</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
+                <?php foreach ($siblings as $sibling): ?>
+                    <div class="individual-item text-center p-1 shadow-lg rounded-lg gender_<?= $sibling['gender'] ?>">
+                        <h4 class="text-xl font-bold"><a href="?to=family/individual&individual_id=<?= $sibling['id'] ?>"><?php echo $sibling['first_names'] . ' ' . $sibling['last_name']; ?></a></h4>
+                        <p class="mt-2 text-sm text-gray-600"><?php echo $sibling['birth_prefix']; ?> <?php echo $sibling['birth_year']; ?> - <?php echo $sibling['death_prefix']; ?> <?php echo $sibling['death_year']; ?></p>
+                        <button class="edit-btn" data-individual-id="<?= $sibling['id'] ?>" title="Edit">&#9998;</button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>        
+
+        <div class="text-center p-2">
+            <!-- Display Spouse(s) -->
+            <h3 class="text-2xl font-bold mt-8 mb-4">Spouse(s)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
+                <?php foreach ($spouses as $spouse): ?>
+                    <div class="individual-item text-center p-1 shadow-lg rounded-lg gender_<?= $spouse['gender'] ?>">
+                        <h4 class="text-xl font-bold"><a href="?to=family/individual&individual_id=<?= $spouse['id'] ?>"><?php echo $spouse['first_names'] . ' ' . $spouse['last_name']; ?></a></h4>
+                        <p class="mt-2 text-sm text-gray-600"><?php echo $spouse['birth_prefix']; ?> <?php echo $spouse['birth_year']; ?> - <?php echo $spouse['death_prefix']; ?> <?php echo $spouse['death_year']; ?></p>
+                        <button class="edit-btn" data-individual-id="<?= $spouse['id'] ?>" title="Edit">&#9998;</button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <div class="text-center p-2">
             <!-- Display Children -->
-            <h3 class="text-2xl font-bold mt-8 mb-4">Children (<?= count($children) ?>)</h3>
-
+            <h3 class="text-2xl font-bold mt-8 mb-4 ">Children (<?= count($children) ?>)</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
                 <?php foreach ($children as $child): ?>
                     <div class="individual-item text-center p-1 shadow-lg rounded-lg gender_<?= $child['gender'] ?>">
@@ -109,32 +174,38 @@ include("helpers/quickedit.php");
     </div>
 </section>
 
-<section class="container mx-auto py-12">    
+<section class="container mx-auto py-6">    
     <!-- Display Photos -->
-    <h3 class="text-2xl font-bold mt-8 mb-4">Photos</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
-        <?php foreach ($photos as $photo): ?>
-            <div class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg">
-                <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
-                <?php if (!empty($photo['file_description'])): ?>
-                    <p class="mt-2 text-sm text-gray-600"><?php echo $photo['file_description']; ?></p>
-                <?php endif; ?>
-            </div>
-        <?php endforeach; ?>
+    <div class="text-center p-2">
+        <h3 class="text-2xl font-bold mt-8 mb-4">Photos</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
+            <?php foreach ($photos as $photo): ?>
+                <div class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg">
+                    <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
+                    <?php if (!empty($photo['file_description'])): ?>
+                        <p class="mt-2 text-sm text-gray-600"><?php echo $photo['file_description']; ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
+</section>
 
+<section class="container mx-auto py-6">
     <!-- Display Documents -->
-    <h3 class="text-2xl font-bold mt-8 mb-4">Documents</h3>
-    <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
-        <?php foreach ($documents as $document): ?>
-            <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
-                <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
-                    View Document
-                </a>
-                <?php if (!empty($document['file_description'])): ?>
-                    <p class="mt-1 text-sm text-gray-600"><?php echo $document['file_description']; ?></p>
-                <?php endif; ?>
-            </div>
-        <?php endforeach; ?>
+    <div class="text-center p-2">
+        <h3 class="text-2xl font-bold mt-8 mb-4">Documents</h3>
+        <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
+            <?php foreach ($documents as $document): ?>
+                <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
+                    <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
+                        View Document
+                    </a>
+                    <?php if (!empty($document['file_description'])): ?>
+                        <p class="mt-1 text-sm text-gray-600"><?php echo $document['file_description']; ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
