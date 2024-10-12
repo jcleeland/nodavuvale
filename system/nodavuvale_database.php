@@ -195,8 +195,10 @@ class Database {
         return $columns;
     }
 
-    // Function to compare two schemas
-    public function compareSchemas($dumpSchema, $currentSchema) {
+
+
+    // Function to compare two schemas and generate SQL
+    public function compareSchemas($currentSchema, $dumpSchema) {
         $differences = [
             'tables_to_create' => [],
             'columns_to_create' => [],
@@ -204,25 +206,37 @@ class Database {
             'redundant_columns' => []
         ];
 
+        // 1. Identify tables to create and missing columns in existing tables
         foreach ($dumpSchema as $table => $columns) {
             if (!isset($currentSchema[$table])) {
-                $differences['tables_to_create'][$table] = $columns;
+                // Table is missing, generate SQL to create the whole table
+                $createTableSQL = $this->generateCreateTableSQL($table, $columns);
+                $differences['tables_to_create'][$table] = $createTableSQL;
             } else {
+                // Table exists, check for missing columns
                 foreach ($columns as $colName => $colType) {
                     if (!isset($currentSchema[$table][$colName])) {
-                        $differences['columns_to_create'][$table][$colName] = $colType;
+                        // Column is missing, generate SQL to add the column
+                        $addColumnSQL = $this->generateAddColumnSQL($table, $colName, $colType);
+                        $differences['columns_to_create'][$table][$colName] = $addColumnSQL;
                     }
                 }
             }
         }
 
+        // 2. Identify redundant tables and columns
         foreach ($currentSchema as $table => $columns) {
             if (!isset($dumpSchema[$table])) {
-                $differences['redundant_tables'][$table] = $columns;
+                // Table exists in current schema but not in dump, mark as redundant
+                $dropTableSQL = $this->generateDropTableSQL($table);
+                $differences['redundant_tables'][$table] = $dropTableSQL;
             } else {
+                // Check for redundant columns
                 foreach ($columns as $colName => $colType) {
                     if (!isset($dumpSchema[$table][$colName])) {
-                        $differences['redundant_columns'][$table][$colName] = $colType;
+                        // Column exists in current schema but not in dump, mark as redundant
+                        $dropColumnSQL = $this->generateDropColumnSQL($table, $colName);
+                        $differences['redundant_columns'][$table][$colName] = $dropColumnSQL;
                     }
                 }
             }
@@ -231,35 +245,53 @@ class Database {
         return $differences;
     }
 
-    // Function to generate SQL for missing tables/columns
-    public function generateSQL($differences) {
-        $sql = [];
+    // Function to generate the SQL for creating a table
+    function getCreateTableSQL($tableName) {
+        global $nodavuvaleSchema;
+        $columns = $nodavuvaleSchema[$tableName];
+        $columnDefs = [];
+        foreach ($columns as $column => $definition) {
+            $columnDefs[] = "`$column` $definition";
+        }
+        return "CREATE TABLE `$tableName` (" . implode(", ", $columnDefs) . ")";
+    }
 
-        foreach ($differences['to_create_tables'] as $table => $columns) {
-            $columnDefinitions = [];
-            foreach ($columns as $colName => $colType) {
-                $columnDefinitions[] = "`$colName` $colType";
-            }
-            $sql[] = "CREATE TABLE `$table` (" . implode(", ", $columnDefinitions) . ");";
+    // Function to generate the SQL for adding a column
+    function getAddColumnSQL($tableName, $columnName) {
+        global $nodavuvaleSchema;
+        $columnDefinition = $nodavuvaleSchema[$tableName][$columnName];
+        return "ALTER TABLE `$tableName` ADD COLUMN `$columnName` $columnDefinition";
+    }
+
+    // Helper function to generate SQL for creating a new table
+    private function generateCreateTableSQL($table, $columns) {
+        $sql = "CREATE TABLE `$table` (\n";
+        $colDefinitions = [];
+
+        foreach ($columns as $colName => $colType) {
+            $colDefinitions[] = "`$colName` $colType";
         }
 
-        foreach ($differences['to_create_columns'] as $table => $columns) {
-            foreach ($columns as $colName => $colType) {
-                $sql[] = "ALTER TABLE `$table` ADD COLUMN `$colName` $colType;";
-            }
-        }
-
+        $sql .= implode(",\n", $colDefinitions);
+        $sql .= "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"; // Adjust based on your schema's default engine/charset
         return $sql;
     }
 
-    // Function to report missing tables/columns
-    public function reportMissing($differences) {
-        echo "Tables missing in dump file but found in current DB:\n";
-        print_r($differences['missing_tables']);
-
-        echo "\nColumns missing in dump file but found in current DB:\n";
-        print_r($differences['missing_columns']);
+    // Helper function to generate SQL for adding a new column to an existing table
+    private function generateAddColumnSQL($table, $column, $definition) {
+        return "ALTER TABLE `$table` ADD `$column` $definition;";
     }
+
+    // Helper function to generate SQL for dropping a redundant table
+    private function generateDropTableSQL($table) {
+        return "DROP TABLE IF EXISTS `$table`;";
+    }
+
+    // Helper function to generate SQL for dropping a redundant column
+    private function generateDropColumnSQL($table, $column) {
+        return "ALTER TABLE `$table` DROP COLUMN `$column`;";
+    }
+
 
     // Function to export database structure
     public function exportDatabaseStructure($filePath) {
