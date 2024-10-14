@@ -1,67 +1,66 @@
-foreignObject {
-    overflow: visible;
-}
+
 
 /* Style for the div inside the foreignObject (which is your node) */
 #family-tree .node {
-    display: flex;
     justify-content: center;
-    align-items: flex-start;
     border: 2px solid #ccc;  /* Border around the node */
     border-radius: 8px;      /* Slightly rounded corners */
-    padding: 5px;
+    padding: 2px;
     background-color: #fff;  /* Background color for better contrast */
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);  /* Soft shadow for depth */
-    width: 200px;            /* Set a fixed width for the node */
-    height: 120px;            /* Set a fixed height for the node */
-    overflow: auto;        /* Ensure content doesn't overflow if it's too large */
+    box-shadow: 2px 2px 5px #0000001a;  /* Soft shadow for depth */
 }
 
 /* Ensure text inside node is centered and fits the space */
 #family-tree .nodeText {
-    text-align: center;      /* Center align the text */
-    margin: 0;               /* Reset default margins */
-
+    text-align: center;
+    display: none;
 }
 
 #family-tree .nodeBodyText {
-    position: absolute;
     text-align: center;
     font-size: 1rem;   
-    top: 15px;
-    left: 0;
     width: 100%;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    padding: 0 5px 0 5px;
+    padding: 0;
+}
+
+#family-tree .nodeFooterText {
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 2px;
+    width: 100%;
+    font-size: 1rem;
 }
 
 .parentLinks {
-    top: 0;
-    left: 0;
-    padding: 0;
-    margin: 0;
-    height: 15px;
-    width: 100%;
-    position: absolute;
+    /* not currently used */
+    max-height: 10px;
 }
 
 .parent-link {
-    width: 40%;
-    top: -5px;
-    font-size: 0.8rem;
+    max-height: 10px;
+    font-size: 0.7rem;
     font-weight: bold;
     text-align: center;
-    position: relative;
-    display: inline-block;
     margin-top: 0;
     padding-top: 0;
+    cursor: pointer;
+}
+
+.parent-link-left {
+    border-radius: 4px 0 0 0;
+}
+.parent-link-right {
+    border-radius: 0 4px 0 0;
 }
 
 .bodyName {
     font-weight: bold; 
-    cursor: pointer
+    cursor: pointer;
 }
 
 /* Adjust the linage class to ensure connector lines are narrow */
@@ -79,15 +78,8 @@ foreignObject {
     stroke-linecap: round;
 }
 
-/* Ensure foreignObject spacing and size is consistent */
-foreignObject {
-    overflow: visible;       /* Ensure the content inside foreignObject is fully visible */
-}
-
 .treegender_female {
     /* Earthy green with gradient */
-    width: 120px;
-    height: 120px;
     background: linear-gradient(to right, #a8d5ba, #7bb38d);
     justify-content: center;
     align-items: center;
@@ -96,8 +88,6 @@ foreignObject {
 
 .treegender_male {
     /* Warm amber with gradient */
-    width: 120px;
-    height: 120px;
     background: linear-gradient(to bottom, #f7d1a1, #e9b379);
     justify-content: center;
     align-items: center;
@@ -106,14 +96,35 @@ foreignObject {
 
 .treegender_other {
     /* Muted purple gradient */
-    width: 120px;
-    height: 120px;
     background: linear-gradient(to bottom, #c8c0e7, #a59bc6);
     justify-content: center;
     align-items: center;
     text-align: center;
 }
 
+
+/**********************************************
+* FAMILY TREE EDIT BUTTON
+***********************************************/
+/* Style the "Edit" button */
+#family-tree .ft-edit-btn {
+    cursor: pointer;
+    color: rgb(230, 227, 227);
+    z-index: 100;
+}
+
+/* Style the "+" button */
+#family-tree .ft-dropdown-btn {
+    cursor: pointer;
+    z-index: 100;
+}
+
+/* Syle the "view" button */
+#family-tree .ft-view-btn {
+    color: rgb(230, 227, 227);
+    cursor: pointer;
+    z-index: 100;
+}
 
 
 

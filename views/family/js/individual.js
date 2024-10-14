@@ -89,3 +89,17 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
 });
+
+function triggerFileUpload() {
+    document.getElementById('fileUpload').click();
+}
+
+function uploadImage() {
+    var fileInput = document.getElementById('fileUpload');
+    var file = fileInput.files[0];
+    if (file) {
+        // Handle the file upload logic here
+        console.log('File selected:', file.name);
+        // You can use AJAX to upload the file to the server
+    }
+}

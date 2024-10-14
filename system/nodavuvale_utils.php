@@ -36,28 +36,48 @@ class Utils {
             $fullName = $individual['first_names'] . " " . $individual['last_name'];
             $lifeSpan = "($birthYear - $deathYear)";
             $gender = !empty($individual['gender']) ? $individual['gender'] : 'other';
-            $editButton = '<button class="edit-btn" data-individual-id="' . $individual['id'] . '" title="Edit">&#9998;</button>';
-            $addButton = '<button class="dropdown-btn" data-individual-id="' . $individual['id'] . '" data-individual-gender="'.$gender.'" title="Add relationship">&#128279;</button>';
+
 
             // Find parents of the root individual
-            $parentLinks = '';
-            if($id == $rootId) {
+            $parentLinks = '<div id="parents_div" class="parentLinks grid grid-cols-2 w-full">';
+            //if($id == $rootId) {
+            if(1==1) {
                 $parents = findParents($id, $relationshipLookup, $individualLookup);
                 if (!empty($parents)) {
                     // Use a span tag with inline-flex for the parent links
-                    $parentLinks .= "<span class='parentLinks'>";
+                    $parentside='parent-link-left';
                     foreach ($parents as $parent) {
                         // Add parent links with an up symbol and inline-flex layout
-                        $parentLinks .= "<span class='parent-link'><a href='?to=family/tree&root_id=" . $parent['id'] . "' title='Move up to ".$parent['name']."'>&#94;</a></span>";
+                        $parentLinks .= "<div class='parent-link ".$parentside." treegender_".$parent['gender']." flex justify-center items-center pointer' onClick='window.location.href=\"?to=family/tree&root_id=" . $parent['id'] . "\"' title='Move up to ".$parent['name']."'>&#94;</div>";
+                        $parentside='parent-link-right';
                     }
-                    $parentLinks .= "</span>";  // Add line break to separate from the rest of the content
+                } else {
+                    $parentLinks .= "<div class='parent-link'>&nbsp;</div><div class='parent-link'>&nbsp;</div>";
                 }
             }
+            $parentLinks.="</div>";
+
+            $nodeBodyText = "<div class='nodeBodyText'>";
+            $nodeBodyText .= "<input type='hidden' class='individualid' value='{$individual['id']}' />";
+            $nodeBodyText .= "<span class='bodyName' title='{$fullName}' onClick='window.location.href=\"?to=family/tree&root_id=" . $individual['id'] . "\"'>";
+            $nodeBodyText .= $briefName; 
+            $nodeBodyText .= "</span>";
+            $nodeBodyText .= "<br />";
+            $nodeBodyText .= "<span style='font-size: 0.7rem'>";
+            $nodeBodyText .= $lifeSpan;
+            $nodeBodyText .= "</span>";
+            $nodeBodyText .= "</div>";
+            $nodeBodyText .= "</div><div class='w-full text-center px-1 pb-2'>";
+            $nodeBodyText .= "<button class='ft-view-btn float-right' title='View this individual' onClick='window.location.href=\"?to=family/individual&individual_id=".$individual['id']."\"'>&#10140;</button>";
+            $nodeBodyText .= "<span class='float-left inline md:hidden'>&nbsp;</span>";
+            $nodeBodyText .= "<button class='ft-edit-btn hidden md:inline float-left' title='Edit this individual' onClick='editIndividualFromTreeNode(\"".$individual['id']."\")'>&#128221;</button>";
+            $nodeBodyText .= "<span class='inline md:hidden'>&nbsp;</span>";
+            $nodeBodyText .= "<button class='ft-dropdown-btn hidden md:inline' title='Add a relationship to this individual' onClick='addRelationshipToIndividualFromTreeNode(this)' >🔗</button>";
 
 
             $node = [
                 'id' => $individual['id'],
-                'name' => $parentLinks . "<span class='nodeBodyText'><span class='bodyName' title='{$fullName}' onClick='window.location.href=\"?to=family/individual&individual_id=" . $individual['id']."\"' onDblClick='window.location.href=\"?to=family/tree&root_id=" . $individual['id'] . "\"'>" . $briefName . "</span><br /><span style='font-size: 0.7rem'>" . $lifeSpan . "</span></span>" . $editButton . $addButton,
+                'name' => $parentLinks . $nodeBodyText,
                 'class' => 'node treegender_'.$gender,
                 'depthOffset' => 0,
             ];
@@ -77,6 +97,7 @@ class Utils {
                             $parents[] = [
                                 'id' => $parentId,
                                 'name' => $parent['first_names']. " ". $parent['last_name'],
+                                'gender' => $parent['gender'],
                             ];
                         }
                     }

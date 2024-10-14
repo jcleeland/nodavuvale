@@ -178,12 +178,16 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
         var windowHeight = window.innerHeight;
         dTree.init(tree, {
             target: "#family-tree",
-            debug: true,
+            debug: false,
             width: windowWidth,
             height: windowHeight,
-            nodeWidth: 200,
-            nodeHeight: 80,
-            zoom: 0.7,
+            nodeWidth: 240,
+            styles: {
+                node: 'node',
+                linage: 'linage',
+                marriage: 'marriage',
+                text: 'nodeText',
+            },
             connectors: {
                 type: 'curve',  // straight, curve, step, elbow
                 style: {
@@ -193,6 +197,14 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
                 },
                 curveRadius: 10,
                 curveFactor: 0.7,
+            },
+            callbacks: {
+                nodeClick: function(name, extra) {
+                    //console.log(name);
+                },
+                textRenderer: function (name, extra, textClass) {
+                    return "<div style='min-height: 100px'>"+name+"</div>";
+                }
             }
         });
 

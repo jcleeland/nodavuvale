@@ -74,15 +74,29 @@ if ($individual_id) {
         // If no birth information is available, show a default message (optional)
         $deathdate= "";
     }
+
+    //Set up the key image
+    if(empty($individual['photo_path'])) {
+        $individual['photo_path'] = "images/default_avatar.webp";
+    }
 }
 
 include("helpers/quickedit.php");
 ?>
 
-<section class="hero text-white py-20">
-    <div class="container hero-content">
-        <h2 class="text-4xl font-bold"><?php echo $individual['first_names'] . ' ' . $individual['last_name']; ?></h2>
-        <p class="mt-4 text-lg"><?= $individual['birth_prefix']; ?> <?= $birthdate ?> - <?= $individual['death_prefix'] ?> <?= $deathdate ?></p>
+<section class="hero text-white py-20 relative">
+    <div class="container hero-content relative">
+        <div class="hero-image">
+            <img src="images/default_avatar.webp" alt="Photo of <?= $individual['first_name'] ?>" >
+                <button onclick="triggerFileUpload()" class="text-white bg-gray-800 bg-opacity-50 rounded-full p-2">
+                    <i class="fas fa-camera"></i> <!-- FontAwesome icon -->
+                </button>
+            <input type="file" id="fileUpload" style="display: none;" onchange="uploadImage()">
+        </div>    
+        <div class="hero-text text-center mx-auto">
+            <h2 class="text-4xl font-bold"><?php echo $individual['first_names'] . ' ' . $individual['last_name']; ?></h2>
+            <p class="mt-2 text-lg"><?= $individual['birth_prefix']; ?> <?= $birthdate ?> - <?= $individual['death_prefix'] ?> <?= $deathdate ?></p>
+        </div>
     </div>
 </section>
 

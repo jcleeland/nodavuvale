@@ -306,12 +306,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       key: '_nodeRenderer',
       value: function _nodeRenderer(name, x, y, height, width, extra, id, nodeClass, textClass, textRenderer) {
         var node = '';
-        node += '<div ';
+        node += '<body xmlns="http://www.w3.org/1999/xhtml"><div ';
         node += 'style="height:100%;width:100%;" ';
         node += 'class="' + nodeClass + '" ';
         node += 'id="node' + id + '">\n';
         node += textRenderer(name, extra, textClass);
-        node += '</div>';
+        node += '</div></body>';
         return node;
       }
     }, {
@@ -328,7 +328,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: '_marriageRenderer',
       value: function _marriageRenderer(x, y, height, width, extra, id, nodeClass) {
-        return '<div style="height:100%" class="' + nodeClass + '" id="node' + id + '"></div>';
+        return '<body xmlns="http://www.w3.org/1999/xhtml"><div style="height:100%" class="' + nodeClass + '" id="node' + id + '"></div></body>';
       }
     }, {
       key: '_debug',
