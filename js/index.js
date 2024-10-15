@@ -7,16 +7,24 @@
  * @returns 
  */
 async function getAjax(method, data) {
-    const response = await fetch('ajax.php', {
+    const options = {
         method: 'POST',
-        headers: {
+        body: data
+    };
+
+    if(!(data instanceof FormData)) {
+        options.headers = {
             'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        };
+        options.body = JSON.stringify({
             method: method,
             data: data
-        })
-    });
+        });
+    } else {
+        data.append('method', method);
+    }
+
+    const response = await fetch('ajax.php', options);
     if (!response.ok) {
         throw new Error('Network response was not ok');
     }
@@ -35,30 +43,47 @@ function toggleVisibility(divId, buttonId) {
     }
 }
 
+async function uploadFileAndItem(individualId, eventType, eventDetail, fileDescription, file, successCallback, errorCallback) {
+    // Create a FormData object to handle file and other variables
+    var formData = new FormData();
+    
+    // Prepare the POST data
+    var data = {
+        individual_id: individualId,
+        event_type: eventType,
+        event_detail: eventDetail,
+        file_description: fileDescription
+    };
 
-// Make a modal draggable
-function makeModalDraggable(modal, header) {
-    let isDragging = false;
-    let offsetX, offsetY;
+    // Append the file separately to the FormData
+    formData.append('file', file);
 
-    header.addEventListener('mousedown', function(e) {
-        isDragging = true;
-        offsetX = e.clientX - modal.offsetLeft;
-        offsetY = e.clientY - modal.offsetTop;
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    });
+    try {
+        // Use the getAjax function to send the data
+        const response = await getAjax('add_file_item', data);
 
-    function onMouseMove(e) {
-        if (isDragging) {
-            modal.style.left = e.clientX - offsetX + 'px';
-            modal.style.top = e.clientY - offsetY + 'px';
+        // Check if the response is successful
+        if (response.status === 'success') {
+            // Call the success callback function
+            if (typeof successCallback === 'function') {
+                successCallback(response);
+            } else {
+                alert(response.message);
+            }
+        } else {
+            // Call the error callback function
+            if (typeof errorCallback === 'function') {
+                errorCallback(response);
+            } else {
+                alert(response.message);
+            }
         }
-    }
-
-    function onMouseUp() {
-        isDragging = false;
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+    } catch (error) {
+        // Generic error handler for failed AJAX call
+        if (typeof errorCallback === 'function') {
+            errorCallback({status: 'error', message: 'An error occurred while uploading the file.'});
+        } else {
+            alert('An error occurred while uploading the file.');
+        }
     }
 }

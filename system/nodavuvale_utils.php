@@ -38,7 +38,6 @@ class Utils {
             $gender = !empty($individual['gender']) ? $individual['gender'] : 'other';
 
 
-            // Find parents of the root individual
             $parentLinks = '<div id="parents_div" class="parentLinks grid grid-cols-2 w-full">';
             //if($id == $rootId) {
             if(1==1) {
@@ -59,6 +58,7 @@ class Utils {
 
             $nodeBodyText = "<div class='nodeBodyText'>";
             $nodeBodyText .= "<input type='hidden' class='individualid' value='{$individual['id']}' />";
+            $nodeBodyText .= "<input type='hidden' class='individualgender' value='{$gender}' />";
             $nodeBodyText .= "<span class='bodyName' title='{$fullName}' onClick='window.location.href=\"?to=family/tree&root_id=" . $individual['id'] . "\"'>";
             $nodeBodyText .= $briefName; 
             $nodeBodyText .= "</span>";
@@ -292,13 +292,24 @@ class Utils {
         
         $spouses=[];
         //First find explicit spouses as identified by the 'spouse' relationship type
-        $esquery = "
-            SELECT individuals.* 
-            FROM relationships 
-            JOIN individuals ON relationships.individual_id_2 = individuals.id 
-            WHERE relationships.individual_id_1 = ? 
-            AND relationships.relationship_type = 'spouse'";
-        $explicitspouses = $db->fetchAll($esquery, [$individual_id]);
+        $esquery = "SELECT DISTINCT
+                CASE 
+                    WHEN r.individual_id_1 = ? THEN r.individual_id_2 
+                    ELSE r.individual_id_1 
+                END AS parent_id,
+                individual_spouse.*
+            FROM
+                relationships AS r
+            INNER JOIN individuals AS individual_spouse ON 
+                (CASE 
+                    WHEN r.individual_id_1 = ? THEN r.individual_id_2 
+                    ELSE r.individual_id_1 
+                END) = individual_spouse.id
+            WHERE 
+                (r.individual_id_1 = ? OR r.individual_id_2 = ?)
+                AND r.relationship_type = 'spouse';
+            ";
+        $explicitspouses = $db->fetchAll($esquery, [$individual_id, $individual_id, $individual_id, $individual_id]);
         foreach($explicitspouses as $spouse){
             $spouses[$spouse['id']]=$spouse;
         }

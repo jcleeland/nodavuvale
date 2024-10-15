@@ -19,19 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
     $submitted_by = $_SESSION['user_id'];
     $photo_path = null;
 
-    // Handle file upload (if photo is uploaded)
-    if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = 'uploads/photos/';
-        $photo_name = basename($_FILES['photo']['name']);
-        $photo_path = $upload_dir . $photo_name;
-        
-        // Move the uploaded file to the designated folder
-        if (!move_uploaded_file($_FILES['photo']['tmp_name'], $photo_path)) {
-            echo "Failed to upload photo.";
-            exit;
-        }
-    }
-
     // Save the new individual to `individuals` or `temp_individuals`
     
     if($_POST['action'] == 'add_individual' || empty($_POST['connect_to'])) {
@@ -39,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
         $existing_individual = $db->fetchAll("SELECT * FROM individuals WHERE first_names = ? AND last_name = ?", [$first_names, $last_name]);
         if($existing_individual) {
             echo "This individual already exists in the database.";
-            $new_individual_id = $existing_individual['id'];
         } else {
             if ($is_admin) {
                 // Admin can directly add to the `individuals` table

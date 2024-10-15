@@ -44,30 +44,55 @@ spl_autoload_register(function($class) use ($classMap) {
 $db = Database::getInstance();
 $auth = new Auth($db);
 
-// Get the raw POST data
-$postData = file_get_contents('php://input');
+if(!empty($_FILES)) {
+    //Handle file uploads
+    $method = $_POST['method'] ?? null;
+    $data = json_decode($_POST['data'], true);
+    $data['file'] = $_FILES['file'];
+    if(isset($method)) {
+        $method = str_replace('..', '', $method); // Prevent directory traversal
+        $method = str_replace('/', '', $method); // Prevent directory traversal
 
-// Decode the JSON data
-$request = json_decode($postData, true);
-
-// Extract the method and data
-$method = $request['method'] ?? null;
-$data = $request['data'] ?? null;
-
-if(isset($method)) {
-    $method = str_replace('..', '', $method); // Prevent directory traversal
-    $method = str_replace('/', '', $method); // Prevent directory traversal
-
-    // Check if the user is logged in
-    if ($auth->isLoggedIn()) {
-        // Include the requested file
-        include('system/ajax/' . $method . '.php');
-        echo json_encode($response);
+        //Check if the user is logged in
+        if($auth->isLoggedIn()) {
+            //Include the requested file
+            include('system/ajax/' . $method . '.php');
+            echo json_encode($response);
+        } else {
+            //User is not logged in
+            echo json_encode(['error' => 'User not logged in']);
+        }
     } else {
-        // User is not logged in
-        echo json_encode(['error' => 'User not logged in']);
+        //No method specified
+        echo json_encode(['error' => 'No method specified']);
     }
 } else {
-    // No method specified
-    echo json_encode(['error' => 'No method specified']);
+    // Handle JSON data
+    // Get the raw POST data
+    $postData = file_get_contents('php://input');
+
+    // Decode the JSON data
+    $request = json_decode($postData, true);
+
+    // Extract the method and data
+    $method = $request['method'] ?? null;
+    $data = $request['data'] ?? null;
+    
+    if(isset($method)) {
+        $method = str_replace('..', '', $method); // Prevent directory traversal
+        $method = str_replace('/', '', $method); // Prevent directory traversal
+
+        // Check if the user is logged in
+        if ($auth->isLoggedIn()) {
+            // Include the requested file
+            include('system/ajax/' . $method . '.php');
+            echo json_encode($response);
+        } else {
+            // User is not logged in
+            echo json_encode(['error' => 'User not logged in']);
+        }
+    } else {
+        // No method specified
+        echo json_encode(['error' => 'No method specified']);
+    }
 }

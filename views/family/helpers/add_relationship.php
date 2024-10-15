@@ -6,7 +6,7 @@
                 <h2 id="modal-title">Add New Relationship <span id='adding_relationship_to'></span></h2>
             </div>
             <div class="modal-body">
-                <form id="dynamic-form" action="?to=family/tree" method="POST" enctype="multipart/form-data">
+                <form id="dynamic-form" action="?to=family/tree" method="POST">
                     <input type="hidden" name="action" value="" id="form-action">
                     <input type="hidden" name="related_individual" value="" id="related-individual">
                     <input type="hidden" id="root_id" name="root_id" value="<?= $rootId; ?>">
@@ -37,7 +37,7 @@
                     <div id="additional-fields" style='display: none'>
                         <div class="mb-4">
                             <label for="first_names" class="block text-gray-700 mr-2">First Name(s)</label>
-                            <div class="flex items-center mt-0">
+                            <div class="flex items-center">
                                 <input type="text" id="first_names" name="first_names" class="flex-grow px-4 py-2 border rounded-lg" required>
                                 <button type="button" title="Add other names for this person" id="toggle-aka" class="ml-2 px-2 py-1 bg-gray-300 rounded text-xs">AKA</button>
                             </div>
@@ -139,12 +139,7 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
-                        
-                        <!-- Photo -->
-                        <div class="mb-4">
-                            <label for="photo" class="block text-gray-700">Upload Photo</label>
-                            <input type="file" id="photo" name="photo" class="w-full px-4 py-2 border rounded-lg">
-                        </div>
+
                     </div>
 
                     <!-- Relationship -->

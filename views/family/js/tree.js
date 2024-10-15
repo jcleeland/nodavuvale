@@ -61,29 +61,33 @@ document.addEventListener("DOMContentLoaded", function() {
  
 
     document.querySelector('.add-new-btn').addEventListener('click', function() {
-        openModal('add_individual');
+        openModal('add_individual', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
     // Add event listeners to dropdown options
     dropdownMenu.querySelector('.add-father-btn').addEventListener('click', function() {
-        openModal('add_father');
+        openModal('add_father', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
     dropdownMenu.querySelector('.add-mother-btn').addEventListener('click', function() {
-        openModal('add_mother');
+        openModal('add_mother', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
     dropdownMenu.querySelector('.add-spouse-btn').addEventListener('click', function() {
-        openModal('add_spouse');
+        openModal('add_spouse', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
     dropdownMenu.querySelector('.add-son-btn').addEventListener('click', function() {
-        openModal('add_son');
+        openModal('add_son', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
     dropdownMenu.querySelector('.add-daughter-btn').addEventListener('click', function() {
-        openModal('add_daughter');
+        openModal('add_daughter', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
 
 });
 
 function getIndividualId(button) {
     return button.closest('.node').querySelector('.individualid').value;
+}
+
+function getIndividualGender(button) {
+    return button.closest('.node').querySelector('.individualgender').value;
 }
 
 function loadIndividualFromTreeNode(individualId) {
@@ -96,7 +100,8 @@ function editIndividualFromTreeNode(individualId) {
 
 function addRelationshipToIndividualFromTreeNode(button) {
     var individualId = getIndividualId(button);
-    showDropdown(button, individualId);
+    var gender = getIndividualGender(button);
+    showDropdown(button, individualId, gender);
     isShowingDropdown = true;
 }
 
@@ -116,6 +121,7 @@ function showDropdown(button, individualId, gender) {
     console.log(dropdownMenu);
     // Store the individual ID for later use
     dropdownMenu.dataset.individualId = individualId;
+    dropdownMenu.dataset.individualGender = gender;
     //dropdownMenu.dataset.individualGender = button.dataset.individualGender;
  
 }
@@ -123,6 +129,9 @@ function showDropdown(button, individualId, gender) {
 
 // Function to open the modal with dynamic form data
 function openModal(action, individualId, individualGender) {
+    console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and gender', individualGender);
+
+
     // Get the modal and form elements for the "Add" form
     var modal = document.getElementById('popupForm');
     var closeButton = document.querySelector('.close-btn');
@@ -142,9 +151,9 @@ function openModal(action, individualId, individualGender) {
             modal.style.display = 'none';
         }
     });    
+    //hide the dropdownMenu
+    dropdownMenu.style.display = 'none';
 
-    //var individualId = dropdownMenu.dataset.individualId;
-    //var individualGender= dropdownMenu.dataset.individualGender;
     //console.log(individualGender);
     //Clear the form to default values
     document.getElementById('first_names').value = '';
@@ -208,7 +217,7 @@ function openModal(action, individualId, individualGender) {
                 spouses.forEach(spouse => {
                     var option = document.createElement('option');
                     option.value = spouse.parent_id;
-                    option.text = spouse.parent_first_names + ' ' + spouse.parent_last_name;
+                    option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
                     select.add(option);
                 });
             });

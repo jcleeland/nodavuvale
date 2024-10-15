@@ -13,8 +13,8 @@ if(!isset($data['id'])) {
                     WHEN r.individual_id_1 = ? THEN r.individual_id_2 
                     ELSE r.individual_id_1 
                 END AS parent_id,
-                individual_spouse.first_names AS parent_first_names,
-                individual_spouse.last_name AS parent_last_name
+                individual_spouse.first_names AS spouse_first_names,
+                individual_spouse.last_name AS spouse_last_name
             FROM
                 relationships AS r
             INNER JOIN individuals AS individual_spouse ON 

@@ -94,12 +94,63 @@ function triggerFileUpload() {
     document.getElementById('fileUpload').click();
 }
 
-function uploadImage() {
+// Trigger the file upload dialog
+function triggerFileUpload() {
+    document.getElementById('fileUpload').click();
+}
+
+// Handle the file selection and upload
+function uploadKeyImage(individualId) {
     var fileInput = document.getElementById('fileUpload');
-    var file = fileInput.files[0];
+    var file = fileInput.files[0];  // Get the selected file
+
+    //A key image is a special type of event/item
+    // There can only be one of these per individual
+    // so, if there is already one, we need to delete that "item" from the "items" table, along
+    // with its item_link. We should also delete the link between the original photo & the item_id
+
     if (file) {
-        // Handle the file upload logic here
-        console.log('File selected:', file.name);
-        // You can use AJAX to upload the file to the server
+        // Prepare the data for uploading
+        var formData = new FormData();
+        formData.append('file', file);  // Append the selected file
+        formData.append('method', 'add_file_item');  // Method for your ajax.php
+        formData.append('data', JSON.stringify({
+            individual_id: individualId,
+            event_type: 'Key Image',  // The event type is set to "key image"
+            event_detail: 'Key image for individual',
+            file_description: 'Key image for individual'  // Description for the file
+        }));
+
+        // Perform the AJAX call using getAjax
+        getAjax('add_file_item', formData)
+            .then(response => {
+                //convert response from json to object
+                console.log(response);
+                console.log(response.status);
+                if (response.status === 'success') {
+                    //Update the individual's "photo" field to response.filepath
+                    var individualUpdateData = {
+                        individual_id: individualId,
+                        photo: response.filepath
+                    };
+                    getAjax('update_individual', individualUpdateData)
+                        .then(iResponse => {
+                            if (iResponse.status === 'success') {
+                                // Update the individual's key image reference in the UI
+                                document.getElementById('individual_key_image').src = individualUpdateData.photo;
+                            } else {
+                                alert('Error: ' + iResponse.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('An error occurred while updating the individuals key image reference, however the photo has been uploaded to their collection: ' + error.message);
+                        });
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred while uploading the image: ' + error.message);
+            });
     }
 }
