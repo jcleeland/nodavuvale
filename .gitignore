@@ -1,2 +1,4 @@
 /system/config.php
-/uploads/
+/uploads/*
+!/uploads/.gitkeep
+!/uploads/**/.gitkeep */
