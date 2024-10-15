@@ -100,25 +100,67 @@ function triggerFileUpload() {
 }
 
 // Handle the file selection and upload
-function uploadKeyImage(individualId) {
+async function uploadKeyImage(individualId) {
     var fileInput = document.getElementById('fileUpload');
     var file = fileInput.files[0];  // Get the selected file
 
+    let fileLinkId=null; //This will be used to store the file_link_id of the original file that was the key image for the individual
     //A key image is a special type of event/item
     // There can only be one of these per individual
     // so, if there is already one, we need to delete that "item" from the "items" table, along
     // with its item_link. We should also delete the link between the original photo & the item_id
+
+    try {
+        const response = await getAjax('get_item', {individual_id: individualId, event_type: 'Key Image'});
+        console.log(response);
+        if (response.status === 'success') {
+            if (response.items.length > 0) {
+                // Gather the item_id and item_link_id
+                var itemId = response.items[0].item_id;
+                var itemLinkId = response.items[0].item_link_id;
+                var fileId = response.items[0].file_id;
+                fileLinkId = response.items[0].file_link_id;
+
+                console.log('Theres already a key image for this individual - its item_id is: ' + itemId + ' and its fileId is: ' + fileId +' and its file_link_id is: ' + fileLinkId);
+                // All we need to do is: delete the item_id from the file_links record. That frees the original file up to be just a photo for the individual
+                // After we've uploaded the new photo, we'll simply create a new file_links record for the new file_id and add this itemId to it's file_links.item_id                    
+                
+                const updateResponse = await getAjax('update_file_links', {file_link_id: fileLinkId, updates: {item_id: 'null'}});
+                    if (response.status === 'success') {
+                        console.log('Original file has been freed up to be a photo for the individual');
+                    } else {
+                        console.log('Error: ' + response.message);
+                        return; //Exit the function if there was an error
+                    }
+                }
+        }
+    } catch (error) {
+            alert('An error occurred while checking for an existing key image: ' + error.message);
+            return; //Exit the function if there was an error
+    }
+
+    
 
     if (file) {
         // Prepare the data for uploading
         var formData = new FormData();
         formData.append('file', file);  // Append the selected file
         formData.append('method', 'add_file_item');  // Method for your ajax.php
+        
+        if(fileLinkId){
+            //make the events array empty
+            var events = [];
+        } else {
+            var events = [
+                {event_type: 'Key Image',  event_detail: 'Key image for individual'},
+            ];
+        }
+        var event_group_name=null;
         formData.append('data', JSON.stringify({
             individual_id: individualId,
-            event_type: 'Key Image',  // The event type is set to "key image"
-            event_detail: 'Key image for individual',
-            file_description: 'Key image for individual'  // Description for the file
+            events: events,
+            event_group_name: event_group_name,
+            file_description: 'Image for individual'  // Description for the file
         }));
 
         // Perform the AJAX call using getAjax
@@ -137,7 +179,7 @@ function uploadKeyImage(individualId) {
                         .then(iResponse => {
                             if (iResponse.status === 'success') {
                                 // Update the individual's key image reference in the UI
-                                document.getElementById('individual_key_image').src = individualUpdateData.photo;
+                                document.getElementById('keyImage').src = individualUpdateData.photo;
                             } else {
                                 alert('Error: ' + iResponse.message);
                             }

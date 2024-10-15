@@ -12,7 +12,8 @@ if(!isset($rootId)) {
 
 if ($individual_id) {
     // Fetch the individual details
-    $individual = $db->fetchOne("SELECT * FROM individuals WHERE id = ?", [$individual_id]);
+//    echo "SELECT individuals.*, files.file_path as keyimagepath FROM individuals LEFT JOIN file_links ON file_links.individual_id=individuals.id LEFT JOIN files ON file_links.file_id=files.id LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image' WHERE individuals.id =";
+    $individual = $db->fetchOne("SELECT individuals.*, files.file_path as keyimagepath FROM individuals LEFT JOIN file_links ON file_links.individual_id=individuals.id LEFT JOIN files ON file_links.file_id=files.id LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image' WHERE individuals.id = ?", [$individual_id]);
     // Extract just the first word from $individual['first_names']
     $individual['first_name'] = explode(' ', $individual['first_names'])[0];
     $individual['fullname']=$individual['first_name'] . ' ' . $individual['last_name'];
@@ -30,8 +31,10 @@ if ($individual_id) {
     $siblings = Utils::getSiblings($individual_id);
 
     // Fetch associated files (photos and documents)
-    $photos = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'photo'", [$individual_id]);
+    $photos = $db->fetchAll("SELECT * FROM files INNER JOIN file_links ON file_links.file_id=files.id WHERE individual_id = ? AND file_type = 'image'", [$individual_id]);
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
+
+    $items = $db->fetchAll("SELECT * FROM items INNER JOIN item_links ON items.item_id = item_links.item_id WHERE item_links.individual_id = ?", [$individual_id]);
 
     // Extract the birth details
     $year = $individual['birth_year'];
@@ -76,8 +79,8 @@ if ($individual_id) {
     }
 
     //Set up the key image
-    if(empty($individual['photo'])) {
-        $individual['photo'] = "images/default_avatar.webp";
+    if(empty($individual['keyimagepath'])) {
+        $individual['keyimagepath'] = "images/default_avatar.webp";
     }
 }
 
@@ -87,8 +90,8 @@ include("helpers/quickedit.php");
 <section class="hero text-white py-20 relative">
     <div class="container hero-content relative">
         <div class="hero-image">
-            <img id='keyImage' src="<?= $individual['photo'] ?>" alt="Photo of <?= $individual['first_name'] ?>" >
-                <button onclick="triggerFileUpload()" class="text-white bg-gray-800 bg-opacity-50 rounded-full p-2">
+            <img id='keyImage' src="<?= $individual['keyimagepath'] ?>" alt="Photo of <?= $individual['first_name'] ?>" >
+                <button onclick="triggerFileUpload()" class="text-white bg-gray-800 bg-opacity-50 rounded-full p-2" title="Change <?= $individual['first_name'] ?>'s Key Image">
                     <i class="fas fa-camera"></i> <!-- FontAwesome icon -->
                 </button>
             <input type="file" id="fileUpload" style="display: none;" onchange="uploadKeyImage('<?= $individual['id'] ?>')">
@@ -103,7 +106,7 @@ include("helpers/quickedit.php");
 <section class="container mx-auto pb-6 pt-0">
     <div class="">
         <div class="text-center p-2">
-            <!-- Display Siblings -->
+            <!-- Display Detail Summary -->
             <h3 class="text-2xl font-bold mt-8 mb-4">Details</h3>
             <div class="p-6 bg-white shadow-lg rounded-lg">
                 <p class="text-lg text-gray-600">
@@ -114,12 +117,15 @@ include("helpers/quickedit.php");
     </div>
 </section>
 
-<section class="container mx-auto py-6">
+<section class="container mx-auto py-6 ">
     <div class="">
         <div class="text-center p-2">
-            <!-- Display Siblings -->
+            <!-- Display Stories -->
             <h3 class="text-2xl font-bold mt-8 mb-4">Stories</h3>
-            <div class="p-6 bg-white shadow-lg rounded-lg">
+            <div class="p-6 bg-white shadow-lg rounded-lg relative">
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full p-2 m-0 -right-2 -top-2 z-10" title="Add a story about <?= $individual['first_name'] ?>">
+                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                </button>
                 <p class="text-lg text-gray-600">
                     This is where any stories that have been posted about <?= $individual['first_name'] ?> will appear.
                 </p>
@@ -188,11 +194,31 @@ include("helpers/quickedit.php");
     </div>
 </section>
 
+<section class="container mx-auto py-6">
+    <!-- Display Items -->
+    <div class="text-center p-2">
+        <h3 class="text-2xl font-bold mt-8 mb-4">Items</h3>
+        <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full p-2 m-0 -right-2 -top-2 z-10" title="Add an event or item about <?= $individual['first_name'] ?>">
+                <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+            </button>            
+            <?php foreach ($items as $item): ?>
+                <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
+                    <?= $item['detail_type'] ?>: <?= $item['detail_value'] ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
 <section class="container mx-auto py-6">    
     <!-- Display Photos -->
     <div class="text-center p-2">
         <h3 class="text-2xl font-bold mt-8 mb-4">Photos</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full p-2 m-0 -right-2 -top-2 z-10" title="Add a photo of <?= $individual['first_name'] ?>">
+                <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+            </button>            
             <?php foreach ($photos as $photo): ?>
                 <div class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg">
                     <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
@@ -209,7 +235,11 @@ include("helpers/quickedit.php");
     <!-- Display Documents -->
     <div class="text-center p-2">
         <h3 class="text-2xl font-bold mt-8 mb-4">Documents</h3>
-        <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg">
+        <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full p-2 m-0 -right-2 -top-2 z-10" title="Add a document about <?= $individual['first_name'] ?>">
+                <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+            </button>            
+
             <?php foreach ($documents as $document): ?>
                 <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
                     <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">

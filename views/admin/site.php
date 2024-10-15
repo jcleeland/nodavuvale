@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_username = $_POST['email_username'];
     $email_password = $_POST['email_password'];
     $email_port = $_POST['email_port'];
+    $root_individual = $_POST['root_individual'];
 
     // Update the site settings in the database
     $db->updateSiteSettings($site_name, $site_description, $email_server, $email_username, $email_password, $email_port);
@@ -27,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $site_settings = $db->getSiteSettings();
 ?>
     <form action="index.php?to=admin/" method="POST">
+        <div class="border-t border-gray-500 my-4 mt-8">
+            <h2>General Settings</h2>
+        </div>
         <div class="mb-4">
             <label for="site_name" class="block text-gray-700">Site Name</label>
             <input type="text" id="site_name" name="site_name" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['site_name']; ?>" required>
@@ -35,6 +39,13 @@ $site_settings = $db->getSiteSettings();
             <label for="site_description" class="block text-gray-700">Site Description</label>
             <input type="text" id="site_description" name="site_description" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['site_description']; ?>" required>
         </div>
+        <div class="mb-4">
+            <label for="root_individual" class="block text-gray-700">Root Individual</label>
+            <input type="text" id="root_individual" name="root_individual" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['root_individual']; ?>" required>
+        </div>
+        <div class="border-t border-gray-500 my-4 mt-8">
+            <h2>Email Settings</h2>
+        </div> 
         <div class="mb-4">
             <label for="email_server" class="block text-gray-700">Site Email Server</label>
             <input type="text" id="email_server" name="site_email_server" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['email_server']; ?>" required>
