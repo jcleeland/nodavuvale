@@ -68,20 +68,20 @@ class Utils {
         <span class="bodyName" title="See details for {individualFullName}" onclick="window.location.href=&quot;?to=family/individual&amp;individual_id={individualId}&quot;">
             {individualPrefName}<br>
             {individualLastName}
-        </span><br />
+        </span>
         <span style="font-size: 0.7rem">
             {individualLifeSpan}
         </span>
     </div>
-    <button class="ft-view-btn float-right" title="Start tree at this individual" onclick="window.location.href=&quot;?to=family/tree&amp;root_id={individualId}&quot;">
+    <button class="text-sm md:text-md ft-view-btn float-right" title="Start tree at this individual" onclick="window.location.href=&quot;?to=family/tree&amp;root_id={individualId}&quot;">
         ➜
     </button>
-    <span class="float-left inline md:hidden">&nbsp;</span>
-    <button class="ft-edit-btn hidden md:inline float-left" title="Edit this individual" onclick="editIndividualFromTreeNode(&quot;{individualId}&quot;)">
+    <span class="float-left inline">&nbsp;</span>
+    <button class="text-sm md:text-md ft-edit-btn float-left" title="Edit this individual" onclick="editIndividualFromTreeNode(&quot;{individualId}&quot;)">
         📝
     </button>
-    <span class="inline md:hidden">&nbsp;</span>
-    <button class="ft-dropdown-btn hidden md:inline" title="Add a relationship to this individual" onclick="addRelationshipToIndividualFromTreeNode(this)">
+    <span class="inline float-right">&nbsp;</span>
+    <button class="text-sm md:text-md ft-dropdown-btn " title="Add a relationship to this individual" onclick="addRelationshipToIndividualFromTreeNode(this)">
         🔗
     </button>
 EOT;

@@ -56,6 +56,7 @@
     font-size: 0.9rem;
     font-weight: bold; 
     cursor: pointer;
+    overflow: hidden;
 }
 
 /* Adjust the linage class to ensure connector lines are narrow */
