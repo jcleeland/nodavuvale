@@ -137,7 +137,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 
 // Fetch all confirmed individuals and their relationships
-$individuals = $db->fetchAll("SELECT * FROM individuals");
+$individuals = $db->fetchAll("SELECT individuals.*, 
+                                COALESCE(
+                                    (SELECT files.file_path 
+                                        FROM file_links 
+                                        JOIN files ON file_links.file_id = files.id 
+                                        JOIN items ON items.item_id = file_links.item_id 
+                                        WHERE file_links.individual_id = individuals.id 
+                                        AND items.detail_type = 'Key Image'
+                                        LIMIT 1), 
+                                    '') AS keyimagepath
+                            FROM individuals");
 $relationships = $db->fetchAll("SELECT * FROM relationships");
 
 $rootId=Web::getRootId();
@@ -158,16 +168,16 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
 
     <script>
         var tree = <?= $tree_data; ?>;
-        //Get the width of the current page
+        // Get the width of the current page
         var windowWidth = window.innerWidth;
-        //get the height of the window
+        // Get the height of the window
         var windowHeight = window.innerHeight;
-        dTree.init(tree, {
+        tree=dTree.init(tree, {
             target: "#family-tree",
             debug: false,
             width: windowWidth,
             height: windowHeight,
-            nodeWidth: 240,
+            nodeWidth: 100,
             styles: {
                 node: 'node',
                 linage: 'linage',
@@ -189,11 +199,43 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
                     //console.log(name);
                 },
                 textRenderer: function (name, extra, textClass) {
-                    return "<div style='min-height: 100px'>"+name+"</div>";
+                    return "<div style='height: 170px'>"+name+"</div>";
                 }
             }
         });
 
+        <?php
+            if(isset($_GET['zoom'])) {
+        ?>
+        window.onload = function() {
+            findNodeForIndividualId(<?= $_GET['zoom'] ?>)
+                .then(nodeId => {
+                    //Now remove the characters "node" from the front of the nodeId
+                    nodeId = nodeId.replace("node", "");
+                    //Now make sure it's a number not a string
+                    nodeId = parseInt(nodeId);
+                    console.log('Found node: ' + nodeId);
+                    tree.zoomToNode(nodeId, 1, 500);
+                    // Delay the highlighting feature by 500ms to ensure it runs after the zoom is complete
+                    setTimeout(function() {
+                        // Now make the div's parent element briefly grow and then shrink
+                        var node = document.getElementById("node" + nodeId);
+                        var parent = node.parentNode;
+                        parent.style.transition = "all 0.5s";
+                        parent.style.transformOrigin = "bottom left";
+                        parent.style.transform = "scale(1.5)";
+                        setTimeout(function() {
+                            parent.style.transform = "scale(1)";
+                        }, 600);
+                    }, 600);
+
+
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        };
+        <?php } ?>
     </script>
 
 

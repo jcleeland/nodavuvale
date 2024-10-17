@@ -88,20 +88,154 @@ document.addEventListener("DOMContentLoaded", function() {
         editModal.style.display = 'none';
     });
 
+    var toggleAkaButton = document.getElementById('toggle-aka');
+    var akaDiv = document.getElementById('aka');
+
+    toggleAkaButton.addEventListener('click', function() {
+        if (akaDiv.style.display === 'none' || akaDiv.style.display === '') {
+            akaDiv.style.display = 'block';
+        } else {
+            akaDiv.style.display = 'none';
+        }
+    });        
+
+    //When someone selects id='choice-existing-individual', show the id='existing-individuals' div
+    document.getElementById('choice-existing-individual').addEventListener('click', function() {
+        document.getElementById('existing-individuals').style.display = 'block';
+        document.getElementById('relationships').style.display = 'block';
+        document.getElementById('additional-fields').style.display = 'none';
+        document.getElementById('choice-new-individual').checked = false;
+    });
+
+    //When someone selects id='choice-new-individual', hide the id='existing-individuals' div and show the id='additional-fields' div
+    document.getElementById('choice-new-individual').addEventListener('click', function() {
+        document.getElementById('existing-individuals').style.display = 'none';
+        document.getElementById('relationships').style.display = 'block';
+        document.getElementById('additional-fields').style.display = 'block';
+        document.getElementById('choice-existing-individual').checked = false;
+    });    
+
+    document.getElementById('lookup').addEventListener('input', function() {
+        var input = this.value.toLowerCase();
+        var select = document.getElementById('connect_to');
+        var options = select.options;
+        var hasMatch = false;
+
+        for (var i = 0; i < options.length; i++) {
+            var option = options[i];
+            var text = option.text.toLowerCase();
+            if (text.includes(input)) {
+                option.style.display = '';
+                hasMatch = true;
+            } else {
+                option.style.display = 'none';
+            }
+        }
+
+        select.style.display = hasMatch ? '' : 'none';
+    });
+
+    document.getElementById('connect_to').addEventListener('change', function() {
+        var selectedValue = this.value;
+        if (selectedValue) {
+            document.getElementById('form-action').value = 'link_relationship';
+            document.getElementById('first_names').removeAttribute('required');
+            document.getElementById('last_name').removeAttribute('required');
+            document.getElementById('lookup').value = this.options[this.selectedIndex].text;
+            this.style.display = 'none';
+            document.getElementById('additional-fields').style.display = 'none';
+        }
+    }); 
+
 });
 
-function triggerFileUpload() {
-    document.getElementById('fileUpload').click();
+// Trigger the file upload dialog
+function triggerKeyPhotoUpload() {
+    document.getElementById('keyPhotoUpload').click();
 }
 
-// Trigger the file upload dialog
-function triggerFileUpload() {
-    document.getElementById('fileUpload').click();
+
+function triggerPhotoUpload(individualId) {
+    document.getElementById('photoUpload').click();
+}
+
+function triggerEditFileDescription(id) {
+    console.log('Triggering edit file description for: ' + id);
+    var currentDescription=document.getElementById(id).textContent;
+    var newFileDescription=prompt("Enter your description here:", currentDescription);
+
+    if(newFileDescription===null) {
+        //User pressed cancel - abort
+        return;
+    }
+    //the actual id we want to use is after the underscore in the text of the id passed to the function
+    var file_id=id.split('_')[1];
+    getAjax('update_file', {fileId: file_id, fileDescription: newFileDescription})
+        .then(response => {
+            if(response.status === 'success') {
+                document.getElementById(id).textContent=newFileDescription;
+            } else {
+                alert('Error: ' + response.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred while updating the file description: ' + error.message);
+        });
+
+
+}
+
+async function uploadPhoto(individualId) {
+    var fileInput = document.getElementById('photoUpload');
+    var file = fileInput.files[0]; //Get the selected file
+
+    if (file) {
+        // Prepare the data for uploading
+        var formData = new FormData();
+        formData.append('file', file);  // Append the selected file
+        formData.append('method', 'add_file_item');  // Method for your ajax.php
+        
+        var events = [];
+        
+        var event_group_name=null;
+        var fileDescriptionDefault="Photo of "+document.getElementById('individual_brief_name').value;
+        var fileDescription=prompt("Please enter a description for the photo:", fileDescriptionDefault);
+
+        if(fileDescription === null) {
+            //User pressed cancel, abort
+            return;
+        }
+
+        formData.append('data', JSON.stringify({
+            individual_id: individualId,
+            events: events,
+            event_group_name: event_group_name,
+            file_description: fileDescription,  // Description for the file
+        }));
+
+
+        // Perform the AJAX call using getAjax
+        getAjax('add_file_item', formData)
+            .then(response => {
+                //convert response from json to object
+                console.log(response);
+                console.log(response.status);
+                if (response.status === 'success') {
+                    //reload the page
+                    
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred while uploading the image: ' + error.message);
+            });
+    }    
 }
 
 // Handle the file selection and upload
 async function uploadKeyImage(individualId) {
-    var fileInput = document.getElementById('fileUpload');
+    var fileInput = document.getElementById('keyPhotoUpload');
     var file = fileInput.files[0];  // Get the selected file
 
     let fileLinkId=null; //This will be used to store the file_link_id of the original file that was the key image for the individual
@@ -195,4 +329,131 @@ async function uploadKeyImage(individualId) {
                 alert('An error occurred while uploading the image: ' + error.message);
             });
     }
+}
+
+function openModal(action, individualId, individualGender) {
+    console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and gender', individualGender);
+
+
+    // Get the modal and form elements for the "Add" form
+    var modal = document.getElementById('popupForm');
+    var closeButton = document.querySelector('.close-btn');
+    var formActionInput = document.getElementById('form-action');
+    var formActionGender = document.getElementById('gender');
+    var formActionRelationship = document.getElementById('relationship');
+    var relatedIndividualInput = document.getElementById('related-individual');    
+
+
+    // Close the "Add" modal when the user clicks the close button
+    closeButton.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });    
+    // Close the "Add" modal when the user clicks outside of the modal content
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });    
+
+
+    //console.log(individualGender);
+    //Clear the form to default values
+    document.getElementById('first_names').value = '';
+    document.getElementById('last_name').value = '';
+    document.getElementById('aka_names').value = '';
+    document.getElementById('birth_prefix').value = '';
+    document.getElementById('birth_year').value = '';
+    document.getElementById('birth_month').value = '';
+    document.getElementById('birth_date').value = '';
+    document.getElementById('death_prefix').value = '';
+    document.getElementById('death_year').value = '';
+    document.getElementById('death_month').value = '';
+    document.getElementById('death_date').value = '';
+    document.getElementById('gender').value = '';
+    // Set the form data based on the action
+    formActionInput.value = action;  // Set the action (add_parent, add_spouse, etc.)
+    relatedIndividualInput.value = individualId;  // Set the related individual ID
+    //Clear the other parent select of options
+    var select = document.getElementById('second-parent');
+    select.innerHTML = '';
+
+    document.getElementById('modal-title').innerHTML = 'Add New Relationship';
+    //document.getElementById('existing-individuals').style.display = 'block';
+    document.getElementById('relationships').style.display = 'block';
+    document.getElementById('choose-second-parent').style.display = 'none';
+    console.log(action);
+    switch(action) {
+        case 'add_individual':
+            formActionGender.value='';
+            formActionRelationship.value='';
+            document.getElementById('modal-title').innerHTML = 'Add New Individual';
+            document.getElementById('existing-individuals').style.display = 'none';
+            document.getElementById('relationships').style.display = 'none';
+            break;
+        case 'add_parent':
+            formActionRelationship.value='parent';
+            break;
+        case 'add_father':
+            formActionRelationship.value='parent';
+            formActionGender.value='male';
+            break;
+        case 'add_mother':
+            formActionGender.value='female';
+            formActionRelationship.value='parent';
+            break;
+        case 'add_child':
+            formActionRelationship.value='child';
+            document.getElementById('choose-second-parent').style.display = 'block';
+            break;
+        case 'add_son':
+            formActionRelationship.value='child';
+            formActionGender.value='male';
+            getSpouses(individualId).then(spouses => {
+                console.log(spouses);
+                var select = document.getElementById('second-parent');
+                select.innerHTML = '';
+                var option = document.createElement('option');
+                option.value = '';
+                option.text = 'None or not known';
+                select.add(option);
+                spouses.forEach(spouse => {
+                    var option = document.createElement('option');
+                    option.value = spouse.parent_id;
+                    option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
+                    select.add(option);
+                });
+            });
+            document.getElementById('choose-second-parent').style.display = 'block';                
+            break;
+        case 'add_daughter':
+            formActionGender.value='female';
+            formActionRelationship.value='child';
+            getSpouses(individualId).then(spouses => {
+                console.log(spouses);
+                var select = document.getElementById('second-parent');
+                select.innerHTML = '';
+                var option = document.createElement('option');
+                option.value = '';
+                option.text = 'None or not known';
+                select.add(option);
+                spouses.forEach(spouse => {
+                    var option = document.createElement('option');
+                    option.value = spouse.parent_id;
+                    option.text = spouse.parent_first_names + ' ' + spouse.parent_last_name;
+                    select.add(option);
+                });
+            });
+            document.getElementById('choose-second-parent').style.display = 'block';                
+            break;
+        case 'add_spouse':
+            if(individualGender=='female') formActionGender.value='male';
+            if(individualGender=='male') formActionGender.value='female';
+            formActionRelationship.value='spouse';
+            //retrieve spouses using getSpouses(individualId) and then populate the "second-parent" select
+            break;
+        default:
+            formActionGender.value='other';
+            break;                
+    }
+    modal.style.display = 'block';  // Show the modal
 }

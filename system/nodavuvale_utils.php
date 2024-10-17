@@ -34,50 +34,66 @@ class Utils {
             $prefName = explode(" ", $individual['first_names'])[0];
             $briefName = $prefName." ".$individual['last_name'];
             $fullName = $individual['first_names'] . " " . $individual['last_name'];
-            $lifeSpan = "($birthYear - $deathYear)";
+            $lifeSpan = "$birthYear - $deathYear";
             $gender = !empty($individual['gender']) ? $individual['gender'] : 'other';
+            $keyImage = !empty($individual['keyimagepath']) ? $individual['keyimagepath'] : 'images/default_avatar.webp';
 
-
-            $parentLinks = '<div id="parents_div" class="parentLinks grid grid-cols-2 w-full">';
-            //if($id == $rootId) {
-            if(1==1) {
-                $parents = findParents($id, $relationshipLookup, $individualLookup);
-                if (!empty($parents)) {
-                    // Use a span tag with inline-flex for the parent links
-                    $parentside='parent-link-left';
-                    foreach ($parents as $parent) {
-                        // Add parent links with an up symbol and inline-flex layout
-                        $parentLinks .= "<div class='parent-link ".$parentside." treegender_".$parent['gender']." flex justify-center items-center pointer' onClick='window.location.href=\"?to=family/tree&root_id=" . $parent['id'] . "\"' title='Move up to ".$parent['name']."'>&#94;</div>";
-                        $parentside='parent-link-right';
-                    }
-                } else {
-                    $parentLinks .= "<div class='parent-link'>&nbsp;</div><div class='parent-link'>&nbsp;</div>";
+            $parents = findParents($id, $relationshipLookup, $individualLookup);
+            /* $parentLinks .= '<div id="parents_div" class="parentLinks grid grid-cols-2 w-full">';
+            if (!empty($parents) && count($parents) > 0) {
+                // Use a span tag with inline-flex for the parent links
+                $parentside='parent-link-left';
+                foreach ($parents as $parent) {
+                    // Add parent links with an up symbol and inline-flex layout
+                    $parentLinks .= "<div class='parent-link ".$parentside." treegender_".$parent['gender']." flex justify-center items-center pointer' onClick='window.location.href=\"?to=family/tree&root_id=" . $parent['id'] . "\"' title='Move up to ".$parent['name']."'>&#94;</div>";
+                    $parentside='parent-link-right';
                 }
+            } else {
+                //$parentLinks .= "<div class='parent-link'>&nbsp;</div><div class='parent-link'>&nbsp;</div>";
             }
-            $parentLinks.="</div>";
+            $parentLinks.="</div>"; */
 
-            $nodeBodyText = "<div class='nodeBodyText'>";
-            $nodeBodyText .= "<input type='hidden' class='individualid' value='{$individual['id']}' />";
-            $nodeBodyText .= "<input type='hidden' class='individualgender' value='{$gender}' />";
-            $nodeBodyText .= "<span class='bodyName' title='{$fullName}' onClick='window.location.href=\"?to=family/tree&root_id=" . $individual['id'] . "\"'>";
-            $nodeBodyText .= $briefName; 
-            $nodeBodyText .= "</span>";
-            $nodeBodyText .= "<br />";
-            $nodeBodyText .= "<span style='font-size: 0.7rem'>";
-            $nodeBodyText .= $lifeSpan;
-            $nodeBodyText .= "</span>";
-            $nodeBodyText .= "</div>";
-            $nodeBodyText .= "</div><div class='w-full text-center px-1 pb-2'>";
-            $nodeBodyText .= "<button class='ft-view-btn float-right' title='View this individual' onClick='window.location.href=\"?to=family/individual&individual_id=".$individual['id']."\"'>&#10140;</button>";
-            $nodeBodyText .= "<span class='float-left inline md:hidden'>&nbsp;</span>";
-            $nodeBodyText .= "<button class='ft-edit-btn hidden md:inline float-left' title='Edit this individual' onClick='editIndividualFromTreeNode(\"".$individual['id']."\")'>&#128221;</button>";
-            $nodeBodyText .= "<span class='inline md:hidden'>&nbsp;</span>";
-            $nodeBodyText .= "<button class='ft-dropdown-btn hidden md:inline' title='Add a relationship to this individual' onClick='addRelationshipToIndividualFromTreeNode(this)' >🔗</button>";
+            $parentLink="";
+            if(isset($parents) && count($parents) > 0) {
+                $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange"><i class="fas fa-level-up-alt"></i></div>';
+            }
 
+            $nodeBodyTemplate = <<<EOT
+    <input type="hidden" class="individualid" value="{individualId}">
+    <input type="hidden" class="individualgender" value="{individualGender}">
+    <div class="nodeBodyText">
+        {parentLink}
+        <img src="{individualKeyImage}" class="nodeImage border object-cover" title="{individualFullName}">
+        <span class="bodyName" title="See details for {individualFullName}" onclick="window.location.href=&quot;?to=family/individual&amp;individual_id={individualId}&quot;">
+            {individualPrefName}<br>
+            {individualLastName}
+        </span><br />
+        <span style="font-size: 0.7rem">
+            {individualLifeSpan}
+        </span>
+    </div>
+    <button class="ft-view-btn float-right" title="Start tree at this individual" onclick="window.location.href=&quot;?to=family/tree&amp;root_id={individualId}&quot;">
+        ➜
+    </button>
+    <span class="float-left inline md:hidden">&nbsp;</span>
+    <button class="ft-edit-btn hidden md:inline float-left" title="Edit this individual" onclick="editIndividualFromTreeNode(&quot;{individualId}&quot;)">
+        📝
+    </button>
+    <span class="inline md:hidden">&nbsp;</span>
+    <button class="ft-dropdown-btn hidden md:inline" title="Add a relationship to this individual" onclick="addRelationshipToIndividualFromTreeNode(this)">
+        🔗
+    </button>
+EOT;
+            // Replace the template placeholders with actual values
+            $nodeBodyText = str_replace(
+                ['{parentLink}', '{individualId}', '{individualGender}', '{individualKeyImage}', '{individualFullName}', '{individualPrefName}', '{individualLastName}', '{individualLifeSpan}'],
+                [$parentLink, $individual['id'], $gender, $keyImage, $fullName, $prefName, $individual['last_name'], $lifeSpan],
+                $nodeBodyTemplate
+            );
 
             $node = [
                 'id' => $individual['id'],
-                'name' => $parentLinks . $nodeBodyText,
+                'name' => $nodeBodyText,
                 'class' => 'node treegender_'.$gender,
                 'depthOffset' => 0,
             ];
@@ -258,14 +274,22 @@ class Utils {
         
         // Fetch parents using the updated query
         $query = "
-            SELECT individuals.* 
+            SELECT individuals.*, 
+                COALESCE(
+                    (SELECT files.file_path 
+                        FROM file_links 
+                        JOIN files ON file_links.file_id = files.id 
+                        JOIN items ON items.item_id = file_links.item_id 
+                        WHERE file_links.individual_id = individuals.id 
+                        AND items.detail_type = 'Key Image'
+                        LIMIT 1), 
+                    '') AS keyimagepath
             FROM relationships 
             JOIN individuals ON relationships.individual_id_1 = individuals.id 
             WHERE relationships.individual_id_2 = ? 
             AND relationships.relationship_type = 'child'
         ";
         $parents = $db->fetchAll($query, [$individual_id]);
-        
         return $parents;
     }
 
@@ -275,7 +299,16 @@ class Utils {
         
         // Fetch children using the updated query
         $query = "
-            SELECT individuals.* 
+            SELECT individuals.*, 
+                COALESCE(
+                    (SELECT files.file_path 
+                        FROM file_links 
+                        JOIN files ON file_links.file_id = files.id 
+                        JOIN items ON items.item_id = file_links.item_id 
+                        WHERE file_links.individual_id = individuals.id 
+                        AND items.detail_type = 'Key Image'
+                        LIMIT 1), 
+                    '') AS keyimagepath
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
             WHERE relationships.individual_id_1 = ? 
@@ -297,7 +330,7 @@ class Utils {
                     WHEN r.individual_id_1 = ? THEN r.individual_id_2 
                     ELSE r.individual_id_1 
                 END AS parent_id,
-                individual_spouse.*
+                individual_spouse.*, files.file_path as keyimagepath
             FROM
                 relationships AS r
             INNER JOIN individuals AS individual_spouse ON 
@@ -305,6 +338,10 @@ class Utils {
                     WHEN r.individual_id_1 = ? THEN r.individual_id_2 
                     ELSE r.individual_id_1 
                 END) = individual_spouse.id
+            LEFT JOIN file_links ON file_links.individual_id=individual_spouse.id 
+            LEFT JOIN files ON file_links.file_id=files.id     
+            LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
+                            
             WHERE 
                 (r.individual_id_1 = ? OR r.individual_id_2 = ?)
                 AND r.relationship_type = 'spouse';
@@ -318,9 +355,12 @@ class Utils {
         //Then find implicit spouses as identified by the 'child' relationship type
         //First find any children of this person
         $cquery = "
-            SELECT individuals.* 
+            SELECT distinct individuals.*, files.file_path as keyimagepath 
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
+            LEFT JOIN file_links ON file_links.individual_id=individuals.id 
+            LEFT JOIN files ON file_links.file_id=files.id 
+            LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
             WHERE relationships.individual_id_1 = ? 
             AND relationships.relationship_type = 'child'";
         $children = $db->fetchAll($cquery, [$individual_id]);
@@ -328,9 +368,12 @@ class Utils {
         //Then find any OTHER parent of those children
         foreach($children as $child){
             $pquery = "
-                SELECT individuals.* 
+                SELECT distinct individuals.*, files.file_path as keyimagepath
                 FROM relationships 
                 JOIN individuals ON relationships.individual_id_1 = individuals.id 
+                LEFT JOIN file_links ON file_links.individual_id=individuals.id 
+                LEFT JOIN files ON file_links.file_id=files.id 
+                LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
                 WHERE relationships.individual_id_2 = ? 
                 AND relationships.relationship_type = 'child'
                 AND individuals.id != ?";
@@ -350,9 +393,13 @@ class Utils {
         
         // Fetch siblings using the updated query
         $query = "
-            SELECT distinct individuals.* 
+            SELECT distinct individuals.*, files.file_path as keyimagepath
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
+            LEFT JOIN file_links ON file_links.individual_id=individuals.id 
+            LEFT JOIN files ON file_links.file_id=files.id 
+            LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
+                            
             WHERE relationships.individual_id_1 IN (
                 SELECT individual_id_1 
                 FROM relationships 
@@ -365,5 +412,24 @@ class Utils {
         $siblings = $db->fetchAll($query, [$individual_id, $individual_id]);
         
         return $siblings;
+    }
+
+    public static function getItems($individual_id) {
+        // Get the database instance
+        $db = Database::getInstance();
+        $items = $db->fetchAll("SELECT * FROM items INNER JOIN item_links ON items.item_id = item_links.item_id WHERE item_links.individual_id = ?", [$individual_id]);
+
+        // Fetch items using the updated query
+        $query = "
+            SELECT *
+            FROM items 
+            INNER JOIN item_links ON items.item_id=item_links.item_id
+            LEFT JOIN file_links ON items.item_id = file_links.item_id
+            LEFT JOIN files ON file_links.file_id = files.id
+            WHERE item_links.individual_id = ?
+        ";
+        $items = $db->fetchAll($query, [$individual_id]);
+        
+        return $items;
     }
 }

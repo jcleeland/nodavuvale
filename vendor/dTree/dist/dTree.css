@@ -8,6 +8,7 @@
     padding: 2px;
     background-color: #fff;  /* Background color for better contrast */
     box-shadow: 2px 2px 5px #0000001a;  /* Soft shadow for depth */
+    max-height: 180px;
 }
 
 /* Ensure text inside node is centered and fits the space */
@@ -17,6 +18,10 @@
 }
 
 #family-tree .nodeBodyText {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
     font-size: 1rem;   
     width: 100%;
@@ -36,29 +41,19 @@
     font-size: 1rem;
 }
 
-.parentLinks {
-    /* not currently used */
-    max-height: 10px;
+#family-tree .nodeImage {
+    width: 80px;
+    height: 80px;
+    border-radius: 30%;
 }
 
-.parent-link {
-    max-height: 10px;
-    font-size: 0.7rem;
-    font-weight: bold;
-    text-align: center;
-    margin-top: 0;
-    padding-top: 0;
+.parents-link {
     cursor: pointer;
-}
-
-.parent-link-left {
-    border-radius: 4px 0 0 0;
-}
-.parent-link-right {
-    border-radius: 0 4px 0 0;
+    z-index: 100;
 }
 
 .bodyName {
+    font-size: 0.9rem;
     font-weight: bold; 
     cursor: pointer;
 }

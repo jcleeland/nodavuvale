@@ -314,6 +314,46 @@
     position: relative;
 }
 
+.keyimage-float-left {
+    float: left;
+    margin-right: 15px;
+}
+.keyimage-img-xs {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.keyimage-img-sm {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.keyimage-img-md {
+    width: 70px;
+    height: 70px;
+    border-radius: 30%;
+    margin-right: 10px;
+}
+.keyimage-img-lg {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.keyimage-img-xl {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.keyimage-washed-out {
+    /* filter: brightness(1.2) contrast(0.4); */
+    display: block;
+   
+}
+
 /**********************************************
 *  Family Tree Container
 ***********************************************/
@@ -321,9 +361,6 @@
     background-color: #f8f8e894;
     border: 1px solid #d1d1ac;
 }
-
-
-
 
 /* Dropdown menu, initially hidden */
 #dropdownMenu {
@@ -360,9 +397,17 @@
     background: linear-gradient(to right, #a8d5ba, #7bb38d);
 }
 
+.text-shadow-female {
+    text-shadow: -2px -2px 4px #a8d5ba;
+}
+
 .gender_male {
     /* Warm amber with gradient */
     background: linear-gradient(to bottom, #f7d1a1, #e9b379);
+}
+
+.text-shadow-male {
+    text-shadow: -2px -2px 4px #f7d1a1;
 }
 
 .gender_other {
@@ -370,6 +415,9 @@
     background: linear-gradient(to bottom, #c8c0e7, #a59bc6);
 }
 
+.text-shadow-other {
+    text-shadow: -2px -2px 4px #c8c0e7;
+}
 /**********************************************
 *  Communications Section Styles
 ***********************************************/

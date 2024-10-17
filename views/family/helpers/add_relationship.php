@@ -25,9 +25,9 @@
                         <input type="text" id="lookup" name="lookup" class="w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">
                         <select id="connect_to" name="connect_to" class="w-full px-4 py-2 border rounded-lg mt-2" size="5" style="display: none;">
                             <option value="">Select someone...</option>
-                            <?php foreach ($individuals as $individual): ?>
-                                <option value="<?php echo $individual['id']; ?>">
-                                    <?php echo $individual['first_names'] . ' ' . $individual['last_name']; ?>
+                            <?php foreach ($individuals as $indi): ?>
+                                <option value="<?php echo $indi['id']; ?>">
+                                    <?php echo $indi['first_names'] . ' ' . $indi['last_name']; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -170,36 +170,4 @@
             </div>
         </div>
     </div>
-    <script>
-    document.getElementById('lookup').addEventListener('input', function() {
-        var input = this.value.toLowerCase();
-        var select = document.getElementById('connect_to');
-        var options = select.options;
-        var hasMatch = false;
 
-        for (var i = 0; i < options.length; i++) {
-            var option = options[i];
-            var text = option.text.toLowerCase();
-            if (text.includes(input)) {
-                option.style.display = '';
-                hasMatch = true;
-            } else {
-                option.style.display = 'none';
-            }
-        }
-
-        select.style.display = hasMatch ? '' : 'none';
-    });
-
-    document.getElementById('connect_to').addEventListener('change', function() {
-        var selectedValue = this.value;
-        if (selectedValue) {
-            document.getElementById('form-action').value = 'link_relationship';
-            document.getElementById('first_names').removeAttribute('required');
-            document.getElementById('last_name').removeAttribute('required');
-            document.getElementById('lookup').value = this.options[this.selectedIndex].text;
-            this.style.display = 'none';
-            document.getElementById('additional-fields').style.display = 'none';
-        }
-    });
-    </script>

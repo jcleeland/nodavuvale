@@ -80,6 +80,38 @@ document.addEventListener("DOMContentLoaded", function() {
         openModal('add_daughter', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
 
+    document.getElementById('lookup').addEventListener('input', function() {
+        var input = this.value.toLowerCase();
+        var select = document.getElementById('connect_to');
+        var options = select.options;
+        var hasMatch = false;
+
+        for (var i = 0; i < options.length; i++) {
+            var option = options[i];
+            var text = option.text.toLowerCase();
+            if (text.includes(input)) {
+                option.style.display = '';
+                hasMatch = true;
+            } else {
+                option.style.display = 'none';
+            }
+        }
+
+        select.style.display = hasMatch ? '' : 'none';
+    });
+
+    document.getElementById('connect_to').addEventListener('change', function() {
+        var selectedValue = this.value;
+        if (selectedValue) {
+            document.getElementById('form-action').value = 'link_relationship';
+            document.getElementById('first_names').removeAttribute('required');
+            document.getElementById('last_name').removeAttribute('required');
+            document.getElementById('lookup').value = this.options[this.selectedIndex].text;
+            this.style.display = 'none';
+            document.getElementById('additional-fields').style.display = 'none';
+        }
+    });
+
 });
 
 function getIndividualId(button) {
@@ -337,4 +369,31 @@ async function getSpouses(id) {
         console.error('Error fetching individual data:', error);
     }
 }
+
+function findNodeForIndividualId(id) {
+    return new Promise((resolve, reject) => {
+        // Get all foreignObject elements
+        const foreignObjects = document.querySelectorAll('foreignObject');
+
+        // Iterate through each foreignObject
+        for (let fo of foreignObjects) {
+            // Look for the hidden input inside this foreignObject
+            let input = fo.querySelector('input.individualid');
+            
+            // If the input exists and its value matches the provided id
+            if (input && input.value === String(id)) {
+                // Find the first div inside the foreignObject and return its id
+                let firstDiv = fo.querySelector('div');
+                if (firstDiv) {
+                    resolve(firstDiv.getAttribute('id'));
+                    return;
+                }
+            }
+        }
+
+        // Reject if no match is found
+        reject('Node not found');
+    });
+}
+
 
