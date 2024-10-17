@@ -55,7 +55,8 @@ class Utils {
 
             $parentLink="";
             if(isset($parents) && count($parents) > 0) {
-                $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange"><i class="fas fa-level-up-alt"></i></div>';
+                $parentLinkId=$parents[0]['id'];
+                $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
             }
 
             $nodeBodyTemplate = <<<EOT
