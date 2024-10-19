@@ -114,6 +114,7 @@ class Database {
             $this->update("INSERT INTO site_settings (name, value) VALUES ('email_username', 'someone@somewhere.com')");
             $this->update("INSERT INTO site_settings (name, value) VALUES ('email_password', 'password')");
             $this->update("INSERT INTO site_settings (name, value) VALUES ('email_port', '587')");
+            $settings = $this->fetchAll("SELECT * FROM site_settings");
         }
         foreach ($settings as $setting) {
             $site_settings[$setting['name']] = $setting['value'];
