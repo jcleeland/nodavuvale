@@ -43,6 +43,7 @@ CREATE TABLE `files` (
   `file_path` varchar(255) COLLATE utf8mb3_unicode_ci NOT NULL,
   `file_format` varchar(10) COLLATE utf8mb3_unicode_ci NOT NULL,
   `file_description` text COLLATE utf8mb3_unicode_ci,
+  `user_id` int DEFAULT NULL,
   `upload_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
@@ -70,12 +71,22 @@ CREATE TABLE `individuals` (
   `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT 'other',
   `photo` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DELIMITER $$
+CREATE TRIGGER `before_insert_individuals` BEFORE INSERT ON `individuals` FOR EACH ROW BEGIN
+    IF NEW.nodavuvale_id IS NULL THEN
+        SET NEW.nodavuvale_id = UUID();
+    END IF;
+END
+$$
+DELIMITER ;
 
 CREATE TABLE `items` (
   `item_id` int NOT NULL,
   `detail_type` varchar(100) COLLATE utf8mb3_unicode_ci NOT NULL,
   `detail_value` text COLLATE utf8mb3_unicode_ci NOT NULL,
-  `item_identifier` int DEFAULT NULL
+  `item_identifier` int DEFAULT NULL,
+  `user_id` int DEFAULT NULL,
+  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 CREATE TABLE `item_groups` (
