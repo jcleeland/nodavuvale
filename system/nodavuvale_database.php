@@ -96,7 +96,7 @@ class Database {
         $stmt = $this->query($sql, $params);
         if ($stmt === false) {
             // Handle the error (e.g., log the error, throw an exception)
-            
+
             $errorInfo = $this->pdo->errorInfo();
             throw new Exception("Failed to execute delete query: ".implode(", ", $errorInfo));
         }
@@ -106,6 +106,15 @@ class Database {
     public function getSiteSettings() {
         $settings = $this->fetchAll("SELECT * FROM site_settings");
         $site_settings = [];
+        //If $site_settings is empty, then we need to set the default values
+        if(empty($settings)) {
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('site_name', 'NodaVuvale')");
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('site_description', 'A simple social network')");
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('email_server', 'smtp.example.com')");
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('email_username', 'someone@somewhere.com')");
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('email_password', 'password')");
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('email_port', '587')");
+        }
         foreach ($settings as $setting) {
             $site_settings[$setting['name']] = $setting['value'];
         }
