@@ -21,7 +21,9 @@ $sql = "SELECT item_identifier, item_id FROM items WHERE item_id = ?";
 $sqldata = array($itemId);
 $item_identifier = $db->fetchOne($sql, $sqldata);
 $item_identifier = $item_identifier['item_identifier'];
-
+if($item_identifier === null) {
+    $item_identifier = null;
+}
 //If the item_identifier is not null, then we need to find all the item_ids that have the same item_identifier
 if($item_identifier !== null) {
     $sql = "SELECT item_id FROM items WHERE item_identifier = ?";
