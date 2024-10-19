@@ -418,11 +418,9 @@ EOT;
     public static function getItems($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
-        $items = $db->fetchAll("SELECT * FROM items INNER JOIN item_links ON items.item_id = item_links.item_id WHERE item_links.individual_id = ?", [$individual_id]);
-
         // Fetch items using the updated query
         $query = "
-            SELECT *
+            SELECT items.*, files.id as file_id, files.*
             FROM items 
             INNER JOIN item_links ON items.item_id=item_links.item_id
             LEFT JOIN file_links ON items.item_id = file_links.item_id

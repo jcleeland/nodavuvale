@@ -159,6 +159,30 @@ function triggerPhotoUpload(individualId) {
     document.getElementById('photoUpload').click();
 }
 
+function triggerEditItemDescription(id) {
+    console.log('Triggering edit item description for: ' + id);
+    var currentDescription=document.getElementById(id).textContent;
+    var newItemDescription=prompt("Enter your description here:", currentDescription);
+
+    if(newItemDescription===null) {
+        //User pressed cancel - abort
+        return;
+    }
+    //the actual id we want to use is after the underscore in the text of the id passed to the function
+    var item_id=id.split('_')[1];
+    getAjax('update_item', {itemId: item_id, itemDescription: newItemDescription})
+        .then(response => {
+            if(response.status === 'success') {
+                document.getElementById(id).textContent=newItemDescription;
+            } else {
+                alert('Error: ' + response.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred while updating the item description: ' + error.message);
+        });
+}
+
 function triggerEditFileDescription(id) {
     console.log('Triggering edit file description for: ' + id);
     var currentDescription=document.getElementById(id).textContent;
@@ -187,49 +211,55 @@ function triggerEditFileDescription(id) {
 
 async function uploadPhoto(individualId) {
     var fileInput = document.getElementById('photoUpload');
-    var file = fileInput.files[0]; //Get the selected file
-
+    var file = fileInput.files[0]; // Get the selected file
+    console.log('Starting the upload photo process');
     if (file) {
         // Prepare the data for uploading
+        var fileName = file.name;
         var formData = new FormData();
         formData.append('file', file);  // Append the selected file
         formData.append('method', 'add_file_item');  // Method for your ajax.php
         
         var events = [];
-        
-        var event_group_name=null;
-        var fileDescriptionDefault="Photo of "+document.getElementById('individual_brief_name').value;
-        var fileDescription=prompt("Please enter a description for the photo:", fileDescriptionDefault);
+        var event_group_name = null;
+        var fileDescriptionDefault = "Photo of " + document.getElementById('individual_brief_name').value;
 
-        if(fileDescription === null) {
-            //User pressed cancel, abort
-            return;
-        }
+        // Show the custom prompt
+        showCustomPrompt(
+            'Add Photo Description',
+            'Please enter a description for this photo:<br /><span class="text-sm">' + fileName+ '</span>',
+            ['Description'],
+            [fileDescriptionDefault],
+            function(inputValues) {
+                if (inputValues !== null) {
+                    var fileDescription = inputValues[0];
 
-        formData.append('data', JSON.stringify({
-            individual_id: individualId,
-            events: events,
-            event_group_name: event_group_name,
-            file_description: fileDescription,  // Description for the file
-        }));
+                    formData.append('data', JSON.stringify({
+                        individual_id: individualId,
+                        events: events,
+                        event_group_name: event_group_name,
+                        file_description: fileDescription,  // Description for the file
+                    }));
 
-
-        // Perform the AJAX call using getAjax
-        getAjax('add_file_item', formData)
-            .then(response => {
-                //convert response from json to object
-                console.log(response);
-                console.log(response.status);
-                if (response.status === 'success') {
-                    //reload the page
-                    
-                } else {
-                    alert('Error: ' + response.message);
+                    // Perform the AJAX call using getAjax
+                    getAjax('add_file_item', formData)
+                        .then(response => {
+                            // Convert response from JSON to object
+                            console.log(response);
+                            console.log(response.status);
+                            if (response.status === 'success') {
+                                // Reload the page
+                                location.reload();
+                            } else {
+                                alert('Error: ' + response.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('An error occurred while uploading the image: ' + error.message);
+                        });
                 }
-            })
-            .catch(error => {
-                alert('An error occurred while uploading the image: ' + error.message);
-            });
+            }
+        );
     }    
 }
 
@@ -331,10 +361,53 @@ async function uploadKeyImage(individualId) {
     }
 }
 
+function doAction(action, individualId, actionId) {
+    console.log('Doing action:', action, 'for individual ID:', individualId, ' and action ID:', actionId);
+    switch(action) {
+        case 'delete_item':
+            if (confirm('Are you sure you want to delete this item?')) {
+                getAjax('delete_item', {individualId: individualId, itemId: actionId})
+                    .then(response => {
+                        if (response.status === 'success') {
+                            // Reload the page
+                            alert('Item has been deleted');
+                            document.getElementById('item_id_'+actionId).remove();
+                            //location.reload();
+                        } else {
+                            alert('Error item has not been deleted: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while deleting the item: ' + error.message);
+                    });
+            }
+            break;
+        case 'delete_photo':
+            if(confirm('Are you sure you want to delete this photo?')) {
+                getAjax('delete_file', {individualId: individualId, fileId: actionId})
+                    .then(response => {
+                        if (response.status === 'success') {
+                            // Reload the page
+                            alert('Photo has been deleted');
+                            //Remove div containing photo
+                            document.getElementById('file_id_'+actionId).remove();
+                            //location.reload();
+                        } else {
+                            alert('Error - photo has not been deleted: ' + response.message);
+                        }
+                    }
+                )}
+            break;
+        default:
+            break;
+    }
+}
+
 function openModal(action, individualId, individualGender) {
     console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and gender', individualGender);
 
 
+    document.getElementById('add-relationship-form').action = '?to=family/individual&individual_id=' + individualId;
     // Get the modal and form elements for the "Add" form
     var modal = document.getElementById('popupForm');
     var closeButton = document.querySelector('.close-btn');
@@ -403,11 +476,28 @@ function openModal(action, individualId, individualGender) {
             break;
         case 'add_child':
             formActionRelationship.value='child';
-            document.getElementById('choose-second-parent').style.display = 'block';
+            console.log('Getting spouses');
+            getSpouses(individualId).then(spouses => {
+                console.log(spouses);
+                var select = document.getElementById('second-parent');
+                select.innerHTML = '';
+                var option = document.createElement('option');
+                option.value = '';
+                option.text = 'None or not known';
+                select.add(option);
+                spouses.forEach(spouse => {
+                    var option = document.createElement('option');
+                    option.value = spouse.parent_id;
+                    option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
+                    select.add(option);
+                });
+            });
+            document.getElementById('choose-second-parent').style.display = 'block';  
             break;
         case 'add_son':
             formActionRelationship.value='child';
             formActionGender.value='male';
+            console.log('Getting spouses');
             getSpouses(individualId).then(spouses => {
                 console.log(spouses);
                 var select = document.getElementById('second-parent');

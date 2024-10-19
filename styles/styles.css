@@ -585,6 +585,15 @@
     color: #888;
 }
 
+#customPrompt {
+    display: none;
+}
+
+#customPrompt.show {
+    display: flex;
+    z-index: 500;
+}
+
 
 
 

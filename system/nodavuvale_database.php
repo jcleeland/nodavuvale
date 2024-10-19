@@ -32,11 +32,17 @@ class Database {
     public function query($sql, $params = []) {
         try {
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            return $stmt;
+            if($stmt->execute($params)) {
+                return $stmt;
+            } else {
+                //Log the error details
+                $errorInfo = $stmt->errorInfo();
+                error_log("SQL Error: ".implode(", ", $errorInfo));
+                return false;
+            }
         } catch (PDOException $e) {
             // Log query errors
-            error_log($e->getMessage());
+            error_log("PDOException: ".$e->getMessage());
             return false;
         }
     }
@@ -83,6 +89,18 @@ class Database {
     // Update helper method
     public function update($sql, $params = []) {
         return $this->query($sql, $params)->rowCount(); // Return number of affected rows
+    }
+
+    // Delete helper method
+    public function delete($sql, $params = []) {
+        $stmt = $this->query($sql, $params);
+        if ($stmt === false) {
+            // Handle the error (e.g., log the error, throw an exception)
+            
+            $errorInfo = $this->pdo->errorInfo();
+            throw new Exception("Failed to execute delete query: ".implode(", ", $errorInfo));
+        }
+        return $stmt->rowCount(); // Return number of affected rows
     }
 
     public function getSiteSettings() {

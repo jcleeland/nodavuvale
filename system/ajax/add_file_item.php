@@ -6,6 +6,7 @@
 $individual_id = (int)$data['individual_id']; // Ensure proper integer casting
 $events = !empty($data['events']) ? $data['events'] : [];
 $file_description = !empty($data['file_description']) ? trim($data['file_description']) : '';
+$user_id = (int)$_SESSION['user_id']; // Ensure proper integer casting
 
 // Initialize the response array
 
@@ -75,9 +76,9 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             }
             
             // Step 3: Insert the file metadata into the 'files' table
-            $file_insert_sql = "INSERT INTO files (file_type, file_path, file_format, file_description) 
-                                VALUES (?, ?, ?, ?)";
-            $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description]);
+            $file_insert_sql = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) 
+                                VALUES (?, ?, ?, ?, ?)";
+            $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description, $user_id]);
             $file_id = $db->lastInsertId(); // Get the ID of the uploaded file
             
             // Step 4: Link the file to the individual in 'file_links'

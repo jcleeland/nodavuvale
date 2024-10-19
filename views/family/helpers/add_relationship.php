@@ -1,3 +1,111 @@
+<?php
+/**
+ * Handle new individuals and/or new relationships
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpos($_POST['action'], 'add_') === 0 || $_POST['action'] == 'link_relationship'))) {
+    $first_names = $_POST['first_names'];
+    $aka_names = $_POST['aka_names'];
+    $last_name = $_POST['last_name'];
+    $submitted_by = $_SESSION['user_id'];
+    $photo_path = null;
+    $birthyear = !empty($_POST['birth_year']) ? $_POST['birth_year'] : null;
+    $birthmonth = !empty($_POST['birth_month']) ? $_POST['birth_month'] : null;
+    $birthdate = !empty($_POST['birth_date']) ? $_POST['birth_date'] : null;
+    $deathyear = !empty($_POST['death_year']) ? $_POST['death_year'] : null;
+    $deathmonth = !empty($_POST['death_month']) ? $_POST['death_month'] : null;
+    $deathdate = !empty($_POST['death_date']) ? $_POST['death_date'] : null;
+
+    // Save the new individual to `individuals` or `temp_individuals`
+    
+    if($_POST['action'] == 'add_individual' || empty($_POST['connect_to'])) {
+        //Check to see if there is a matching record already in the individuals table
+        $existing_individual = $db->fetchAll("SELECT * FROM individuals WHERE first_names = ? AND last_name = ?", [$first_names, $last_name]);
+        if($existing_individual) {
+            echo "This individual already exists in the database.";
+        } else {
+            $db->query(
+                "INSERT INTO individuals (first_names, aka_names, last_name, birth_prefix, birth_year, birth_month, birth_date, death_prefix, death_year, death_month, death_date, gender, photo) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [$first_names, $aka_names, $last_name, $_POST['birth_prefix'], $birthyear, $birthmonth, $birthdate, $_POST['death_prefix'], $deathyear, $deathmonth, $deathdate, $_POST['gender'], $photo_path]
+            );
+            $new_individual_id = $db->query("SELECT LAST_INSERT_ID()")->fetchColumn();
+        }
+    } 
+
+    
+    //If there is a value in $_POST['relationship'] add relationship to the database
+    if(!empty($_POST['relationship'])) {
+        $proceed=true; //Set a value for making the change, which can be turned off if there is a problem
+        $errormessage="";
+
+        // Quick hack to make adding a relationship easier whether it is a new person added, or a connect_to person who already exists
+        if(!empty($_POST['connect_to'])) {
+            $new_individual_id=$_POST['connect_to'];
+        }
+
+        /* Adjust the perspective for child/parent relationships
+        All child/parent relationships should be recorded as the perspective of the child. So if someone has posted 
+        the values $_POST['related_individual'] = 1 and the $new_individual_id is 2, and the $_POST['relationship'] is 'parent'
+        then the relationship should be recorded as individual_id_1 = 2, individual_id_2 = 1, relationship_type = 'child',
+        however if $_POST['relationship'] is 'child', then we can leave everything as it is.
+        */
+        if($_POST['relationship'] == 'parent') {
+            $temp = $new_individual_id;
+            $new_individual_id = $_POST['related_individual'];
+            $_POST['related_individual'] = $temp;
+            $_POST['relationship'] = 'child';
+        }
+
+
+        $proceed=checkForDuplicateRelationship($db, $_POST['related_individual'], $new_individual_id, $_POST['relationship']);
+        //If the relationship type is "child" thenn also make sure that there aren't more than 2 other parents for this child
+        if($_POST['relationship'] == 'child') {
+            $proceed=checkFor2Parents($db, $new_individual_id);
+        }
+
+        if($proceed) {
+            $db->query(
+                "INSERT INTO relationships (individual_id_1, individual_id_2, relationship_type) VALUES (?, ?, ?)",
+                [$_POST['related_individual'], $new_individual_id, $_POST['relationship']]
+            ); 
+            //If there is a value in "second-parent", then add this new individual as a child of the second parent
+            if(!empty($_POST['second-parent'])) {
+                $proceedagain=true;
+                $proceedagain=checkForDuplicateRelationship($db, $_POST['second-parent'], $new_individual_id, 'child');
+                $proceedagain=checkFor2Parents($db, $new_individual_id);
+                if($proceedagain) {
+                    $db->query(
+                        "INSERT INTO relationships (individual_id_1, individual_id_2, relationship_type) VALUES (?, ?, ?)",
+                        [$_POST['second-parent'], $new_individual_id, 'child']
+                    );
+                }
+            }                       
+        } 
+    }
+
+
+    // After the changes, reload the page to show the updated tree
+    //header("Location: " . $_SERVER['REQUEST_URI']);
+    //exit; // Make sure to stop further script execution
+}
+function checkForDuplicateRelationship($db, $related_id, $new_id, $relationship_type) {
+    //Make sure there isn't already a child/parent relationship between these two individuals
+    $existing_relationship = $db->fetchAll("SELECT * FROM relationships WHERE individual_id_1 = ? AND individual_id_2 = ? AND relationship_type = ?", [$related_id, $new_id, $relationship_type]);
+    if($existing_relationship) {
+        return false;
+    }
+    return true;
+}
+
+function checkFor2Parents($db, $individual_id) {
+    $existing_relationships = $db->fetchAll("SELECT distinct(individual_id_1) FROM relationships WHERE individual_id_2 = ? AND relationship_type = ?", [$individual_id, 'child']);
+    if(count($existing_relationships) > 1) {
+        return false;
+    }
+    return true;
+}
+
+?>
 <!-- "Add new relationship" Modal Popup Form -->
 <div id="popupForm" class="modal" style="display: none;">
         <div class="modal-content">
@@ -6,7 +114,7 @@
                 <h2 id="modal-title">Add New Relationship <span id='adding_relationship_to'></span></h2>
             </div>
             <div class="modal-body">
-                <form id="dynamic-form" action="?to=family/tree" method="POST">
+                <form id="add-relationship-form" action="?to=family/tree" method="POST">
                     <input type="hidden" name="action" value="" id="form-action">
                     <input type="hidden" name="related_individual" value="" id="related-individual">
                     <input type="hidden" id="root_id" name="root_id" value="<?= $rootId; ?>">

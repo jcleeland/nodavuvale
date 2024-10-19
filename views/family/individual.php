@@ -4,16 +4,37 @@
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_individual') {
     include("helpers/update_individual.php");
 }
-
 $individual_id = $_GET['individual_id'] ?? null;
 if(!isset($rootId)) {
     $rootId = Web::getRootId();
 }
+include("helpers/add_relationship.php");
+
+include("helpers/quickedit.php");
+
+
 
 if ($individual_id) {
     // Fetch the individual details
     //    echo "SELECT individuals.*, files.file_path as keyimagepath FROM individuals LEFT JOIN file_links ON file_links.individual_id=individuals.id LEFT JOIN files ON file_links.file_id=files.id LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image' WHERE individuals.id =";
-    $individual = $db->fetchOne("SELECT individuals.*, files.file_path as keyimagepath FROM individuals LEFT JOIN file_links ON file_links.individual_id=individuals.id LEFT JOIN files ON file_links.file_id=files.id LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image' WHERE individuals.id = ?", [$individual_id]);
+    $sql="SELECT individuals.* 
+    FROM individuals 
+    WHERE individuals.id = ?";
+    $individual = $db->fetchOne($sql, [$individual_id]);
+
+    //See if there's a key image
+    $sql="SELECT files.file_path as keyimagepath
+        FROM files
+        INNER JOIN file_links ON file_links.file_id=files.id
+        INNER JOIN items ON items.item_id=file_links.item_id
+        WHERE file_links.individual_id = ? AND files.file_type = 'image' AND items.detail_type='Key Image'";
+    $keyimage = $db->fetchOne($sql, [$individual_id]);
+    if(!empty($keyimage)) {
+        $individual['keyimagepath']=$keyimage['keyimagepath'];
+    } else {
+        $individual['keyimagepath']="images/default_avatar.webp";
+    }
+
     // Extract just the first word from $individual['first_names']
     $individual['first_name'] = explode(' ', $individual['first_names'])[0];
     $individual['fullname']=$individual['first_name'] . ' ' . $individual['last_name'];
@@ -78,18 +99,13 @@ if ($individual_id) {
         $deathdate= "";
     }
 
-    //Set up the key image
-    if(empty($individual['keyimagepath'])) {
-        $individual['keyimagepath'] = "images/default_avatar.webp";
-    }
 }
 
-include("helpers/quickedit.php");
 
 //Gather a list of individuals for the add relationship modal
 $individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
 
-include("helpers/add_relationship.php");
+
 ?>
 <input type='hidden' id='individual_brief_name' value='<?= $individual['fullname'] ?>' />
 <section class="hero text-white py-20 relative">
@@ -158,7 +174,7 @@ include("helpers/add_relationship.php");
             <!-- Display Parents -->
             <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                 Parents
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a parent to <?= $individual['first_name'] ?>">
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a parent to <?= $individual['first_name'] ?>" onclick="openModal('add_parent', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
                     <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                 </button>                
             </h3>
@@ -173,7 +189,7 @@ include("helpers/add_relationship.php");
             <!-- Display Siblings -->
             <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                 Siblings
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a sibling to <?= $individual['first_name'] ?>">
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a sibling to <?= $individual['first_name'] ?>" onclick="openModal('add_sibling', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
                     <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                 </button>                
             </h3>
@@ -203,7 +219,7 @@ include("helpers/add_relationship.php");
             <!-- Display Children -->
             <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                 Children (<?= count($children) ?>)
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a child to <?= $individual['first_name'] ?>">
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a child to <?= $individual['first_name'] ?>" onclick="openModal('add_child', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
                     <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                 </button>
             </h3>
@@ -221,19 +237,25 @@ include("helpers/add_relationship.php");
     <div class="text-center p-2">
         <h3 class="text-2xl font-bold mt-8 mb-4 relative">
             Items
-            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add an event or item about <?= $individual['first_name'] ?>">
+            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add an event or item about <?= $individual['first_name'] ?>" onclick="openEvent('add_item', '<?= $individual['id'] ?>');">
                 <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
             </button>            
         </h3>
         <div class="document-list grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
              <?php foreach ($items as $item): ?>
-                <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm">
+                <div id="item_id_<?= $item['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                    <button class="absolute text-burnt-orange bg-gray-8 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>');">
+                        <i class="fas fa-trash"></i>
+                    </button>
                     <b><?= $item['detail_type'] ?></b><br />
-                    <?= htmlspecialchars($web->truncateText($item['detail_value'], 150)) ?>
+                    <?php if (!empty($item['detail_value'])): ?>
+                        <p id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
+                            <?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?>
+                        </p>
+                    <?php endif; ?>
                     <?php if(!empty($item['file_id'])): ?>
                         <?php if($item['file_type']=='image'): ?>
                             <img src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>" class="w-full h-auto rounded-lg">
-
                         <?php else: ?>
                             <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800">View Document</a>
                         <?php endif; ?>
@@ -259,8 +281,13 @@ include("helpers/add_relationship.php");
         </h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
             <?php foreach ($photos as $photo): ?>
-                <div class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg">
-                    <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
+                <div id="file_id_<?= $photo['id'] ?>" class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg relative">
+                    <button class="absolute text-burnt-orange bg-gray-8 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_photo', '<?= $individual['id'] ?>', '<?= $photo['id'] ?>');">
+                        <i class="fas fa-trash"></i>
+                    </button>                    
+                    <a href="<?php echo $photo['file_path']; ?>" target="_blank">
+                        <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
+                    </a>
                     <?php if (!empty($photo['file_description'])): ?>
                         <p id="photo_<?= $photo['id'] ?>" class="mt-2 text-xs text-gray-600" onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')"><?php echo $photo['file_description']; ?></p>
                     <?php endif; ?>

@@ -163,6 +163,7 @@ function showDropdown(button, individualId, gender) {
 function openModal(action, individualId, individualGender) {
     console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and gender', individualGender);
 
+    document.getElementById('add-relationship-form').action = '?to=family/tree&zoom=' + individualId;
 
     // Get the modal and form elements for the "Add" form
     var modal = document.getElementById('popupForm');
@@ -349,26 +350,6 @@ async function openEditModal(individualId) {
 
 }
 
-// Placeholder for fetching individual data (replace with actual data fetching logic)
-async function getIndividualDataById(id) {
-    try {
-        var output = await getAjax('getindividual', { id: id });
-        //console.log(output.individual.first_names);
-        return output.individual;
-    } catch (error) {
-        console.error('Error fetching individual data:', error);
-    }
-}
-
-async function getSpouses(id) {
-    try {
-        var output = await getAjax('getspouses', { id: id });
-        console.log(output);
-        return output.parents;
-    } catch (error) {
-        console.error('Error fetching individual data:', error);
-    }
-}
 
 function findNodeForIndividualId(id) {
     return new Promise((resolve, reject) => {
