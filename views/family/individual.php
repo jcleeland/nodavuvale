@@ -4,7 +4,7 @@
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_individual') {
     include("helpers/update_individual.php");
 }
-$individual_id = $_GET['individual_id'] ?? null;
+
 if(!isset($rootId)) {
     $rootId = Web::getRootId();
 }
@@ -39,6 +39,9 @@ if ($individual_id) {
     $individual['first_name'] = explode(' ', $individual['first_names'])[0];
     $individual['fullname']=$individual['first_name'] . ' ' . $individual['last_name'];
 
+    //See if there are any discussions about this individual
+    $discussions = Utils::getIndividualDiscussions($individual_id);
+
     //Fetch parents
     $parents = Utils::getParents($individual_id);
 
@@ -52,7 +55,8 @@ if ($individual_id) {
     $siblings = Utils::getSiblings($individual_id);
 
     // Fetch associated files (photos and documents)
-    $photos = $db->fetchAll("SELECT * FROM files INNER JOIN file_links ON file_links.file_id=files.id WHERE individual_id = ? AND file_type = 'image'", [$individual_id]);
+    $photos = Utils::getFiles($individual_id, 'image');
+
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
     $items = Utils::getItems($individual_id);
@@ -133,192 +137,216 @@ $individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals
             </button>
         </div>
     </div>
-</section>
-
-<section class="container mx-auto pb-6 pt-0">
-    <div class="">
-        <div class="text-center p-2">
-            <!-- Display Detail Summary -->
-            <h3 class="text-2xl font-bold mt-8 mb-4">Details</h3>
-            <div class="p-6 bg-white shadow-lg rounded-lg">
-                <p class="text-lg text-gray-600">
-                    This is where a general summary of <?= $individual['fullname'] ?> will be placed, along with some photos.
-                </p>
-            </div>
-        </div>
+    <div class="tabs absolute -bottom-0 text-sm md:text-lg gap-2">
+        <div class="tab active px-4 py-2" data-tab="generaltab">General</div>
+        <div class="tab px-4 py-2" data-tab="relationshipstab">Relationships</div>
+        <div class="tab px-4 py-2" data-tab="mediatab">Media</div>
     </div>
 </section>
 
-<section class="container mx-auto py-6 ">
-    <div class="">
-        <div class="text-center p-2">
-            <!-- Display Stories -->
-            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                Stories
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 z-10 font-normal text-sm" title="Add a story about <?= $individual['first_name'] ?>">
-                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                </button>
-            </h3>
-            <div class="p-6 bg-white shadow-lg rounded-lg">
-                <p class="text-lg text-gray-600">
-                    This is where any stories that have been posted about <?= $individual['first_name'] ?> will appear.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
 
-<section class="container mx-auto py-6">
-    <div class="grid grid-cols-1 lg:grid-cols-2">
-        <div class="text-center p-2">
-            <!-- Display Parents -->
-            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                Parents
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a parent to <?= $individual['first_name'] ?>" onclick="openModal('add_parent', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
-                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                </button>                
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
-                <?php foreach ($parents as $parent): ?>
-                    <?= $web->individual_card($parent) ?>
-                <?php endforeach; ?>
-            </div>
-        </div>
 
-        <div class="text-center p-2">
-            <!-- Display Siblings -->
-            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                Siblings
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a sibling to <?= $individual['first_name'] ?>" onclick="openModal('add_sibling', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
-                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                </button>                
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
-                <?php foreach ($siblings as $sibling): ?>
-                    <?= $web->individual_card($sibling) ?>
-                <?php endforeach; ?>
-            </div>
-        </div>        
 
-        <div class="text-center p-2">
-            <!-- Display Spouse(s) -->
-            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                Spouses
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a spouse to <?= $individual['first_name'] ?>" onclick="openModal('add_spouse', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
-                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                </button>
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
-                <?php foreach ($spouses as $spouse): ?>
-                    <?= $web->individual_card($spouse) ?>
-                <?php endforeach; ?>
-            </div>
-        </div>
 
-        <div class="text-center p-2">
-            <!-- Display Children -->
-            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                Children (<?= count($children) ?>)
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a child to <?= $individual['first_name'] ?>" onclick="openModal('add_child', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
-                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                </button>
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
-                <?php foreach ($children as $child): ?>
-                    <?= $web->individual_card($child) ?>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
-</section>
 
-<section class="container mx-auto py-6">
-    <!-- Display Items -->
-    <div class="text-center p-2">
-        <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-            Items
-            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add an event or item about <?= $individual['first_name'] ?>" onclick="openEvent('add_item', '<?= $individual['id'] ?>');">
-                <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-            </button>            
-        </h3>
-        <div class="document-list grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
-             <?php foreach ($items as $item): ?>
-                <div id="item_id_<?= $item['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
-                    <button class="absolute text-burnt-orange bg-gray-8 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>');">
-                        <i class="fas fa-trash"></i>
+
+<div class="tab-content active" id="generaltab">
+
+    <section class="container mx-auto py-6 ">
+        <div class="">
+            <div class="text-center p-2">
+                <!-- Display Stories -->
+                <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                    Stories
+                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 z-10 font-normal text-sm" title="Add a story about <?= $individual['first_name'] ?>">
+                        <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                     </button>
-                    <b><?= $item['detail_type'] ?></b><br />
-                    <?php if (!empty($item['detail_value'])): ?>
-                        <p id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
-                            <?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?>
-                        </p>
-                    <?php endif; ?>
-                    <?php if(!empty($item['file_id'])): ?>
-                        <?php if($item['file_type']=='image'): ?>
-                            <img src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>" class="w-full h-auto rounded-lg">
-                        <?php else: ?>
-                            <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800">View Document</a>
-                        <?php endif; ?>
-                        <?php if (!empty($item['file_description'])): ?>
-                            <p class="mt-2 text-xs text-gray-600"><?= $item['file_description'] ?></p>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                </h3>
+                <div class="p-6 bg-white shadow-lg rounded-lg">
+                    <p class="text-lg text-gray-600">
+                        This is where any stories that have been posted about <?= $individual['first_name'] ?> will appear.
+                    </p>
                 </div>
-            <?php endforeach; ?>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="container mx-auto py-6">    
-    <!-- Display Photos -->
-    <div class="text-center p-2">
-        <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-            Photos
-            <button onclick="triggerPhotoUpload()" class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a photo of <?= $individual['first_name'] ?>">
-                <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-            </button>
-            <input type="file" id="photoUpload" style="display: none;" onchange="uploadPhoto('<?= $individual['id'] ?>')">
-        </h3>
-        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+    <section class="container mx-auto py-6">
+        <!-- Display Items -->
+        <div class="text-center p-2">
+            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                Items
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add an event or item about <?= $individual['first_name'] ?>" onclick="openEvent('add_item', '<?= $individual['id'] ?>');">
+                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                </button>            
+            </h3>
+            <div class="document-list grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+                <?php foreach ($items as $key=>$itemgroup): ?> 
+                    <div id="item_id_<?= $itemgroup[0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                        <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete this item" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $itemgroup[0]['item_id'] ?>');">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <?php if($key=="Singleton") $groupTitle=$itemgroup[0]['detail_type']; else $groupTitle=$key; ?>
+                        <b><?= $groupTitle ?></b><br />
+                        <?php foreach ($itemgroup as $item): ?>
+                                <b class="text-xs"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?></b><br />
+                                <?php if (!empty($item['detail_value'])): ?>
+                                    <p id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
+                                        <?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if(!empty($item['file_id'])): ?>
+                                    <?php if($item['file_type']=='image'): ?>
+                                        <img src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>" class="w-full h-auto rounded-lg">
+                                    <?php else: ?>
+                                        <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800">View Document</a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($item['file_description'])): ?>
+                                        <p class="mt-2 text-xs text-gray-600"><?= $item['file_description'] ?></p>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
+                                    <i class="fas fa-info-circle" title="Added by <?= $item['first_name'] ?> <?= $item['last_name'] ?> on <?= date("d M Y", strtotime($item['updated'])); ?>"></i>
+                                </button>
+                        <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?>
+            </div>
+        </div>
+    </section>    
+</div>
+
+
+
+
+
+
+
+
+<div class="tab-content" id="relationshipstab">
+    <section class="container mx-auto py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2">
+
+
+            <!-- Display Spouse(s) -->
+            <div class="text-center p-2">
+                <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                    Spouses
+                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a spouse to <?= $individual['first_name'] ?>" onclick="openModal('add_spouse', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
+                        <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                    </button>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
+                    <?php foreach ($spouses as $spouse): ?>
+                        <?= $web->individual_card($spouse) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Display Children -->
+            <div class="text-center p-2">
+                <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                    Children (<?= count($children) ?>)
+                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a child to <?= $individual['first_name'] ?>" onclick="openModal('add_child', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
+                        <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                    </button>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
+                    <?php foreach ($children as $child): ?>
+                        <?= $web->individual_card($child) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Display Parents -->
+            <div class="text-center p-2">
+                <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                    Parents
+                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a parent to <?= $individual['first_name'] ?>" onclick="openModal('add_parent', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
+                        <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                    </button>                
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
+                    <?php foreach ($parents as $parent): ?>
+                        <?= $web->individual_card($parent) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Display Siblings -->
+            <div class="text-center p-2">
+                <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                    Siblings
+                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a sibling to <?= $individual['first_name'] ?>" onclick="openModal('add_sibling', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
+                        <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                    </button>                
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
+                    <?php foreach ($siblings as $sibling): ?>
+                        <?= $web->individual_card($sibling) ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>        
+
+        </div>
+    </section>
+</div>
+
+<div class="tab-content" id="mediatab">
+    <section class="container mx-auto py-6">    
+        <!-- Display Photos -->
+        <div class="text-center p-2">
+            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                Photos
+                <button onclick="triggerPhotoUpload()" class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a photo of <?= $individual['first_name'] ?>">
+                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                </button>
+                <input type="file" id="photoUpload" style="display: none;" onchange="uploadPhoto('<?= $individual['id'] ?>')">
+            </h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
             <?php foreach ($photos as $photo): ?>
-                <div id="file_id_<?= $photo['id'] ?>" class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg relative">
-                    <button class="absolute text-burnt-orange bg-gray-8 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_photo', '<?= $individual['id'] ?>', '<?= $photo['id'] ?>');">
-                        <i class="fas fa-trash"></i>
-                    </button>                    
-                    <a href="<?php echo $photo['file_path']; ?>" target="_blank">
-                        <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
-                    </a>
-                    <?php if (!empty($photo['file_description'])): ?>
-                        <p id="photo_<?= $photo['id'] ?>" class="mt-2 text-xs text-gray-600" onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')"><?php echo $photo['file_description']; ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
+                    <div id="file_id_<?= $photo['id'] ?>" class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg relative">
+                        <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_photo', '<?= $individual['id'] ?>', '<?= $photo['id'] ?>');">
+                            <i class="fas fa-trash"></i>
+                        </button>                    
+                        <a href="<?php echo $photo['file_path']; ?>" target="_blank">
+                            <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
+                        </a>
+                        <?php if (!empty($photo['file_description'])): ?>
+                            <p id="photo_<?= $photo['id'] ?>" class="mt-2 text-xs text-gray-600" onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')"><?php echo $photo['file_description']; ?></p>
+                        <?php endif; ?>
+                            <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
+                                <i class="fas fa-info-circle" title="Added by <?= $photo['first_name'] ?> <?= $photo['last_name'] ?> on <?= date("d M Y", strtotime($photo['upload_date'])); ?>"></i>
+                            </button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="container mx-auto py-6">
-    <!-- Display Documents -->
-    <div class="text-center p-2">
-        <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-            Documents
-            <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a document about <?= $individual['first_name'] ?>">
-                <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-            </button>  
-        </h3>
-        <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
-          
+    <section class="container mx-auto py-6">
+        <!-- Display Documents -->
+        <div class="text-center p-2">
+            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                Documents
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a document about <?= $individual['first_name'] ?>">
+                    <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
+                </button>  
+            </h3>
+            <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            
 
-            <?php foreach ($documents as $document): ?>
-                <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
-                    <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
-                        View Document
-                    </a>
-                    <?php if (!empty($document['file_description'])): ?>
-                        <p class="mt-1 text-sm text-gray-600"><?php echo $document['file_description']; ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
+                <?php foreach ($documents as $document): ?>
+                    <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
+                        <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
+                            View Document
+                        </a>
+                        <?php if (!empty($document['file_description'])): ?>
+                            <p class="mt-1 text-sm text-gray-600"><?php echo $document['file_description']; ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
+</div>

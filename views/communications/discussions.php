@@ -12,6 +12,7 @@ $is_admin = $auth->getUserRole() === 'admin';
 $discussions = $db->fetchAll("SELECT discussions.*, users.first_name, users.last_name, users.avatar
     FROM discussions 
     INNER JOIN users ON discussions.user_id=users.id 
+    WHERE discussions.is_individual != 1
     ORDER BY is_sticky DESC, created_at DESC");
 
 // Function to fetch comments for a discussion

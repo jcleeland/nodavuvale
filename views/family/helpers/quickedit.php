@@ -109,6 +109,12 @@
                         </div>
                     </div>
 
+                    <!-- Deceased -->
+                    <div class="mb-4 flex items-center">
+                    <input type="checkbox" class="mr-2" id="edit-is_deceased" name="is_deceased" value="1">
+                    <label for="edit-is_deceased" class="text-gray-700">Deceased</label>
+                    </div>
+
                     <!-- Gender -->
                     <div class="mb-4">
                         <label for="gender" class="block text-gray-700">Gender</label>

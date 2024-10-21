@@ -1,6 +1,26 @@
 <?php
 class Utils {
 
+    
+    /**
+     * Builds a hierarchical tree structure of individuals and their relationships.
+     *
+     * This function constructs a tree data structure starting from a given root individual.
+     * It processes individuals and their relationships to build a nested representation of
+     * family relationships, including parents, spouses, and children.
+     *
+     * @param int $rootId The ID of the root individual from which to start building the tree.
+     * @param array $individuals An array of individuals, where each individual is an associative array with keys such as 'id', 'first_names', 'last_name', 'birth_year', 'death_year', 'gender', and 'keyimagepath'.
+     * @param array $relationships An array of relationships, where each relationship is an associative array with keys such as 'individual_id_1', 'individual_id_2', and 'relationship_type'.
+     * @return string A JSON-encoded string representing the hierarchical tree structure.
+     *
+     * The function performs the following steps:
+     * 1. Creates lookup arrays for individuals and relationships for quick access.
+     * 2. Defines a recursive function `addIndividualToTree` to add individuals to the tree.
+     * 3. Defines helper functions `findParents`, `findExplicitSpouses`, `createMarriageGroup`, `countParents`, and `findOtherParent` to assist in building the tree structure.
+     * 4. Processes the tree starting from the root individual and recursively expands all relationships.
+     * 5. Returns the tree data as a JSON-encoded string.
+     */
     public static function buildTreeData($rootId, $individuals, $relationships) {
         $treeData = [];
         
@@ -20,7 +40,7 @@ class Utils {
         }
 
         // Recursive function to build the tree nodes
-        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds) {
+        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation) {
             global $rootId;
             if (!isset($individualLookup[$id]) || in_array($id, $processedIds)) {
                 return null;
@@ -59,32 +79,32 @@ class Utils {
                 $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
             }
 
-            $nodeBodyTemplate = <<<EOT
-    <input type="hidden" class="individualid" value="{individualId}">
-    <input type="hidden" class="individualgender" value="{individualGender}">
-    <div class="nodeBodyText">
-        {parentLink}
-        <img src="{individualKeyImage}" class="nodeImage border object-cover" title="{individualFullName}">
-        <span class="bodyName" title="See details for {individualFullName}" onclick="window.location.href=&quot;?to=family/individual&amp;individual_id={individualId}&quot;">
-            {individualPrefName}<br>
-            {individualLastName}
-        </span>
-        <span style="font-size: 0.7rem">
-            {individualLifeSpan}
-        </span>
-    </div>
-    <button class="text-sm md:text-md ft-view-btn float-right" title="Start tree at this individual" onclick="window.location.href=&quot;?to=family/tree&amp;root_id={individualId}&quot;">
-        ➜
-    </button>
-    <span class="float-left inline">&nbsp;</span>
-    <button class="text-sm md:text-md ft-edit-btn float-left" title="Edit this individual" onclick="editIndividualFromTreeNode(&quot;{individualId}&quot;)">
-        📝
-    </button>
-    <span class="inline float-right">&nbsp;</span>
-    <button class="text-sm md:text-md ft-dropdown-btn " title="Add a relationship to this individual" onclick="addRelationshipToIndividualFromTreeNode(this)">
-        🔗
-    </button>
-EOT;
+            $nodeBodyTemplate = "
+            <input type='hidden' class='individualid' value='{individualId}'>
+            <input type='hidden' class='individualgender' value='{individualGender}'>
+            <div class='nodeBodyText'>
+                {parentLink}
+                <img src='{individualKeyImage}' class='nodeImage border object-cover' title='{individualFullName}'>
+                <span class='bodyName' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
+                    {individualPrefName}<br>
+                    {individualLastName}
+                </span>
+                <span style='font-size: 0.7rem'>
+                    {individualLifeSpan}
+                </span>
+            </div>
+            <button class='text-sm md:text-md ft-view-btn float-right' title='Start tree at this individual' onclick='window.location.href=&apos;?to=family/tree&amp;root_id={individualId}&apos;'>
+                ➜
+            </button>
+            <span class='float-left inline'>&nbsp;</span>
+            <button class='text-sm md:text-md ft-edit-btn float-left' title='Edit this individual' onclick='editIndividualFromTreeNode(&apos;{individualId}&apos;)'>
+                📝
+            </button>
+            <span class='inline float-right'>&nbsp;</span>
+            <button class='text-sm md:text-md ft-dropdown-btn ' title='Add a relationship to this individual' onclick='addRelationshipToIndividualFromTreeNode(this)'>
+                🔗
+            </button>";
+            
             // Replace the template placeholders with actual values
             $nodeBodyText = str_replace(
                 ['{parentLink}', '{individualId}', '{individualGender}', '{individualKeyImage}', '{individualFullName}', '{individualPrefName}', '{individualLastName}', '{individualLifeSpan}'],
@@ -97,6 +117,7 @@ EOT;
                 'name' => $nodeBodyText,
                 'class' => 'node treegender_'.$gender,
                 'depthOffset' => 0,
+                'generation' => $generation
             ];
 
             return $node;
@@ -149,9 +170,9 @@ EOT;
         }
 
         // Recursive function to build marriage groups and explore all relationships
-        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds) {
+        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation) {
             // Add the individual to the tree
-            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds);
+            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation);
             if (!$individualNode) return null;
 
             $marriages = [];
@@ -164,7 +185,7 @@ EOT;
 
             // Add all explicit spouses to the marriages list
             foreach ($explicitSpouses as $spouseId) {
-                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds);
+                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation);
                 if ($spouseNode) {
                     $marriages[] = [
                         'spouse' => $spouseNode,
@@ -179,7 +200,7 @@ EOT;
                 foreach ($relationshipLookup[$id] as $rel) {
                     if ($rel['relationship_type'] === 'child') {
                         $childId = $rel['individual_id_2'];
-                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds);
+                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1);
                         if ($childNode) {
                             $parentCount = countParents($childId, $relationshipLookup);
 
@@ -196,7 +217,7 @@ EOT;
                                     }
                                 } else {
                                     // If the other parent isn't in existing spouses, add a new marriage
-                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds);
+                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation);
                                     if ($spouseNode) {
                                         $marriages[] = [
                                             'spouse' => $spouseNode,
@@ -264,7 +285,7 @@ EOT;
 
         // Process the tree starting from the root and recursively expand all relationships
         $processedIds = [];
-        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds);
+        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1);
 
         return json_encode($treeData);
     }
@@ -394,12 +415,18 @@ EOT;
         
         // Fetch siblings using the updated query
         $query = "
-            SELECT distinct individuals.*, files.file_path as keyimagepath
+            SELECT distinct individuals.*, 
+                COALESCE(
+                    (SELECT files.file_path 
+                        FROM file_links 
+                        JOIN files ON file_links.file_id = files.id 
+                        JOIN items ON items.item_id = file_links.item_id 
+                        WHERE file_links.individual_id = individuals.id 
+                        AND items.detail_type = 'Key Image'
+                        LIMIT 1), 
+                    '') AS keyimagepath
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
-            LEFT JOIN file_links ON file_links.individual_id=individuals.id 
-            LEFT JOIN files ON file_links.file_id=files.id 
-            LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
                             
             WHERE relationships.individual_id_1 IN (
                 SELECT individual_id_1 
@@ -420,15 +447,75 @@ EOT;
         $db = Database::getInstance();
         // Fetch items using the updated query
         $query = "
-            SELECT items.*, files.id as file_id, files.*
+            SELECT items.*, item_groups.item_group_name, files.id as file_id, files.*, users.first_name, users.last_name
             FROM items 
             INNER JOIN item_links ON items.item_id=item_links.item_id
             LEFT JOIN file_links ON items.item_id = file_links.item_id
             LEFT JOIN files ON file_links.file_id = files.id
+            LEFT JOIN item_groups ON items.item_identifier = item_groups.item_identifier
+            LEFT JOIN users ON items.user_id = users.id
             WHERE item_links.individual_id = ?
+            ORDER BY item_identifier ASC, items.updated DESC 
         ";
         $items = $db->fetchAll($query, [$individual_id]);
+
+        // Group items by item_identifier - if there is none, treat as individual groups
+        $groupedItems = [];
+        foreach ($items as $item) {
+            $itemIdentifier = $item['item_group_name'];
+            if (empty($itemIdentifier)) {
+                $itemIdentifier = "Singleton";
+            }
+            if (!isset($groupedItems[$itemIdentifier])) {
+                $groupedItems[$itemIdentifier] = []; //Create empty array for new item group
+            }
+            $groupedItems[$itemIdentifier][] = $item;
+        }
+
         
-        return $items;
+        return $groupedItems;
+    }
+
+    public static function getFiles($individual_id, $file_type='%') {
+        // Get the database instance
+        $db = Database::getInstance();
+        
+        // Fetch files using the updated query
+        $query = "
+            SELECT files.*, file_links.item_id, users.first_name, users.last_name
+            FROM files 
+            JOIN file_links ON files.id = file_links.file_id 
+            LEFT JOIN users ON files.user_id = users.id
+            WHERE file_links.individual_id = ?
+            AND file_type like ?
+        ";
+        $files = $db->fetchAll($query, [$individual_id, $file_type]);
+        
+        return $files;
+        
+    }
+
+    public static function getIndividualDiscussions($indiviual_id) {
+        // Get the database instance
+        $db = Database::getInstance();
+        
+        // Fetch discussions using the updated query
+        $query = "
+            SELECT discussions.*
+            FROM discussions 
+            JOIN individuals ON discussions.individual_id = individuals.id 
+            WHERE discussions.individual_id = ?
+            ORDER BY is_sticky DESC, updated_at DESC, created_at DESC
+        ";
+        $discussions = $db->fetchAll($query, [$indiviual_id]);
+        
+        return $discussions;
+    }
+
+    public static function getIndividualName($individual_id) {
+        $sql="SELECT individuals.first_names, individuals.last_name FROM individuals WHERE individuals.id = ?"; 
+        $db = Database::getInstance();
+        $individual = $db->fetchOne($sql, [$individual_id]);
+        return $individual['first_names']." ".$individual['last_name'];
     }
 }

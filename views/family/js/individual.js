@@ -21,6 +21,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const editDeathMonthInput = document.getElementById('edit-death-month');
     const editDeathDateInput = document.getElementById('edit-death-date');
     const editGenderInput = document.getElementById('edit-gender');
+    const editIsDeceasedInput = document.getElementById('edit-is_deceased');
+
     
 
     // Function to open the "Edit" modal and populate it with the individual's data
@@ -28,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function() {
         try {
             // Fetch individual data
             const individualData = await getIndividualDataById(individualId);  // Wait for the data
-
+            console.log(individualData);
             // Populate the form with the individual's data
             editIndividualIdInput.value = individualId;
             editFirstNameInput.value = individualData.first_names;
@@ -43,6 +45,7 @@ document.addEventListener("DOMContentLoaded", function() {
             editDeathMonthInput.value = individualData.death_month;
             editDeathDateInput.value = individualData.death_date;
             editGenderInput.value = individualData.gender;
+            editIsDeceasedInput.checked = individualData.is_deceased;
 
             document.getElementById('individual_name_display').innerHTML = individualData.first_names + ' ' + individualData.last_name;
 
@@ -333,27 +336,6 @@ async function uploadKeyImage(individualId) {
                 //convert response from json to object
                 console.log(response);
                 console.log(response.status);
-                if (response.status === 'success') {
-                    //Update the individual's "photo" field to response.filepath
-                    var individualUpdateData = {
-                        individual_id: individualId,
-                        photo: response.filepath
-                    };
-                    getAjax('update_individual', individualUpdateData)
-                        .then(iResponse => {
-                            if (iResponse.status === 'success') {
-                                // Update the individual's key image reference in the UI
-                                document.getElementById('keyImage').src = individualUpdateData.photo;
-                            } else {
-                                alert('Error: ' + iResponse.message);
-                            }
-                        })
-                        .catch(error => {
-                            alert('An error occurred while updating the individuals key image reference, however the photo has been uploaded to their collection: ' + error.message);
-                        });
-                } else {
-                    alert('Error: ' + response.message);
-                }
             })
             .catch(error => {
                 alert('An error occurred while uploading the image: ' + error.message);

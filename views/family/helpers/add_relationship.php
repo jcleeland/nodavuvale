@@ -7,29 +7,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
     $aka_names = $_POST['aka_names'];
     $last_name = $_POST['last_name'];
     $submitted_by = $_SESSION['user_id'];
-    $photo_path = null;
     $birthyear = !empty($_POST['birth_year']) ? $_POST['birth_year'] : null;
     $birthmonth = !empty($_POST['birth_month']) ? $_POST['birth_month'] : null;
     $birthdate = !empty($_POST['birth_date']) ? $_POST['birth_date'] : null;
     $deathyear = !empty($_POST['death_year']) ? $_POST['death_year'] : null;
     $deathmonth = !empty($_POST['death_month']) ? $_POST['death_month'] : null;
     $deathdate = !empty($_POST['death_date']) ? $_POST['death_date'] : null;
+    //Mark as isdeceased if there is a $_POST['death_year'] or a $POST['is_deceased'] value of 1
+    $isdeceased = !empty($_POST['death_year']) || !empty($_POST['is_deceased']) ? 1 : 0;
 
     // Save the new individual to `individuals` or `temp_individuals`
     
     if($_POST['action'] == 'add_individual' || empty($_POST['connect_to'])) {
+        //echo "Adding new individual";
         //Check to see if there is a matching record already in the individuals table
         $existing_individual = $db->fetchAll("SELECT * FROM individuals WHERE first_names = ? AND last_name = ?", [$first_names, $last_name]);
         if($existing_individual) {
             echo "This individual already exists in the database.";
         } else {
+            $sql = "INSERT INTO individuals (first_names, aka_names, last_name, birth_prefix, birth_year, birth_month, birth_date, death_prefix, death_year, death_month, death_date, gender, is_deceased) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $params=[$first_names, $aka_names, $last_name, $_POST['birth_prefix'], $birthyear, $birthmonth, $birthdate, $_POST['death_prefix'], $deathyear, $deathmonth, $deathdate, $_POST['gender'], $isdeceased];
+            //replace the ? in $sql with values from the $params array
+            $insertsql = str_replace("?", "'%s'", $sql);
+            $insertsql = vsprintf($insertsql, $params);
+            
+            //echo $insertsql;
             $db->query(
-                "INSERT INTO individuals (first_names, aka_names, last_name, birth_prefix, birth_year, birth_month, birth_date, death_prefix, death_year, death_month, death_date, gender, photo) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [$first_names, $aka_names, $last_name, $_POST['birth_prefix'], $birthyear, $birthmonth, $birthdate, $_POST['death_prefix'], $deathyear, $deathmonth, $deathdate, $_POST['gender'], $photo_path]
+                $sql,
+                $params
             );
             $new_individual_id = $db->query("SELECT LAST_INSERT_ID()")->fetchColumn();
         }
+        //die();
     } 
 
     
@@ -246,6 +256,12 @@ function checkFor2Parents($db, $individual_id) {
                                 <option value="female">Female</option>
                                 <option value="other">Other</option>
                             </select>
+                        </div>
+
+                        <!-- Deceased -->
+                        <div class="mb-4">
+                            <label for="is_deceased" class="block text-gray-700">Deceased</label>
+                            <input type="checkbox" id="is_deceased" name="is_deceased" value="1">
                         </div>
 
                     </div>

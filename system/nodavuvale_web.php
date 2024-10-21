@@ -92,10 +92,10 @@ class Web {
         $individual['pref_name']=explode(" ", $individual['first_names'])[0];
         $keyimage= !empty($individual['keyimagepath']) ? $individual['keyimagepath'] : 'images/default_avatar.webp' ;
         $card='<div class="individual-item text-center p-1 shadow-lg rounded-lg relative gender_'.$individual['gender'] .'">
-                <img class="keyimage-img-md keyimage-washed-out left-1 bottom-1 bg-opacity-20 border absolute object-cover" src="'.$keyimage.'" title="'. $individual['first_names'] .' '. $individual['last_name'] .'">
-                <div class="relative z-2 mt-1">
+                <div class="relative z-2">
                     <h4 class="text-xl font-bold text-shadow-'. $individual['gender'] .'"><a href="?to=family/individual&individual_id='. $individual['id'] .'">'. $individual['pref_name'] . ' ' . $individual['last_name'] .'</a></h4>
                 </div>
+                <img class="keyimage-img-md keyimage-washed-out bg-opacity-20 border mt-0.5 float-left object-cover" src="'.$keyimage.'" title="'. $individual['first_names'] .' '. $individual['last_name'] .'">
                 <p class="mt-2 text-sm text-gray-600">'. $individual['birth_prefix'] .' '. $individual['birth_year'].' - '.$individual['death_prefix'].' '. $individual['death_year'].'</p>
                 <button class="edit-btn absolute right-1 top-1 px-1 bg-gray-800 bg-opacity-20 rounded-full" data-individual-id="'. $individual['id'] .'" title="Edit '. $individual['pref_name'] .'">&#9998;</button>
         </div>';

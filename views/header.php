@@ -1,9 +1,18 @@
+<?php
+//If this is an individual page, get their name so it can be shown in the page title
+$pagetitlesuffix="";
+if(isset($_GET['individual_id'])) {
+    $individual_id = $_GET['individual_id'];
+    $pagetitlesuffix = Utils::getIndividualName($individual_id);
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $site_name ?></title>
+    <title><?= $site_name ?><?php if(!empty($pagetitlesuffix)) echo ": ".$pagetitlesuffix ?></title>
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
