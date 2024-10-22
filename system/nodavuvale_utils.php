@@ -40,7 +40,7 @@ class Utils {
         }
 
         // Recursive function to build the tree nodes
-        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation) {
+        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData) {
             global $rootId;
             if (!isset($individualLookup[$id]) || in_array($id, $processedIds)) {
                 return null;
@@ -59,24 +59,22 @@ class Utils {
             $keyImage = !empty($individual['keyimagepath']) ? $individual['keyimagepath'] : 'images/default_avatar.webp';
 
             $parents = findParents($id, $relationshipLookup, $individualLookup);
-            /* $parentLinks .= '<div id="parents_div" class="parentLinks grid grid-cols-2 w-full">';
-            if (!empty($parents) && count($parents) > 0) {
-                // Use a span tag with inline-flex for the parent links
-                $parentside='parent-link-left';
-                foreach ($parents as $parent) {
-                    // Add parent links with an up symbol and inline-flex layout
-                    $parentLinks .= "<div class='parent-link ".$parentside." treegender_".$parent['gender']." flex justify-center items-center pointer' onClick='window.location.href=\"?to=family/tree&root_id=" . $parent['id'] . "\"' title='Move up to ".$parent['name']."'>&#94;</div>";
-                    $parentside='parent-link-right';
+
+            //Check if parents are already in the treeData
+            $parentsInTree=false;
+            foreach($parents as $parent) {
+                foreach($treeData as $node) {
+                    if($node['id']==$parent['id']) {
+                        $parentsInTree=true;
+                        break 2;
+                    }
                 }
-            } else {
-                //$parentLinks .= "<div class='parent-link'>&nbsp;</div><div class='parent-link'>&nbsp;</div>";
             }
-            $parentLinks.="</div>"; */
 
             $parentLink="";
-            if(isset($parents) && count($parents) > 0) {
+            if((!$parentsInTree || $generation==1) && isset($parents) && count($parents) > 0) {
                 $parentLinkId=$parents[0]['id'];
-                $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
+                $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange text-xs" title="View parents" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
             }
 
             $nodeBodyTemplate = "
@@ -115,9 +113,8 @@ class Utils {
             $node = [
                 'id' => $individual['id'],
                 'name' => $nodeBodyText,
-                'class' => 'node treegender_'.$gender,
-                'depthOffset' => 0,
-                'generation' => $generation
+                'class' => 'node treegender_'.$gender. ' generation_'.$generation,
+                'depthOffset' => 0
             ];
 
             return $node;
@@ -170,9 +167,9 @@ class Utils {
         }
 
         // Recursive function to build marriage groups and explore all relationships
-        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation) {
+        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData) {
             // Add the individual to the tree
-            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation);
+            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData);
             if (!$individualNode) return null;
 
             $marriages = [];
@@ -185,7 +182,7 @@ class Utils {
 
             // Add all explicit spouses to the marriages list
             foreach ($explicitSpouses as $spouseId) {
-                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation);
+                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData);
                 if ($spouseNode) {
                     $marriages[] = [
                         'spouse' => $spouseNode,
@@ -200,7 +197,7 @@ class Utils {
                 foreach ($relationshipLookup[$id] as $rel) {
                     if ($rel['relationship_type'] === 'child') {
                         $childId = $rel['individual_id_2'];
-                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1);
+                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1, $treeData);
                         if ($childNode) {
                             $parentCount = countParents($childId, $relationshipLookup);
 
@@ -217,7 +214,7 @@ class Utils {
                                     }
                                 } else {
                                     // If the other parent isn't in existing spouses, add a new marriage
-                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation);
+                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData);
                                     if ($spouseNode) {
                                         $marriages[] = [
                                             'spouse' => $spouseNode,
@@ -285,7 +282,7 @@ class Utils {
 
         // Process the tree starting from the root and recursively expand all relationships
         $processedIds = [];
-        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1);
+        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1, $treeData);
 
         return json_encode($treeData);
     }
@@ -495,19 +492,30 @@ class Utils {
         
     }
 
-    public static function getIndividualDiscussions($indiviual_id) {
+    public static function getIndividualDiscussions($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
         
         // Fetch discussions using the updated query
         $query = "
-            SELECT discussions.*
+            SELECT discussions.*, users.first_name, users.last_name, users.avatar
             FROM discussions 
-            JOIN individuals ON discussions.individual_id = individuals.id 
+            JOIN users ON discussions.user_id = users.id
             WHERE discussions.individual_id = ?
             ORDER BY is_sticky DESC, updated_at DESC, created_at DESC
         ";
-        $discussions = $db->fetchAll($query, [$indiviual_id]);
+        $discussions = $db->fetchAll($query, [$individual_id]);
+        //Iterate through the discussions, and find comments
+        foreach($discussions as $key=>$discussion) {
+            $commentquery = "
+                SELECT *
+                FROM discussion_comments 
+                WHERE discussion_id = ?
+                ORDER BY created_at ASC
+            ";
+            $comments = $db->fetchAll($commentquery, [$discussion['id']]);
+            $discussions[$key]['comments']=$comments;
+        }
         
         return $discussions;
     }
@@ -517,5 +525,127 @@ class Utils {
         $db = Database::getInstance();
         $individual = $db->fetchOne($sql, [$individual_id]);
         return $individual['first_names']." ".$individual['last_name'];
+    }
+
+    public static function getItemTypes() {
+        $response=array();
+        // Marriage
+        $response['Marriage'] = [
+            'Date',
+            'Location',
+            'Certificate',
+            'Photo',
+            'Story'
+        ];
+
+        // Birth
+        $response['Birth'] = [
+            'Location',
+            'Certificate',
+            'Photo',
+            'Story'
+        ];
+
+        // Death
+        $response['Death'] = [
+            'Location',
+            'Certificate',
+            'Photo',
+            'Story'
+        ];
+
+        // Baptism
+        $response['Baptism'] = [
+            'Date',
+            'Location',
+            'Certificate',
+            'Photo',
+            'Story'
+        ];
+
+        // Burial
+        $response['Burial'] = [
+            'Date',
+            'Location',
+            'Certificate',
+            'Photo',
+            'Story'
+        ];
+
+        // Education
+        $response['Education'] = [
+            'Date',
+            'Title',
+            'Institution',
+            'Certificate',
+            'Photo',
+            'Story'
+        ];
+
+        // Occupation
+        $response['Occupation'] = [
+            'Title',
+            'Source',
+            'Photo',
+            'Story'
+        ];
+
+        // Residence
+        $response['Residence'] = [
+            'Date',
+            'Location',
+            'Source',
+            'Photo',
+            'Story'
+        ];
+
+        // Military
+        $response['Military'] = [
+            'Date',
+            'Position',
+            'Source',
+            'Photo',
+            'Story'
+        ];
+
+
+
+        $response['Key Image'] = [
+            'Key Image'
+        ];
+        //Sort the responses alphabetically
+        ksort($response);      
+        
+        // Other
+        $response['Other (group)'] = [
+            'Date',
+            'Title',
+            'Source',
+            'Photo',
+            'Story'
+        ];
+
+        $response['Other (single)'] = [
+            'free'
+        ];
+
+
+        return $response;
+    }
+
+    public static function getItemStyles() {
+        $response=array();
+        $response['Date']="date";
+        $response['Location']="text";
+        $response['Certificate']="file";
+        $response['Photo']="file";
+        $response['Story']="textarea";
+        $response['Title']="text";
+        $response['Institution']="text";
+        $response['Source']="text";
+        $response['Position']="text";
+        $response['Key_Image']="file";
+        $response['free']="text";
+        return $response;
     }
 }

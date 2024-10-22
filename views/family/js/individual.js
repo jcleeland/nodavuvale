@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // Get the modal and form elements for the "Edit" form
     const editModal = document.getElementById('editModal');
     const closeModalBtn = document.querySelector('.edit-close-btn');  // You may need to make sure this selector applies correctly
-    const editForm = document.getElementById('editForm');
     const editIndividualIdInput = document.getElementById('edit-individual-id');
     const editFirstNameInput = document.getElementById('edit-first-names');
     const editLastNameInput = document.getElementById('edit-last-name');
@@ -212,6 +211,27 @@ function triggerEditFileDescription(id) {
 
 }
 
+async function openStoryModal(individualId) {
+    const storyModal = document.getElementById('storyModal');
+    const storyIndividualIdInput = document.getElementById('story-individual_id');
+    var closeButton = document.querySelector('.close-story-btn');
+    // Close the "Add" modal when the user clicks the close button
+    closeButton.addEventListener('click', function() {
+        storyModal.style.display = 'none';
+    });    
+    try {
+        // Fetch individual data
+        const individualData = await getIndividualDataById(individualId);  // Wait for the data
+        console.log(individualData);
+        // Populate the form with the individual's data
+        storyIndividualIdInput.value = individualId;
+
+        storyModal.style.display = 'block';
+    } catch (error) {
+        console.error('Error opening story modal:', error);
+    }
+}
+
 async function uploadPhoto(individualId) {
     var fileInput = document.getElementById('photoUpload');
     var file = fileInput.files[0]; // Get the selected file
@@ -385,6 +405,50 @@ function doAction(action, individualId, actionId) {
     }
 }
 
+function openEventModal(action, individualId, eventId) {
+    console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and event ID:', eventId);
+    
+    // Get the modal and form elements for the "Add" form
+    var modal = document.getElementById('eventModal');
+    var closeButton = document.querySelector('.close-event-btn');
+    var formActionInput = document.getElementById('event-action');
+    var eventIndividualIdInput = document.getElementById('event-individual_id');
+    var eventEventType = '';
+    //check if there is an item with the id 'event-type', and if so, chanbe eventType to the value of that item
+    if(document.getElementById('event-type')) {
+        eventEventType = document.getElementById('event-type').value;
+    }
+
+
+    // Close the "Add" modal when the user clicks the close button
+    closeButton.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    // Set the form data based on the action
+    formActionInput.value = action;  // Set the action (add_parent, add_spouse, etc.)
+    eventIndividualIdInput.value = individualId;  // Set the individual ID
+    eventEventType.value = eventEventType;  // Set the event ID
+
+    // Display the "Add" modal
+    modal.style.display = 'block';
+}
+
+function updateEventContents(eventType) {
+    console.log('Updating event contents for event type:', eventType);
+
+    //iterate through the items with a class .event-field and, if they also have the class "eventType" show them, otherwise hide them
+    var eventFields = document.querySelectorAll('.event-field');
+    eventFields.forEach(function(field) {
+        if(field.classList.contains(eventType)) {
+            field.style.display = 'block';
+        } else {
+            field.style.display = 'none';
+        }
+    });
+}
+
+
 function openModal(action, individualId, individualGender) {
     console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and gender', individualGender);
 
@@ -528,4 +592,74 @@ function openModal(action, individualId, individualGender) {
             break;                
     }
     modal.style.display = 'block';  // Show the modal
+}
+
+function deleteStory(discussionId) {
+    if (confirm('Are you sure you want to delete this entire discussion?')) {
+        // Perform the deletion via AJAX or redirect to a URL with the necessary parameters
+        // Example using AJAX:
+        fetch('delete_discussion.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'discussion_id': discussionId,
+                'delete_discussion': true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Handle successful deletion (e.g., remove the discussion from the DOM)
+                document.getElementById(`discussion-${discussionId}`).remove();
+            } else {
+                // Handle error
+                alert('Failed to delete discussion.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the discussion.');
+        });
+    }
+}
+
+function deleteComment(commentId) {
+    if (confirm('Are you sure you want to delete this comment?')) {
+        // Perform the deletion via AJAX or redirect to a URL with the necessary parameters
+        // Example using AJAX:
+        fetch('delete_comment.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'comment_id': commentId,
+                'delete_comment': true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Handle successful deletion (e.g., remove the comment from the DOM)
+                document.getElementById(`comment-${commentId}`).remove();
+            } else {
+                // Handle error
+                alert('Failed to delete comment.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the comment.');
+        });
+    }
+}
+
+function editStory(discussion_id) {
+
+}
+
+function editComment(comment_id) {
+
 }

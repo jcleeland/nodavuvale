@@ -8,9 +8,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if(!isset($rootId)) {
     $rootId = Web::getRootId();
 }
+
+$is_admin = $auth->getUserRole() === 'admin';
+
 include("helpers/add_relationship.php");
 
 include("helpers/quickedit.php");
+
+include("helpers/add_story.php");
+
+include("helpers/add_edit_item.php");
 
 
 
@@ -56,6 +63,7 @@ if ($individual_id) {
 
     // Fetch associated files (photos and documents)
     $photos = Utils::getFiles($individual_id, 'image');
+
 
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
@@ -153,30 +161,146 @@ $individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals
 <div class="tab-content active" id="generaltab">
 
     <section class="container mx-auto py-6 ">
-        <div class="">
-            <div class="text-center p-2">
-                <!-- Display Stories -->
+    <div class="text-center p-2">
+            <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                 <!-- Display Stories -->
                 <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                     Stories
-                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 z-10 font-normal text-sm" title="Add a story about <?= $individual['first_name'] ?>">
+                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 z-10 font-normal text-sm" title="Add a story about <?= $individual['first_name'] ?>" onclick="openStoryModal('<?= $individual['id'] ?>', '<?= $individual['first_name'] ?>');">
                         <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                     </button>
                 </h3>
-                <div class="p-6 bg-white shadow-lg rounded-lg">
-                    <p class="text-lg text-gray-600">
-                        This is where any stories that have been posted about <?= $individual['first_name'] ?> will appear.
-                    </p>
+                <div class="p-6 bg-white shadow-lg rounded-lg text-left">
+                    <div class="grid grid-cols-1 gap-8">
+                        <?php foreach($discussions as $discussion): ?>
+                            <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
+                            <div class="discussion-item"> 
+                                <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                                <div class='discussion-content'>
+                                    <div class="text-sm text-gray-500 relative">
+                                        <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b><br />
+                                        <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
+                                        <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
+                                            <button type="button" title="Edit this story" onClick="editStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" title="Delete this story" onClick="deleteStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        <?php endif; ?>  
+                                    </div>
+                                    <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
+                                    <p class="mt-2"><?= htmlspecialchars($discussion['content']) ?></p>
+                                    <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
+                                        <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <style type="text/css">
+                                                    .st0{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+                                                    .st1{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+                                                    .st2{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5.2066,0;}
+                                                </style>
+                                                <path class="st0" d="M11,24V14H5v12h6v-2.4l0,0c1.5,1.6,4.1,2.4,6.2,2.4h6.5c1.1,0,2.1-0.8,2.3-2l1.5-8.6c0.3-1.5-0.9-2.4-2.3-2.4H20V6.4C20,5.1,18.7,4,17.4,4h0C16.1,4,15,5.1,15,6.4v0c0,1.6-0.5,3.1-1.4,4.4L11,13.8"></path>
+                                            </g>
+                                        </svg>
+                                        <div class="reaction-buttons" title="Reactions">
+                                            <button class="reaction-btn" data-reaction="like" title="Like">👍</button>
+                                            <button class="reaction-btn" data-reaction="love" title="Love">❤️</button>
+                                            <button class="reaction-btn" data-reaction="haha" title="Haha">😂</button>
+                                            <button class="reaction-btn" data-reaction="wow" title="Wow">😮</button>
+                                            <button class="reaction-btn" data-reaction="sad" title="Sad">😢</button>
+                                            <button class="reaction-btn" data-reaction="angry" title="Angry">😡</button>
+                                            <button class="reaction-btn" data-reaction="care" title="Care">🤗</button>
+                                            <button class="reaction-btn" data-reaction="remove" title="Remove">❌</button>
+                                        </div>
+                                        <div class="reaction-summary-container">
+                                            <div class="reaction-summary">
+                                                <!-- This will be filled dynamically with AJAX -->
+                                            </div>
+                                            
+                                        </div>                                       
+                                    </div>
+
+                                    <div class="comments mt-4">
+                                        <!-- Fetch and display comments -->
+                                        <?php if (!empty($discusson['comments'])): ?>
+                                            <h4 class="font-semibold">Comments:</h4>
+                                            <?php foreach ($discussion['comments'] as $comment): ?>
+                                                <div class="bg-gray-100 p-4 rounded-lg mt-2">
+                                                    <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm avatar-float-left object-cover" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
+                                                    <div class="comment-content">
+                                                        <div class="text-sm text-gray-500 relative">
+                                                            <b><?= htmlspecialchars($comment['first_name']) ?> <?= $comment['last_name'] ?></b><br />
+                                                            <span title="<?= date('F j, Y, g:i a', strtotime($comment['created_at'])) ?>"><?= $web->timeSince($comment['created_at']); ?></span>
+                                                            <?php if ($is_admin || $_SESSION['user_id'] == $comment['user_id']): ?>
+                                                                <button type="button" title="Delete this story" onClick="deleteStoryComment(<?= $comment['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                                                    Delete
+                                                                </button>
+                                                            <?php endif; ?>                                                        
+                                                        </div>
+                                                        <p><?= htmlspecialchars($comment['comment']) ?></p>
+                                                        <div class="comment-reactions" data-comment-id="<?= $comment['id'] ?>">
+                                                            <svg alt="Remove Reaction" class="remove-reaction-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
+                                                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                                <g id="SVGRepo_iconCarrier">
+                                                                    <style type="text/css">
+                                                                        .st0{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+                                                                        .st1{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+                                                                        .st2{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5.2066,0;}
+                                                                    </style>
+                                                                    <path class="st0" d="M11,24V14H5v12h6v-2.4l0,0c1.5,1.6,4.1,2.4,6.2,2.4h6.5c1.1,0,2.1-0.8,2.3-2l1.5-8.6c0.3-1.5-0.9-2.4-2.3-2.4H20V6.4C20,5.1,18.7,4,17.4,4h0C16.1,4,15,5.1,15,6.4v0c0,1.6-0.5,3.1-1.4,4.4L11,13.8"></path>
+                                                                </g>
+                                                            </svg>
+                                                            <div class="reaction-buttons" title="Reactions">
+                                                                <button class="reaction-btn" data-reaction="like" title="Like">👍</button>
+                                                                <button class="reaction-btn" data-reaction="love" title="Love">❤️</button>
+                                                                <button class="reaction-btn" data-reaction="haha" title="Haha">😂</button>
+                                                                <button class="reaction-btn" data-reaction="wow" title="Wow">😮</button>
+                                                                <button class="reaction-btn" data-reaction="sad" title="Sad">😢</button>
+                                                                <button class="reaction-btn" data-reaction="angry" title="Angry">😡</button>
+                                                                <button class="reaction-btn" data-reaction="care" title="Care">🤗</button>
+                                                                <button class="reaction-btn" data-reaction="remove" title="Remove">❌</button>
+                                                            </div>
+                                                            <div class="reaction-summary-container">
+                                                                <div class="reaction-summary">
+                                                                    <!-- This will be filled dynamically with AJAX -->
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </div>
+                                    <!-- Add a new comment -->
+                                    <form method="POST" class="comments mt-4 relative">
+                                        <textarea name="comment" rows="3" class="w-full border rounded-lg p-2" placeholder="Add a comment..." required></textarea>
+                                        <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
+                                        <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
+                                        
+                                        <button type="submit" title="Post comment" class="submit-button mt-2 bg-deep-green text-white py-1 px-2 rounded-lg hover:bg-burnt-orange">
+                                            <i class="fa fa-paper-plane"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if(empty($discussions)): ?>
+                            No stories have been shared about <?= $individual['first_name'] ?> yet. Be the first!
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
-        </div>
     </section>
 
     <section class="container mx-auto py-6">
         <!-- Display Items -->
         <div class="text-center p-2">
             <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                Items
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add an event or item about <?= $individual['first_name'] ?>" onclick="openEvent('add_item', '<?= $individual['id'] ?>');">
+                Facts and Events
+                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add an event or item about <?= $individual['first_name'] ?>" onclick="openEventModal('add_item', '<?= $individual['id'] ?>');">
                     <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                 </button>            
             </h3>

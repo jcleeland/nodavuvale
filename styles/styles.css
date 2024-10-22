@@ -298,7 +298,7 @@
 }
 
 /* Close button */
-.close-btn, .edit-close-btn {
+.close-btn, .edit-close-btn, .close-story-btn, .close-event-btn {
     float: right;
     font-size: 24px;
     cursor: pointer;

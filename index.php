@@ -51,6 +51,7 @@ $auth = new Auth($db);
 $web = new Web($db);
 
 $site_name=$db->getSiteSettings()['site_name'];
+$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '';
 
 // Include the header
 include('views/header.php');

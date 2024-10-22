@@ -12,7 +12,7 @@ $is_admin = $auth->getUserRole() === 'admin';
 $discussions = $db->fetchAll("SELECT discussions.*, users.first_name, users.last_name, users.avatar
     FROM discussions 
     INNER JOIN users ON discussions.user_id=users.id 
-    WHERE discussions.is_individual != 1
+    WHERE discussions.individual_id < 1
     ORDER BY is_sticky DESC, created_at DESC");
 
 // Function to fetch comments for a discussion
@@ -140,12 +140,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
         <div class="discussion-content">
             <?php $my_avatar_path=$auth->getAvatarPath() ?>
-            <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left"); ?>
+            <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left object-cover"); ?>
             <div class='discussion-content'>
                 <form method="POST" class="mt-4">
                     <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
                     <div id="additional-fields" style="display: none;">
-                        <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Title" required>
+                        <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Title (optional)">
                         <div class="grid grid-cols-2 gap-8 text-sm text-gray-500">
                             <div class="p-2">
                                 <input type="checkbox" id="is_sticky" name="is_sticky" class="mr-2">
@@ -186,35 +186,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
             <?php foreach ($discussions as $discussion): ?>
                 <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
                 <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative">
-                    <?php if ($discussion['is_sticky']): ?>
-                        <form method="POST" class="absolute top-0 right-0 mt-1 mr-2 text-lg text-deep-green">
-                            <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
-                            <button type="submit" name="delete_sticky" title="This item is pinned to the top">
-                                <i class="fa fa-thumbtack "></i>
-                            </button>
-                        </form>
-                    <?php elseif ($is_admin) : ?>
-                        <form method="POST" class="absolute top-0 right-0 mt-1 mr-2 text-lg text-deep-green-disabled hover:text-deep-green">
-                            <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
-                            <button type="submit" name="make_sticky" title="Pin this item to the top">
-                                <i class="fa fa-thumbtack "></i>
-                            </button>
-                        </form>                        
-                    <?php endif; ?>
-                    <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
-                        <form method="POST" class="absolute top-0 right-10 mt-1 mr-2 text-lg text-brown-500 hover:text-brown-700">
-                            <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
-                            <button type="submit" name="delete_discussion" title="Delete this item">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                        </form>
-                    <?php endif; ?>   
                     <div class="discussion-item"> 
-                        <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                        <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
                         <div class='discussion-content'>
                             <div class="text-sm text-gray-500">
                                 <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b><br />
                                 <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
+                                <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
+                                    <button type="button" title="Edit this story" onClick="editStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-20 top-2 font-normal text-xs">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" title="Delete this story" onClick="deleteStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                <?php endif; ?>
+                                <?php if ($discussion['is_sticky']): ?>
+                                    <button type="button" name="delete_sticky" title="This item is pinned to the top of the list" class="absolute py-1 px-2 -top-1 -right-1 text-lg text-deep-green-disabled hover:text-deep-green">
+                                        <i class="fa fa-thumbtack "></i>
+                                    </button>
+                            <?php elseif ($is_admin) : ?>
+                                <button type="button" name="make_sticky" title="Pin this item to the top of the list" class="absolute py-1 px-2 -top-1 -right-1 text-lg text-deep-green-disabled hover:text-deep-green">
+                                    <i class="fa fa-thumbtack "></i>
+                                </button>                     
+                            <?php endif; ?>                                                              
                             </div>
                             <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
                             <p class="mt-2"><?= htmlspecialchars($discussion['content']) ?></p>
@@ -248,12 +242,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
                                     
                                 </div>
                             </div>
-                            <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
-                                <form method="POST" class="mt-4 text-right text-xs" onSubmit="return confirm('Are you sure you want to delete this entire dicussion?')">
-                                    <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
-                                    <button type="submit" name="delete_discussion" class="text-red-500 hover:text-red-700">Delete</button>
-                                </form>
-                            <?php endif; ?>
                             <div class="comments mt-4">
                                 <!-- Fetch and display comments -->
                                 <?php $comments = getCommentsForDiscussion($discussion['id']); ?>
@@ -261,11 +249,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
                                     <h4 class="font-semibold">Comments:</h4>
                                     <?php foreach ($comments as $comment): ?>
                                         <div class="bg-gray-100 p-4 rounded-lg mt-2">
-                                            <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm avatar-float-left" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
+                                            <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm avatar-float-left object-cover" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
                                             <div class="comment-content">
-                                                <div class="text-sm text-gray-500">
+                                                <div class="text-sm text-gray-500 relative">
                                                     <b><?= htmlspecialchars($comment['first_name']) ?> <?= $comment['last_name'] ?></b><br />
                                                     <span title="<?= date('F j, Y, g:i a', strtotime($comment['created_at'])) ?>"><?= $web->timeSince($comment['created_at']); ?></span>
+                                                    <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
+                                                    <button type="button" title="Edit this story" onClick="editStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" title="Delete this story" onClick="deleteStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <?php endif; ?>                                                  
                                                 </div>
                                                 <p><?= htmlspecialchars($comment['comment']) ?></p>
                                                 <div class="comment-reactions" data-comment-id="<?= $comment['id'] ?>">
@@ -298,12 +294,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
                                                     </div>
                                                 </div>
                                             </div>
-                                            <?php if ($is_admin || $_SESSION['user_id'] == $comment['user_id']): ?>
-                                                <form method="POST" class="mt-2 text-right" onSubmit="return confirm('Are you sure you want to delete this comment?')">
-                                                    <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                                                    <button type="submit" name="delete_comment" class="text-red-500 hover:text-red-700 text-xs">Delete</button>
-                                                </form>
-                                            <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
