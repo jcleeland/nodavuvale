@@ -88,7 +88,7 @@ class Database {
 
     // Update helper method
     public function update($sql, $params = []) {
-        return $this->query($sql, $params)->rowCount(); // Return number of affected rows
+        return $this->query($sql, $params); // Return number of affected rows
     }
 
     // Delete helper method

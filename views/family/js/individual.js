@@ -366,12 +366,16 @@ async function uploadKeyImage(individualId) {
 function doAction(action, individualId, actionId, event) {
     if(event) {
         console.log('Event got passed');
-        var button = event.target.closest('button');        
+        var eventelement = event.target.closest('div');      
+        var eventbutton = event.target.closest('button');  
     }
     console.log('Doing action:', action, 'for individual ID:', individualId, ' and action ID:', actionId);
     switch(action) {
         case 'delete_item':
             if (confirm('Are you sure you want to delete this item?')) {
+                var groupId = eventbutton.getAttribute('data-group-id');
+                var groupType = eventbutton.getAttribute('data-group-item-type');
+                var groupName = eventbutton.getAttribute('data-group-event-name');
                 getAjax('delete_item', {individualId: individualId, itemId: actionId})
                     .then(response => {
                         if (response.status === 'success') {
@@ -383,7 +387,7 @@ function doAction(action, individualId, actionId, event) {
                             }
                             if(response.groupItemType) {
                                 //Create a new "add" button for the group item
-                                document.getElementById('item_buttons_group_'+response.groupItemIdentifier).insertAdjacentHTML('beforeend', '<div class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative"><button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" title="Add '+response.groupItemType+'" onclick="doAction(\'add_sub_item\', \''+individualId+'\', \''+response.groupItemType+'\');"><i class="fas fa-plus"></i></button>'+response.groupItemType+'</div>');
+                                document.getElementById('item_buttons_group_'+response.groupItemIdentifier).insertAdjacentHTML('beforeend', '<div data-group-event-name="'+groupName+'" data-group-item-type="'+groupType+'" data-group-id="'+groupId+'" onclick="doAction(\'add_sub_item\', \''+individualId+'\', \''+response.groupItemType+'\', event);" class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative"><button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" title="Add '+response.groupItemType+'" ><i class="fas fa-plus"></i></button>'+response.groupItemType+'</div>');
                             }
                             //location.reload();
                         } else {
@@ -431,79 +435,101 @@ function doAction(action, individualId, actionId, event) {
                     }
                 )}
             break;
-            case 'add_sub_item':
-                var groupId = button.getAttribute('data-group-id');
-                var groupType = button.getAttribute('data-group-type');
-                var groupName = button.getAttribute('data-group-event-name');
+        case 'add_sub_item':
+            var groupId = eventelement.getAttribute('data-group-id');
+            var groupType = eventelement.getAttribute('data-group-item-type');
+            var groupName = eventelement.getAttribute('data-group-event-name');
+        
+            console.log(groupId);
+            // Open the modal to add a new item
+            // openModal('add_item', individualId, actionId);
             
-                console.log(groupId);
-                // Open the modal to add a new item
-                // openModal('add_item', individualId, actionId);
-                showCustomPrompt('Add ' + actionId, 'Add ' + actionId + ' to this group', ['file', 'Description'], [''], async function(inputValues) {
-                    if (inputValues !== null) {
-                        var file = inputValues[0];
-                        console.log('Selected file: ',file);
-                        var fileDescription = inputValues[1];
-                        var formData = new FormData();
-                        var event_group_name = groupName;
+            // Now to decide what needs to be in the custom prop.
+            // If the groupType is 'file', then we need to add a file field
+            // If the groupType is 'date', then we need to add a date field
+            // If the groupType is 'story' then we need to add a textarea
+            // If the groupType is 'individual' then we need to add the special dropdown for selecting an individual
+            // If the group is anything else, we need a text input
 
+            switch(groupType) {
+                case 'file':
+                    inputs = ['file_'+actionId, 'Description'];
+                    break;
+                case 'date':
+                    inputs = ['date_'+actionId];
+                    break;
+                case 'textarea':
+                    inputs = ['textarea_'+actionId];
+                    break;
+                case 'individual':
+                    inputs = ['individual_'+actionId];
+                    break;
+                default:
+                    inputs = ['text_'+actionId];
+                    break;
+            }
+
+
+            showCustomPrompt('Add ' + actionId, 'Add ' + actionId + ' to this group', inputs, [''], async function(inputValues) {
+                if (inputValues !== null) {
+
+                    
+                    var formData = new FormData();
+                    var event_group_name = groupName;
+
+                    console.log('Input Values returned are:');
+                    console.log(inputValues);
+                    //return;
+                    if(groupType === 'file') {
+                        var file = inputValues[0];
+                        var fileDescription = inputValues[1];
                         //Append the file & other data to the formData object
                         if (file instanceof File) {
                             formData.append('file', file);
                         } else {
                             console.error('The selected file is not a valid File object.');
                         }
-
-                        formData.append('file', file);
                         formData.append('method', 'add_file_item');
                         formData.append('data', JSON.stringify({
                             individual_id: individualId,
-                            events: [{event_type: groupType, event_detail: actionId}],
+                            events: [{event_type: actionId, event_detail: fileDescription, item_identifier: groupId}],
                             event_group_name: event_group_name,
                             file_description: fileDescription
                         }));
+                    } else {
+                        var itemDetails=inputValues[0];
+                        formData.append('method', 'add_file_item');
+                        formData.append('data', JSON.stringify({
+                            individual_id: individualId,
+                            events: [{event_type: actionId, event_detail: itemDetails, item_identifier: groupId}],
+                            event_group_name: event_group_name
+                        }));
 
-                        //Debugging: Log the formData object
-                        for (var pair of formData.entries()) {
-                            console.log(pair[0]+ ', ' + pair[1]); 
-                        }
-            
-                        try {
-                            const response = await getAjax('add_file_item', formData);
-                            if (response.status === 'success') {
-                                // Reload the page
-                                alert('Item has been added');
-                                location.reload();
-                            } else {
-                                alert('Error: ' + response.message);
-                            }
-                        } catch (error) {
-                            alert('An error occurred while adding the item: ' + error.message);
-                        }
                     }
-                });
-            
-                break;
+                    
 
-/*
-formData.append('data', JSON.stringify({
-    individual_id: individualId,
-    events: events,
-    event_group_name: event_group_name,
-    file_description: 'Image for individual'  // Description for the file
-}));
 
-// Perform the AJAX call using getAjax
-getAjax('add_file_item', formData)
-    .then(response => {
-        //convert response from json to object
-        console.log(response);
-        console.log(response.status);
-    })
-    .catch(error => {
-        alert('An error occurred while uploading the image: ' + error.message);
-    });
-    */            
+                    //Debugging: Log the formData object
+                    for (var pair of formData.entries()) {
+                        console.log(pair[0]+ ', ' + pair[1]); 
+                    }
+        
+                    try {
+                        const response = await getAjax('add_file_item', formData);
+                        if (response.status === 'success') {
+                            // Reload the page
+                            //alert('Item has been added');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    } catch (error) {
+                        alert('An error occurred while adding the item: ' + error.message);
+                    }
+                }
+            });
+        
+        break;     
         default:
             break;
     }

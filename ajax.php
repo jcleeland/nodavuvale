@@ -73,9 +73,15 @@ if(!empty($_FILES)) {
 
     // Decode the JSON data
     $request = json_decode($postData, true);
-
+    if(!$request) {
+        $request=$_POST;
+    }
     // Extract the method and data
     $method = $request['method'] ?? null;
+    // Check and see if $request['data'] is json encoded
+    if(is_string($request['data'])) {
+        $request['data'] = json_decode($request['data'], true);
+    }
     $data = $request['data'] ?? null;
     
     if(isset($method)) {

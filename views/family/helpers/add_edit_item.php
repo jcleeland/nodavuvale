@@ -184,7 +184,7 @@ if (isset($_GET['item_id'])) {
                                 $class .= " hidden";
                                 
                                 if($style == "individual") :
-                                    $fieldinputs[$field] = "<div class='$class'><label for='$field'>$field</label><input type='text' placeholder='Find another individual..' id='$field' name='$field' class='w-full border rounded-lg p-2 mb-2' oninput='showSuggestions(this.value)'><div id='{$field}_suggestions' class='autocomplete-suggestions'></div></div>";
+                                    $fieldinputs[$field] = "<div class='$class'><label for='{$field}_display'>$field</label><input type='text' placeholder='Find another individual..' id='{$field}_name' name='{$field}_name' class='w-full border rounded-lg p-2 mb-2' oninput='showSuggestions(this.value)'><div id='{$field}_suggestions' class='autocomplete-suggestions'></div></div>";
                                     ?>
                                     <script type='text/javascript'>
                                     const individuals = [
@@ -211,11 +211,11 @@ if (isset($_GET['item_id'])) {
                                     }
 
                                     function selectSuggestion(individual) {
-                                        const input = document.getElementById('<?= $field ?>');
+                                        const input = document.getElementById('<?= $field ?>_name');
                                         input.value = individual.name;
                                         const hiddenInput = document.createElement('input');
                                         hiddenInput.type = 'hidden';
-                                        hiddenInput.name = '<?= $field ?>_id';
+                                        hiddenInput.name = '<?= $field ?>';
                                         hiddenInput.value = individual.id;
                                         input.parentNode.appendChild(hiddenInput);
                                         document.getElementById('<?= $field ?>_suggestions').innerHTML = '';
@@ -223,7 +223,7 @@ if (isset($_GET['item_id'])) {
                                     </script>
                                     <?php
                                 elseif($style == "date") :
-                                    $fieldinputs[$field] = "<div class='$class'><label for='$field'>$field</label><input type='date' name='$field' class='w-full border rounded-lg p-2 mb-2'></div>";
+                                    $fieldinputs[$field] = "<div class='$class'><label for='$field'>$field</label><input type='text' name='$field' placeholder='YYYY-MM-DD' pattern='\\d{4}(-\\d{2})?(-\\d{2})?' class='w-full border rounded-lg p-2 mb-2'></div>";
                                 elseif($style == "text") :
                                     $fieldinputs[$field] = "<div class='$class'><label for='$field'>$field</label><input type='text' name='$field' class='w-full border rounded-lg p-2 mb-2'></div>";
                                 elseif($style == "file") :

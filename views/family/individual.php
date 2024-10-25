@@ -17,7 +17,11 @@ if(!isset($rootId)) {
 $is_admin = $auth->getUserRole() === 'admin';
 
 //Gather a list of individuals for the add relationship modal
-$individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
+$individuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
+$individuals=array();
+foreach($individuallist as $individualperson) {
+    $individuals[$individualperson['id']] = $individualperson;
+}
 
 include("helpers/add_relationship.php");
 
@@ -351,7 +355,7 @@ if ($individual_id) {
                             if(isset($thisitem[$itemname])) {
                                 $item=$thisitem[$itemname];
                         ?>
-                                <div <?= $key != "Singleton" ? "id='item_id_".$item['item_id']."'" : "" ?> class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left <?= $key != "Singleton" ? "text-indent-1" : "" ?> relative">
+                                <div <?= $key != "Singleton" ? "id='item_id_".$item['item_id']."'" : "" ?> class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left relative">
                                     
                                     <div class='<?= $key != "Singleton" ? "w-1/3 float-left pl-1": "text-center" ?>'>
                                         <b class="text-xs mb-2"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?>&nbsp;</b>
@@ -361,15 +365,22 @@ if ($individual_id) {
                                     <?php if(!empty($item['file_id'])): ?>
 
                                         <?php if($item['file_type']=='image'): ?>
-                                            <a href="<?= $item['file_path'] ?>" target="_blank"><img src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>" class="w-full h-auto rounded-lg no-indent" ></a>
-                                            <p class="mt-2 text-xs text-gray-600 text-center" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" ><?= $item['file_description'] ?></p>
-
+                                            <div class="<?= $key != "Singleton" ? "float-left w-2/3" : "mx-auto w-3/4" ?>">
+                                                <div class="<?= $key != "Singleton" ? "relative w-11/12" : "relative" ?> h-auto p-0 m-0 mt-2">
+                                                    <a href="<?= $item['file_path'] ?>" target="_blank">
+                                                        <img class="w-full h-auto rounded" src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>"  >
+                                                    </a>
+                                                    <p class="absolute <?= $key != "Singleton" ? "w-full" : "w-full" ?> leading-tight bottom-0 rounded text-xxs text-white bg-gray-800 bg-opacity-40 text-center py-1 p-0" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" ><?= $item['file_description'] ?></p>
+                                                </div>
+                                            </div>
                                         <?php else: ?>
-                                            <div class='border rounded text-xs pr-1 pb-1 mx-2 mt-1 bg-cream no-indent <?= $key != "Singleton" ? "inline" : "" ?>'>
-                                                <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
-                                                    <i class="text-md fas fa-file pl-1 pr-0 pb-0"></i>
-                                                </a>
-                                                <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
+                                            <div class="float-left w-2/3">
+                                                <div class='border rounded text-xs pr-1 pb-1 mx-2 mt-1 bg-cream no-indent <?= $key != "Singleton" ? "inline" : "" ?>'>
+                                                    <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
+                                                        <i class="text-md fas fa-file pl-1 pr-0 pb-0"></i>
+                                                    </a>
+                                                    <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
+                                                </div>
                                             </div>
                                             <?= $key != "Singleton" ? "<div style='clear: both'></div>" : "" ?>
                                         <?php endif; ?>
@@ -377,15 +388,27 @@ if ($individual_id) {
                                     <?php else: ?>
 
                                         <?php if (!empty($item['detail_value'])): ?>
-                                        <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?></span>
+
+                                            <?php if($item_styles[$itemname] == "individual") : ?>
+                                                <div class="float-left w-2/3">
+                                                    <a href="index.php?to=family/individual&individual_id=<?= $item['detail_value'] ?>" class="text-blue-600 hover:text-blue-800"><?= $individuals[$item['detail_value']]['first_names']; ?> <?= $individuals[$item['detail_value']]['last_name']; ?></a>
+                                                </div>
+
+                                            <?php else: ?>
+                                                <div class="float-left w-2/3">
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?></span>
+                                                </div>
+                                            <?php endif; ?>
+                                        
                                         <?php endif; ?>
 
                                     <?php endif; ?>
                                     <?php if($key != "Singleton") : ?>
-                                        <button class="absolute text-burnt-orange nv-text-opacity-50 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>');">
+                                        <button data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$itemname] ?>" data-group-id="<?= $item['item_identifier'] ?>" class="absolute text-burnt-orange nv-text-opacity-50 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>', event);">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     <?php endif; ?>
+                                    <div style="clear: both"></div>
 
                                 </div>
                             <?php 
@@ -395,21 +418,20 @@ if ($individual_id) {
                             ?>
                         <?php 
                         }
-                        if(count($incompleteItems) > 0) {
-                            echo "<div class='grid grid-cols-1 md:grid-cols-2 p-0 justify-between absolute right-1 bottom-1' id='item_buttons_group_".$itemgroup[0]['item_identifier']."'>";
-                            foreach($incompleteItems as $incompleteItem) {
-                            ?>
-                                <div class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative">
-                                    <button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$incompleteItem] ?>" data-group-id="<?= $itemgroup[0]['item_identifier'] ?>" title="Add <?= $incompleteItem ?>" onclick="doAction('add_sub_item', '<?= $individual['id'] ?>', '<?= $incompleteItem ?>', event);">
+                        ?>
+                                    <div class="h-10"></div>
+                        <?php if(count($incompleteItems) > 0) : ?>
+                            <div class='flex justify-end items-end absolute right-1 bottom-1 w-full' id='item_buttons_group_<?= $itemgroup[0]['item_identifier'] ?>'>
+                            <?php foreach($incompleteItems as $incompleteItem) : ?>
+                                <div class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative" data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$incompleteItem] ?>" data-group-id="<?= $itemgroup[0]['item_identifier'] ?>" onclick="doAction('add_sub_item', '<?= $individual['id'] ?>', '<?= $incompleteItem ?>', event);">
+                                    <button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" title="Add <?= $incompleteItem ?>" >
                                         <i class="fas fa-plus"></i>
                                     </button>
                                     <?= $incompleteItem ?>
                                 </div>
-                            <?php
-                            }
-                            echo "</div>";
-                        }
-                        ?>
+                            <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
             </div>

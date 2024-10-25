@@ -129,14 +129,45 @@ function showCustomPrompt(title, message, inputs, values, callback) {
     // Create input elements based on the inputs and values arrays
     inputs.forEach((input, index) => {
         var inputElement = document.createElement('input');
-        if(input.toLowerCase().includes('file')) {
-            inputElement.type='file';
-        } else {
-            inputElement.type = 'text';
+        //Split the "input" string at the underscore, use the first 
+        // part in a switch() { and the second part as the name of the input
+        switch (input.split('_')[0]) {
+            case 'textarea':
+                var inputElement = document.createElement('textarea');
+                inputElement.rows=8;
+                break;
+            case 'date':
+                var inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.placeholder='YYYY-MM-DD';
+                inputElement.pattern='\\d{4}(-\\d{2})?(-\\d{2})?'
+                break;
+            case 'file':
+                var inputElement = document.createElement('input');
+                inputElement.type = 'file';
+                break;
+            case 'individual':
+                var inputElement = document.createElement('select');
+                inputElement.id = 'customPromptInput' + index;
+                inputElement.className = 'w-full p-2 border rounded mb-2';
+                inputElement.value = values[index] || '';
+                customPromptInputs.appendChild(inputElement);
+                console.log(individuals);
+                individuals.forEach(function(individual) {
+                    var option = document.createElement('option');
+                    option.value = individual.id;
+                    option.text = individual.name;
+                    inputElement.appendChild(option);
+                });
+                return;
+            default:
+                var inputElement = document.createElement('input');
+                inputElement.type = input.split('_')[0];
+                break;
         }
+        if(!inputElement.placeholder) inputElement.placeholder = input.split('_')[1];
         inputElement.id = 'customPromptInput' + index;
         inputElement.className = 'w-full p-2 border rounded mb-2';
-        inputElement.placeholder = input;
         inputElement.value = values[index] || '';
         customPromptInputs.appendChild(inputElement);
     });

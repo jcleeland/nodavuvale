@@ -603,8 +603,8 @@ class Utils {
             'Ended',
             'Position',
             'Source',
-            'Photo',
             'Reference',
+            'Photo',
             'Story'
         ];
 
