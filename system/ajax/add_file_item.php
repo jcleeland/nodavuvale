@@ -39,6 +39,9 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             $db->beginTransaction();
             $event_count = count($events);
 
+            // Step 0: Check to see if this already has an entry in the items table
+            
+
             // Step 1: Insert the event into the 'items' table (if event data is provided)
             $item_id = null;  // Initialize the item_id to null in case there's no event
             if (!empty($events) && is_array($events)) {

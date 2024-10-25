@@ -2,7 +2,7 @@
 /**
  * Handle new individuals and/or new relationships
  */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpos($_POST['action'], 'add_') === 0 || $_POST['action'] == 'link_relationship'))) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpos($_POST['action'], 'relationship-add_') === 0 || $_POST['action'] == 'link_relationship'))) {
     $first_names = $_POST['first_names'];
     $aka_names = $_POST['aka_names'];
     $last_name = $_POST['last_name'];
@@ -17,13 +17,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
     $isdeceased = !empty($_POST['death_year']) || !empty($_POST['is_deceased']) ? 1 : 0;
 
     // Save the new individual to `individuals` or `temp_individuals`
-    
+    $oktoadd=true;
     if($_POST['action'] == 'add_individual' || empty($_POST['connect_to'])) {
-        //echo "Adding new individual";
-        //Check to see if there is a matching record already in the individuals table
-        $existing_individual = $db->fetchAll("SELECT * FROM individuals WHERE first_names = ? AND last_name = ?", [$first_names, $last_name]);
-        if($existing_individual) {
-            echo "This individual already exists in the database.";
+        //Checks to see if there is a matching record already in the individuals table
+        if(isset($_POST['confirmed']) && $_POST['confirmed'] == 1) {
+            //We've already checked
+            $oktoadd=true;
+        } else {
+            //Do the check
+            $existing_individual = $db->fetchAll("SELECT * FROM individuals WHERE first_names = ? AND last_name = ?", [$first_names, $last_name]);
+            if($existing_individual) {
+                $oktoadd=false; //Start by assuming that we can't add this individual
+                //Now lets do some checks to see if we can reasonably assume that this is a different person
+                $existing_individual = $existing_individual[0];
+                // Lets see if the existing individual has parents already, and if so - whether they are different from the parents being submitted
+                $existing_parents = $db->fetchAll("SELECT * FROM relationships WHERE individual_id_2 = ? AND relationship_type = 'parent'", [$existing_individual['id']]);
+                if($existing_parents) {
+                    //echo "This individual already has parents";
+                    //echo "<pre>"; print_r($existing_parents); echo "</pre>";
+                    //echo "<pre>"; print_r($_POST); echo "</pre>";
+                    //die();
+                    //If the existing individual has parents, then check to see if the parents being submitted are different. If the existing person has different parents,
+                    // then we can assume that this is a different person
+                    if($existing_parents[0]['individual_id_1'] != $_POST['related_individual'] && $existing_parents[0]['individual_id_1'] != $_POST['second-parent']) {
+                        $oktoadd=true;
+                    }
+                }
+                
+                // then check the birth year and see if they are within 5 years of each other
+                if($existing_individual['birth_year'] && $birthyear) {
+                    if(abs($existing_individual['birth_year'] - $birthyear) > 5) {
+                        $oktoadd=true;
+                    }
+                }
+            } 
+        }
+        
+        if(!$oktoadd) {
+            //If there is reason to think this could be a duplicate, let's give the submitter the final say by asking them to confirm.
+            // we can show them the other person's details and ask them to confirm that this is a different person
+            ?>
+                <div class="modal" id="checking-to-confirm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Confirm adding this person</h2>
+                            It looks like a person with the same name already exists in the database. Please confirm that this is a different person.
+                        </div>
+                        <div class="modal-body">
+                            <form id="add-relationship-form" action="?to=family/tree" method="POST">
+                                <input type="hidden" name="confirmed" value="1">
+                                <?php foreach($_POST as $key=>$value): ?>
+                                    <input type='hidden' name='<?= $key ?>' value='<?= $value ?>'>";
+                                <?php endforeach; ?>
+                                <button type="submit" name="action" value="add_individual" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                                    Yes, add this person
+                                </button>
+                                <button type="submit" name="action" value="cancel" class="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                                    No, cancel
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php
+            die();
+
         } else {
             $sql = "INSERT INTO individuals (first_names, aka_names, last_name, birth_prefix, birth_year, birth_month, birth_date, death_prefix, death_year, death_month, death_date, gender, is_deceased) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -125,7 +183,7 @@ function checkFor2Parents($db, $individual_id) {
             </div>
             <div class="modal-body">
                 <form id="add-relationship-form" action="?to=family/tree" method="POST">
-                    <input type="hidden" name="action" value="" id="form-action">
+                    <input type="hidden" name="action" value="" id="relationship-form-action">
                     <input type="hidden" name="related_individual" value="" id="related-individual">
                     <input type="hidden" id="root_id" name="root_id" value="<?= $rootId; ?>">
 

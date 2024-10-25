@@ -1,5 +1,10 @@
 <?php
 
+
+/* if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo "<pre>"; print_r($_POST); print_r($_FILES); echo "</pre>";
+    die("The form was posted!"); die();
+}*/
 //Handle form submission for updating individuals
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_individual') {
     include("helpers/update_individual.php");
@@ -10,6 +15,9 @@ if(!isset($rootId)) {
 }
 
 $is_admin = $auth->getUserRole() === 'admin';
+
+//Gather a list of individuals for the add relationship modal
+$individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
 
 include("helpers/add_relationship.php");
 
@@ -114,8 +122,7 @@ if ($individual_id) {
 }
 
 
-//Gather a list of individuals for the add relationship modal
-$individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
+
 
 
 ?>
@@ -304,36 +311,106 @@ $individuals = $db->fetchAll("SELECT id, first_names, last_name FROM individuals
                     <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                 </button>            
             </h3>
-            <div class="document-list grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            <div class="document-list grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
                 <?php foreach ($items as $key=>$itemgroup): ?> 
-                    <div id="item_id_<?= $itemgroup[0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
-                        <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete this item" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $itemgroup[0]['item_id'] ?>');">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <?php if($key=="Singleton") $groupTitle=$itemgroup[0]['detail_type']; else $groupTitle=$key; ?>
-                        <b><?= $groupTitle ?></b><br />
-                        <?php foreach ($itemgroup as $item): ?>
-                                <b class="text-xs"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?></b><br />
-                                <?php if (!empty($item['detail_value'])): ?>
-                                    <p id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
-                                        <?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?>
-                                    </p>
-                                <?php endif; ?>
-                                <?php if(!empty($item['file_id'])): ?>
-                                    <?php if($item['file_type']=='image'): ?>
-                                        <img src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>" class="w-full h-auto rounded-lg">
+                    
+                        <?php if($key != "Singleton") {
+                            //Order the items in the itemgroup according to the item_styles
+                            $reference=$item_types[$key];
+                            $groupTitle=$key;
+                            ?>
+                            <div id="item_group_id_<?= $itemgroup[0]['item_identifier'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                            <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete this group of items" onclick="doAction('delete_item_group', '<?= $individual['id'] ?>', '<?= $itemgroup[0]['item_identifier'] ?>');">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <?php                                 
+                        } else {
+                            foreach($itemgroup as $item) {
+                                $reference[]=$item['detail_type'];
+                            }
+                            $groupTitle=$itemgroup[0]['detail_type'];
+                            ?>
+                            <div id="item_id_<?= $itemgroup[0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                            <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete this item" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $itemgroup[0]['item_id'] ?>');">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <?php                        
+                        }
+                        $thisitem=array();
+                        foreach($itemgroup as $itemdetail) {
+                            $thisitem[$itemdetail['detail_type']]=$itemdetail;
+                        }
+                        $incompleteItems=[];
+                        ?>
+                        <div class="item_header p-1 rounded mb-2 bg-brown text-white"><b><?= $groupTitle ?></b></div>
+                        <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0 Z-2">
+                            <i class="fas fa-info-circle" title="Added by <?= $itemgroup[0]['first_name'] ?> <?= $itemgroup[0]['last_name'] ?> on <?= date("d M Y", strtotime($itemgroup[0]['updated'])); ?>"></i>
+                        </button>                        
+                        <?php 
+                        foreach ($reference as $itemname) {
+                            if(isset($thisitem[$itemname])) {
+                                $item=$thisitem[$itemname];
+                        ?>
+                                <div <?= $key != "Singleton" ? "id='item_id_".$item['item_id']."'" : "" ?> class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left <?= $key != "Singleton" ? "text-indent-1" : "" ?> relative">
+                                    
+                                    <div class='<?= $key != "Singleton" ? "w-1/3 float-left pl-1": "text-center" ?>'>
+                                        <b class="text-xs mb-2"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?>&nbsp;</b>
+                                    </div>
+                                    
+                                    
+                                    <?php if(!empty($item['file_id'])): ?>
+
+                                        <?php if($item['file_type']=='image'): ?>
+                                            <a href="<?= $item['file_path'] ?>" target="_blank"><img src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>" class="w-full h-auto rounded-lg no-indent" ></a>
+                                            <p class="mt-2 text-xs text-gray-600 text-center" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" ><?= $item['file_description'] ?></p>
+
+                                        <?php else: ?>
+                                            <div class='border rounded text-xs pr-1 pb-1 mx-2 mt-1 bg-cream no-indent <?= $key != "Singleton" ? "inline" : "" ?>'>
+                                                <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
+                                                    <i class="text-md fas fa-file pl-1 pr-0 pb-0"></i>
+                                                </a>
+                                                <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
+                                            </div>
+                                            <?= $key != "Singleton" ? "<div style='clear: both'></div>" : "" ?>
+                                        <?php endif; ?>
+
                                     <?php else: ?>
-                                        <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800">View Document</a>
+
+                                        <?php if (!empty($item['detail_value'])): ?>
+                                        <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?></span>
+                                        <?php endif; ?>
+
                                     <?php endif; ?>
-                                    <?php if (!empty($item['file_description'])): ?>
-                                        <p class="mt-2 text-xs text-gray-600"><?= $item['file_description'] ?></p>
+                                    <?php if($key != "Singleton") : ?>
+                                        <button class="absolute text-burnt-orange nv-text-opacity-50 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     <?php endif; ?>
-                                <?php endif; ?>
-                                <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
-                                    <i class="fas fa-info-circle" title="Added by <?= $item['first_name'] ?> <?= $item['last_name'] ?> on <?= date("d M Y", strtotime($item['updated'])); ?>"></i>
-                                </button>
-                        <?php endforeach; ?>
-                        </div>
+
+                                </div>
+                            <?php 
+                            } else { 
+                                $incompleteItems[]=$itemname;
+                            } 
+                            ?>
+                        <?php 
+                        }
+                        if(count($incompleteItems) > 0) {
+                            echo "<div class='grid grid-cols-1 md:grid-cols-2 p-0 justify-between absolute right-1 bottom-1' id='item_buttons_group_".$itemgroup[0]['item_identifier']."'>";
+                            foreach($incompleteItems as $incompleteItem) {
+                            ?>
+                                <div class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative">
+                                    <button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$incompleteItem] ?>" data-group-id="<?= $itemgroup[0]['item_identifier'] ?>" title="Add <?= $incompleteItem ?>" onclick="doAction('add_sub_item', '<?= $individual['id'] ?>', '<?= $incompleteItem ?>', event);">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <?= $incompleteItem ?>
+                                </div>
+                            <?php
+                            }
+                            echo "</div>";
+                        }
+                        ?>
+                    </div>
                     <?php endforeach; ?>
             </div>
         </div>

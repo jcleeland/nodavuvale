@@ -51,6 +51,15 @@ if(!isset($data['id'])) {
             ";
     $implicit = $db->fetchAll($sql, array($individual_id, $individual_id));
 
+    //Now compare the two arrays and remove any duplicates
+    foreach($explicit as $key=>$value) {
+        foreach($implicit as $key2=>$value2) {
+            if($value['parent_id'] == $value2['parent_id']) {
+                unset($implicit[$key2]);
+            }
+        }
+    }
+
     //print_r($implicit);
  
     $response['parents'] = array_merge($explicit, $implicit);

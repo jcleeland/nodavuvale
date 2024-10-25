@@ -1,12 +1,33 @@
 /* Custom Fijian-Inspired Colors */
 :root {
     --brown: RGB(107, 66, 38);
+        --brown-red: 107;
+        --brown-green: 66;
+        --brown-blue: 38;
     --cream: RGB(245, 245, 220);
+        --cream-red: 245;
+        --cream-green: 245;
+        --cream-blue: 220;
     --burnt-orange: RGB(204, 85, 0);
-    --deep-green: RGB(47, 79, 79); 
+        --burnt-orange-red: 204;
+        --burnt-orange-green: 85;
+        --burnt-orange-blue: 0;
+    --deep-green: RGB(47, 79, 79);
+        --deep-green-red: 47;
+        --deep-green-green: 79;
+        --deep-green-blue: 79; 
     --ocean-blue: RGB(0, 119, 182);
+        --ocean-blue-red: 0;
+        --ocean-blue-green: 119;
+        --ocean-blue-blue: 182;
     --warm-red: RGB(178, 34, 34);
+        --warm-red-red: 178;
+        --warm-red-green: 34;
+        --warm-red-blue: 34;
     --white: RGB(255, 255, 255);
+        --white-red: 255;
+        --white-green: 255;
+        --white-blue: 255;
     --individual-item-height: 120px;
 }
 
@@ -17,6 +38,23 @@
 
 .bg-cream {
     background-color: var(--cream);
+}
+
+.nv-bg-opacity-10 {
+    --nv-bg-opacity: 0.1 !important;
+}
+
+.nv-bg-opacity-20 {
+    --nv-bg-opacity: 0.2 !important;
+}
+
+.nv-bg-opacity-50 {
+    --nv-bg-opacity: 0.5 !important;
+}
+
+.bg-cream-800 {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--cream-red), var(--cream-green), var(--cream-blue), var(--nv-bg-opacity));
 }
 
 .bg-burnt-orange {
@@ -36,8 +74,21 @@
 }
 
 /* Text Colors */
+.nv-text-opacity-10 {
+    --nv-text-opacity: 0.1 !important;
+}
+
+.nv-text-opacity-20 {
+    --nv-text-opacity: 0.2 !important;
+}
+
+.nv-text-opacity-50 {
+    --nv-text-opacity: 0.5 !important;
+}
+
 .text-deep-green {
-    color: var(--deep-green);
+    --nv-text-opacity: 1;
+    color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), var(--nv-text-opacity));
 }
 
 .text-deep-green-disabled {
@@ -45,7 +96,8 @@
 }
 
 .text-brown {
-    color: var(--brown);
+    --nv-text-opacity: 1;
+    color: rgba(var(--brown-red), var(--brown-green), var(--brown-blue), var(--nv-text-opacity));
 }
 
 .text-brown-500 {
@@ -65,7 +117,8 @@
 }
 
 .text-burnt-orange {
-    color: var(--burnt-orange);
+    --nv-text-opacity: 1;
+    color: rgba(var(--burnt-orange-red), var(--burnt-orange-green), var(--burnt-orange-blue), var(--nv-text-opacity));
 }
 
 .text-ocean-blue {
@@ -124,6 +177,18 @@
     text-align: center;
 }
 
+.text-xxxxs {
+    font-size: 0.4rem;
+}
+
+.text-xxxs {
+    font-size: 0.5rem;
+}
+
+.text-xxs {
+    font-size: 0.6rem;
+}
+
 .text-normal {
     font-size: 1rem;
     font-weight: 400;
@@ -139,6 +204,21 @@
 
 .text-4xl {
     font-size: 2.25rem;
+}
+
+.no-indent {
+    padding-left: 0 !important;
+    text-indent: 0 !important;
+}
+
+.text-indent-1 {
+    padding-left: 1rem;
+    text-indent: -1rem;
+}
+
+.text-indent-2 {
+    padding-left: 2rem;
+    text-indent: -2rem;
 }
 
 .font-bold {
@@ -618,4 +698,25 @@
 .tabs .active {
     background-color: #f5f5dc;
     color: var(--burnt-orange);    
+}
+
+
+/**********************************************
+* AutoComplete Styles
+***********************************************/
+.autocomplete-suggestions {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    max-height: 150px;
+    overflow-y: auto;
+    position: absolute;
+    z-index: 1000;
+}
+.autocomplete-suggestion {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.autocomplete-suggestion:hover {
+    background-color: #f0f0f0;
 }

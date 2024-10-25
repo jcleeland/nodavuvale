@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('connect_to').addEventListener('change', function() {
         var selectedValue = this.value;
         if (selectedValue) {
-            document.getElementById('form-action').value = 'link_relationship';
+            document.getElementById('relationship-form-action').value = 'link_relationship';
             document.getElementById('first_names').removeAttribute('required');
             document.getElementById('last_name').removeAttribute('required');
             document.getElementById('lookup').value = this.options[this.selectedIndex].text;
@@ -363,7 +363,11 @@ async function uploadKeyImage(individualId) {
     }
 }
 
-function doAction(action, individualId, actionId) {
+function doAction(action, individualId, actionId, event) {
+    if(event) {
+        console.log('Event got passed');
+        var button = event.target.closest('button');        
+    }
     console.log('Doing action:', action, 'for individual ID:', individualId, ' and action ID:', actionId);
     switch(action) {
         case 'delete_item':
@@ -372,8 +376,15 @@ function doAction(action, individualId, actionId) {
                     .then(response => {
                         if (response.status === 'success') {
                             // Reload the page
-                            alert('Item has been deleted');
+                            //alert('Item has been deleted');
                             document.getElementById('item_id_'+actionId).remove();
+                            if(response.itemIdentifier) {
+                                document.getElementById('item_group_id_'+response.itemIdentifier).remove();
+                            }
+                            if(response.groupItemType) {
+                                //Create a new "add" button for the group item
+                                document.getElementById('item_buttons_group_'+response.groupItemIdentifier).insertAdjacentHTML('beforeend', '<div class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative"><button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" title="Add '+response.groupItemType+'" onclick="doAction(\'add_sub_item\', \''+individualId+'\', \''+response.groupItemType+'\');"><i class="fas fa-plus"></i></button>'+response.groupItemType+'</div>');
+                            }
                             //location.reload();
                         } else {
                             alert('Error item has not been deleted: ' + response.message);
@@ -381,6 +392,26 @@ function doAction(action, individualId, actionId) {
                     })
                     .catch(error => {
                         alert('An error occurred while deleting the item: ' + error.message);
+                    });
+            }
+            break;
+        case 'delete_item_group':
+            if (confirm('Are you sure you want to delete this entire group of items?')) {
+                getAjax('delete_item', {individualId: individualId, itemIdentifier: actionId})
+                    .then(response => {
+                        if (response.status === 'success') {
+                            // Reload the page
+                            //alert('Item group has been deleted');
+                            console.log('Removing group called item_group_'+actionId);
+                            document.getElementById('item_group_id_'+actionId).remove();
+                            //location.reload();
+                        } else {
+                            alert('Error item group has not been deleted: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.log('An error occurred while deleting the item group: ' + error.message);
+                        //alert('An error occurred while deleting the item group: ' + error.message);
                     });
             }
             break;
@@ -400,6 +431,79 @@ function doAction(action, individualId, actionId) {
                     }
                 )}
             break;
+            case 'add_sub_item':
+                var groupId = button.getAttribute('data-group-id');
+                var groupType = button.getAttribute('data-group-type');
+                var groupName = button.getAttribute('data-group-event-name');
+            
+                console.log(groupId);
+                // Open the modal to add a new item
+                // openModal('add_item', individualId, actionId);
+                showCustomPrompt('Add ' + actionId, 'Add ' + actionId + ' to this group', ['file', 'Description'], [''], async function(inputValues) {
+                    if (inputValues !== null) {
+                        var file = inputValues[0];
+                        console.log('Selected file: ',file);
+                        var fileDescription = inputValues[1];
+                        var formData = new FormData();
+                        var event_group_name = groupName;
+
+                        //Append the file & other data to the formData object
+                        if (file instanceof File) {
+                            formData.append('file', file);
+                        } else {
+                            console.error('The selected file is not a valid File object.');
+                        }
+
+                        formData.append('file', file);
+                        formData.append('method', 'add_file_item');
+                        formData.append('data', JSON.stringify({
+                            individual_id: individualId,
+                            events: [{event_type: groupType, event_detail: actionId}],
+                            event_group_name: event_group_name,
+                            file_description: fileDescription
+                        }));
+
+                        //Debugging: Log the formData object
+                        for (var pair of formData.entries()) {
+                            console.log(pair[0]+ ', ' + pair[1]); 
+                        }
+            
+                        try {
+                            const response = await getAjax('add_file_item', formData);
+                            if (response.status === 'success') {
+                                // Reload the page
+                                alert('Item has been added');
+                                location.reload();
+                            } else {
+                                alert('Error: ' + response.message);
+                            }
+                        } catch (error) {
+                            alert('An error occurred while adding the item: ' + error.message);
+                        }
+                    }
+                });
+            
+                break;
+
+/*
+formData.append('data', JSON.stringify({
+    individual_id: individualId,
+    events: events,
+    event_group_name: event_group_name,
+    file_description: 'Image for individual'  // Description for the file
+}));
+
+// Perform the AJAX call using getAjax
+getAjax('add_file_item', formData)
+    .then(response => {
+        //convert response from json to object
+        console.log(response);
+        console.log(response.status);
+    })
+    .catch(error => {
+        alert('An error occurred while uploading the image: ' + error.message);
+    });
+    */            
         default:
             break;
     }
@@ -457,7 +561,7 @@ function openModal(action, individualId, individualGender) {
     // Get the modal and form elements for the "Add" form
     var modal = document.getElementById('popupForm');
     var closeButton = document.querySelector('.close-btn');
-    var formActionInput = document.getElementById('form-action');
+    var formActionInput = document.getElementById('relationship-form-action');
     var formActionGender = document.getElementById('gender');
     var formActionRelationship = document.getElementById('relationship');
     var relatedIndividualInput = document.getElementById('related-individual');    
@@ -490,7 +594,7 @@ function openModal(action, individualId, individualGender) {
     document.getElementById('death_date').value = '';
     document.getElementById('gender').value = '';
     // Set the form data based on the action
-    formActionInput.value = action;  // Set the action (add_parent, add_spouse, etc.)
+    formActionInput.value = 'relationship-'+action;  // Set the action (add_parent, add_spouse, etc.)
     relatedIndividualInput.value = individualId;  // Set the related individual ID
     //Clear the other parent select of options
     var select = document.getElementById('second-parent');
@@ -544,8 +648,9 @@ function openModal(action, individualId, individualGender) {
             formActionRelationship.value='child';
             formActionGender.value='male';
             console.log('Getting spouses');
+            //retrieve spouses using getSpouses(individualId) and then populate the "second-parent" select
             getSpouses(individualId).then(spouses => {
-                console.log(spouses);
+                //console.log(spouses);
                 var select = document.getElementById('second-parent');
                 select.innerHTML = '';
                 var option = document.createElement('option');
@@ -564,8 +669,9 @@ function openModal(action, individualId, individualGender) {
         case 'add_daughter':
             formActionGender.value='female';
             formActionRelationship.value='child';
+            //retrieve spouses using getSpouses(individualId) and then populate the "second-parent" select
             getSpouses(individualId).then(spouses => {
-                console.log(spouses);
+                //console.log(spouses);
                 var select = document.getElementById('second-parent');
                 select.innerHTML = '';
                 var option = document.createElement('option');
@@ -585,7 +691,6 @@ function openModal(action, individualId, individualGender) {
             if(individualGender=='female') formActionGender.value='male';
             if(individualGender=='male') formActionGender.value='female';
             formActionRelationship.value='spouse';
-            //retrieve spouses using getSpouses(individualId) and then populate the "second-parent" select
             break;
         default:
             formActionGender.value='other';

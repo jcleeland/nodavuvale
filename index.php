@@ -3,7 +3,7 @@
  * --== NodaVuvale ==--
  * by Jason Cleeland / Aptigence
  * 
- * (c) 2014 Jason Cleeland, 47 Grove St, Eltham, Victoria, Australia
+ * (c) 2024 Jason Cleeland, 47 Grove St, Eltham, Victoria, Australia
  * All Rights Reserved
  * 
  * This software is provided as-is, without any warranty or guarantee of any kind.
@@ -53,8 +53,6 @@ $web = new Web($db);
 $site_name=$db->getSiteSettings()['site_name'];
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '';
 
-// Include the header
-include('views/header.php');
 
 // Define restricted directories
 $restricted_paths = ['family', 'village', 'communications'];
@@ -85,6 +83,13 @@ if(isset($_GET['action']) && $_GET['action'] == 'logout') {
     header('Location: index.php');
     exit;
 }
+
+if((isset($_POST['action']) && $_POST['action'] == 'login') && (isset($_GET['to']) && $_GET['to'] == 'login')) {
+    include("views/login.php");
+    exit;
+}
+// Include the header
+include('views/header.php');
 
 // Include the requested page if it exists, otherwise include the 404 page
 if (file_exists($pagePath)) {

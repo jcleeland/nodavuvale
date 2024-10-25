@@ -455,20 +455,23 @@ class Utils {
             ORDER BY item_identifier ASC, items.updated DESC 
         ";
         $items = $db->fetchAll($query, [$individual_id]);
+        //echo "<pre>"; print_r($items); echo "</pre>";
 
         // Group items by item_identifier - if there is none, treat as individual groups
         $groupedItems = [];
         foreach ($items as $item) {
-            $itemIdentifier = $item['item_group_name'];
+            $itemIdentifier = !empty($item['item_group_name']) ? $item['item_group_name'] : $item['item_identifier'];
             if (empty($itemIdentifier)) {
                 $itemIdentifier = "Singleton";
             }
             if (!isset($groupedItems[$itemIdentifier])) {
                 $groupedItems[$itemIdentifier] = []; //Create empty array for new item group
             }
-            $groupedItems[$itemIdentifier][] = $item;
+            if(!empty($item['detail_value'])) {
+                $groupedItems[$itemIdentifier][] = $item;
+            }
         }
-
+        //echo "<pre>"; print_r($groupedItems); echo "</pre>";
         
         return $groupedItems;
     }
@@ -531,9 +534,20 @@ class Utils {
         $response=array();
         // Marriage
         $response['Marriage'] = [
+            'Spouse',
             'Date',
             'Location',
-            'Certificate',
+            'Reference',
+            'Photo',
+            'Story'
+        ];
+
+        // Divorce
+        $response['Divorce'] = [
+            'Spouse',
+            'Date',
+            'Location',
+            'Reference',
             'Photo',
             'Story'
         ];
@@ -541,15 +555,7 @@ class Utils {
         // Birth
         $response['Birth'] = [
             'Location',
-            'Certificate',
-            'Photo',
-            'Story'
-        ];
-
-        // Death
-        $response['Death'] = [
-            'Location',
-            'Certificate',
+            'Reference',
             'Photo',
             'Story'
         ];
@@ -558,16 +564,25 @@ class Utils {
         $response['Baptism'] = [
             'Date',
             'Location',
-            'Certificate',
+            'Reference',
+            'Photo',
+            'Story'
+        ];        
+
+        // Death
+        $response['Death'] = [
+            'Location',
+            'Reference',
             'Photo',
             'Story'
         ];
+
 
         // Burial
         $response['Burial'] = [
             'Date',
             'Location',
-            'Certificate',
+            'Reference',
             'Photo',
             'Story'
         ];
@@ -577,8 +592,19 @@ class Utils {
             'Date',
             'Title',
             'Institution',
-            'Certificate',
+            'Reference',
             'Photo',
+            'Story'
+        ];
+
+        // Military
+        $response['Military'] = [
+            'Started',
+            'Ended',
+            'Position',
+            'Source',
+            'Photo',
+            'Reference',
             'Story'
         ];
 
@@ -599,22 +625,11 @@ class Utils {
             'Story'
         ];
 
-        // Military
-        $response['Military'] = [
-            'Date',
-            'Position',
-            'Source',
-            'Photo',
-            'Story'
-        ];
-
-
-
-        $response['Key Image'] = [
+        /*$response['Key Image'] = [
             'Key Image'
-        ];
-        //Sort the responses alphabetically
-        ksort($response);      
+        ];*/
+        //Sort the responses alphabetically, but only by the key name
+        //ksort($response);
         
         // Other
         $response['Other (group)'] = [
@@ -635,17 +650,33 @@ class Utils {
 
     public static function getItemStyles() {
         $response=array();
+        $response['Spouse']="individual"; 
+        $response['Person']="individual"; 
         $response['Date']="date";
-        $response['Location']="text";
-        $response['Certificate']="file";
-        $response['Photo']="file";
-        $response['Story']="textarea";
+        $response['Started']="date";
+        $response['Ended']="date";
         $response['Title']="text";
-        $response['Institution']="text";
+        $response['Location']="text";
         $response['Source']="text";
         $response['Position']="text";
-        $response['Key_Image']="file";
+        $response['Institution']="text";
         $response['free']="text";
+        $response['Story']="textarea";
+        $response['Certificate']="file";
+        $response['Reference']="file";
+        $response['Key_Image']="file";
+        $response['Photo']="file";
+        $response['File']="file";
         return $response;
+    }
+
+    public static function generateItemIdentifier() {
+        // This is a new unique INTEGER identifier for the item
+        // So we need to get the highest existing identifier and add 1 to it
+        $db = Database::getInstance();
+        $sql = "SELECT MAX(item_identifier) as max_id FROM items";
+        $max_id = $db->fetchOne($sql);
+        return $max_id['max_id']+1;
+        
     }
 }

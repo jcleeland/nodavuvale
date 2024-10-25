@@ -14,11 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login_result = $auth->login($email, $password);
 
     if ($login_result === 'unapproved') {
+        include("views/header.php");
         // User is registered but not approved yet
-        $error_message = "Your registration is pending approval. Please wait for an administrator to approve your account.<br /><span class='italic text-xs'>In the meantime, feel free to <a href='?to=home' class='link'>browse our public areas</a></span>.";
+        $error_message = "<b>Not logged in!</b><br />Your registration is pending approval. Please wait for an administrator to approve your account.<br /><span class='italic text-xs'>In the meantime, feel free to <a href='?to=home' class='link'>browse our public areas</a></span>.";
     } elseif ($login_result === 'invalid') {
+        include("views/header.php");
         // Invalid credentials
-        $error_message = "Invalid email or password. <a href='index.php?to=forgot_password' class='text-blue-500 hover:text-blue-700'>Forgot password?</a> or <a href='index.php?to=register' class='text-blue-500 hover:text-blue-700'>Register here</a>.";
+        $error_message = "<b>Not logged in!</b><br />Invalid email or password.<br /><a href='index.php?to=forgot_password' class='text-blue-500 hover:text-blue-700'>Forgot password?</a> or <a href='index.php?to=register' class='text-blue-500 hover:text-blue-700'>Register here</a>.";
     } else {
         // Redirect to the home page after successful login
         header('Location: index.php?to=home');
@@ -40,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form action="index.php?to=login" method="POST">
+            <input type="hidden" name="action" value="login" />
             <div class="mb-4">
                 <label for="email" class="block text-gray-700">Email</label>
                 <input type="email" id="email" name="email" class="w-full px-4 py-2 border rounded-lg" required>

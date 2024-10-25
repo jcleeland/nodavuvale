@@ -64,7 +64,7 @@ if(!empty($_FILES)) {
         }
     } else {
         //No method specified
-        echo json_encode(['error' => 'No method specified']);
+        echo json_encode(['error' => 'No method specified for file upload']);
     }
 } else {
     // Handle JSON data
@@ -93,6 +93,6 @@ if(!empty($_FILES)) {
         }
     } else {
         // No method specified
-        echo json_encode(['error' => 'No method specified']);
+        echo json_encode(['error' => 'No method specified for AJAX request']);
     }
 }

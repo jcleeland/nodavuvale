@@ -89,6 +89,31 @@ async function uploadFileAndItem(individualId, eventType, eventDetail, fileDescr
     }
 }
 
+/**
+ * Displays a custom prompt dialog with a title, message, and multiple input fields.
+ *
+ * @param {string} title - The title of the custom prompt dialog.
+ * @param {string} message - The message or description to display in the custom prompt dialog.
+ * @param {Array<string>} inputs - An array of placeholder texts for the input fields.
+ * @param {Array<string>} values - An array of default values for the input fields.
+ * @param {function} callback - A callback function to handle the input values. The callback receives an array of input values if the user clicks "OK", or null if the user clicks "Cancel".
+ *
+ * @example
+ * // Example usage:
+ * showCustomPrompt(
+ *     'Enter Details',
+ *     'Please fill in the following details:',
+ *     ['Name', 'Email', 'Phone'],
+ *     ['John Doe', 'john@example.com', ''],
+ *     function(inputValues) {
+ *         if (inputValues) {
+ *             console.log('User input:', inputValues);
+ *         } else {
+ *             console.log('User cancelled the prompt.');
+ *         }
+ *     }
+ * );
+ */
 function showCustomPrompt(title, message, inputs, values, callback) {
     var customPrompt = document.getElementById('customPrompt');
     var customPromptTitle = document.getElementById('customPromptTitle');
@@ -104,7 +129,11 @@ function showCustomPrompt(title, message, inputs, values, callback) {
     // Create input elements based on the inputs and values arrays
     inputs.forEach((input, index) => {
         var inputElement = document.createElement('input');
-        inputElement.type = 'text';
+        if(input.toLowerCase().includes('file')) {
+            inputElement.type='file';
+        } else {
+            inputElement.type = 'text';
+        }
         inputElement.id = 'customPromptInput' + index;
         inputElement.className = 'w-full p-2 border rounded mb-2';
         inputElement.placeholder = input;
@@ -121,7 +150,13 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     customPromptOk.onclick = function() {
         customPrompt.classList.remove('show');
-        var inputValues = inputs.map((_, index) => document.getElementById('customPromptInput' + index).value);
+        var inputValues = inputs.map((input, index) => {
+            var inputElement = document.getElementById('customPromptInput' + index);
+            if (input.toLowerCase().includes('file')) {
+                return inputElement.files[0]; // Return the File object
+            }
+            return inputElement.value;
+        });
         callback(inputValues);
     };
 
