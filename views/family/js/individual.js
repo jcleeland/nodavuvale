@@ -55,11 +55,24 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // Handle the "AKA" toggle button in the Edit form
+    var toggleEditAkaButton = document.getElementById('edit-toggle-aka');
+    var akaEditDiv = document.getElementById('edit-aka');
+    console.log(toggleEditAkaButton);
+
+    toggleEditAkaButton.addEventListener('click', function() {
+        if (akaEditDiv.style.display === 'none' || akaEditDiv.style.display === '') {
+            akaEditDiv.style.display = 'block';
+        } else {
+            akaEditDiv.style.display = 'none';
+        }
+    });     
+
     // Placeholder for fetching individual data (replace with actual data fetching logic)
     async function getIndividualDataById(id) {
         try {
             var output = await getAjax('getindividual', { id: id });
-            console.log(output.individual.first_names);
+            //console.log(output.individual.first_names);
             return output.individual;
         } catch (error) {
             console.error('Error fetching individual data:', error);
@@ -164,6 +177,35 @@ function triggerPhotoUpload(individualId) {
 function triggerEditItemDescription(id) {
     console.log('Triggering edit item description for: ' + id);
     var currentDescription=document.getElementById(id).textContent;
+
+    var item_id=id.split('_')[1];
+    //Check and see if there's a div called "hiddenStory_"+id
+    var hiddenStoryDiv=document.getElementById('hiddenStory_'+item_id);
+    console.log('Checking for hidden story div');
+    if(hiddenStoryDiv) {
+        console.log('Found hidden story div');
+        var currentDescription = hiddenStoryDiv.textContent;
+
+        //Use the showCustomPrompt function to allow the user to edit the story
+        showCustomPrompt('Edit Story', 'Edit the story here:', ['textarea_Story'], [currentDescription], async function(inputValues) {
+            if (inputValues !== null) {
+                var newStory = inputValues[0];
+                getAjax('update_item', {itemId: item_id, itemDescription: newStory})
+                    .then(response => {
+                        if(response.status === 'success') {
+                            document.getElementById(id).textContent=newStory;
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while updating the item description: ' + error.message);
+                    });
+            }
+        });
+        return;
+    }
+
     var newItemDescription=prompt("Enter your description here:", currentDescription);
 
     if(newItemDescription===null) {
@@ -171,7 +213,7 @@ function triggerEditItemDescription(id) {
         return;
     }
     //the actual id we want to use is after the underscore in the text of the id passed to the function
-    var item_id=id.split('_')[1];
+    
     getAjax('update_item', {itemId: item_id, itemDescription: newItemDescription})
         .then(response => {
             if(response.status === 'success') {
@@ -272,7 +314,7 @@ async function uploadPhoto(individualId) {
                             console.log(response.status);
                             if (response.status === 'success') {
                                 // Reload the page
-                                location.reload();
+                                //location.reload();
                             } else {
                                 alert('Error: ' + response.message);
                             }
@@ -356,6 +398,10 @@ async function uploadKeyImage(individualId) {
                 //convert response from json to object
                 console.log(response);
                 console.log(response.status);
+                if(response.filepath) {
+                    console.log('Add picture to page');
+                    document.getElementById('keyImage').src = response.filepath;
+                }
             })
             .catch(error => {
                 alert('An error occurred while uploading the image: ' + error.message);
@@ -373,9 +419,15 @@ function doAction(action, individualId, actionId, event) {
     switch(action) {
         case 'delete_item':
             if (confirm('Are you sure you want to delete this item?')) {
-                var groupId = eventbutton.getAttribute('data-group-id');
-                var groupType = eventbutton.getAttribute('data-group-item-type');
-                var groupName = eventbutton.getAttribute('data-group-event-name');
+                if(eventbutton) {
+                    var groupId = eventbutton.getAttribute('data-group-id');
+                    var groupType = eventbutton.getAttribute('data-group-item-type');
+                    var groupName = eventbutton.getAttribute('data-group-event-name');
+                } else {
+                    var groupId = null;
+                    var groupType = null;
+                    var groupName = null
+                }
                 getAjax('delete_item', {individualId: individualId, itemId: actionId})
                     .then(response => {
                         if (response.status === 'success') {

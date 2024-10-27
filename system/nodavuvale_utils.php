@@ -345,25 +345,29 @@ class Utils {
         $spouses=[];
         //First find explicit spouses as identified by the 'spouse' relationship type
         $esquery = "SELECT DISTINCT
-                CASE 
-                    WHEN r.individual_id_1 = ? THEN r.individual_id_2 
-                    ELSE r.individual_id_1 
-                END AS parent_id,
-                individual_spouse.*, files.file_path as keyimagepath
-            FROM
-                relationships AS r
-            INNER JOIN individuals AS individual_spouse ON 
-                (CASE 
-                    WHEN r.individual_id_1 = ? THEN r.individual_id_2 
-                    ELSE r.individual_id_1 
-                END) = individual_spouse.id
-            LEFT JOIN file_links ON file_links.individual_id=individual_spouse.id 
-            LEFT JOIN files ON file_links.file_id=files.id     
-            LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
-                            
-            WHERE 
-                (r.individual_id_1 = ? OR r.individual_id_2 = ?)
-                AND r.relationship_type = 'spouse';
+                        CASE 
+                            WHEN r.individual_id_1 = ? THEN r.individual_id_2 
+                            ELSE r.individual_id_1 
+                        END AS parent_id,
+                        individual_spouse.*, 
+                        keyImages.file_path AS keyimagepath
+                    FROM
+                        relationships AS r
+                    INNER JOIN individuals AS individual_spouse ON 
+                        (CASE 
+                            WHEN r.individual_id_1 = ? THEN r.individual_id_2 
+                            ELSE r.individual_id_1 
+                        END) = individual_spouse.id
+                    LEFT JOIN (
+                        SELECT files.file_path, file_links.individual_id
+                        FROM files
+                        INNER JOIN file_links ON files.id = file_links.file_id
+                        INNER JOIN items ON file_links.item_id = items.item_id
+                        WHERE items.detail_type = 'Key Image'
+                    ) as keyImages ON keyImages.individual_id = individual_spouse.id
+                    WHERE 
+                        (r.individual_id_1 = ? OR r.individual_id_2 = ?)
+                        AND r.relationship_type = 'spouse';
             ";
         $explicitspouses = $db->fetchAll($esquery, [$individual_id, $individual_id, $individual_id, $individual_id]);
         foreach($explicitspouses as $spouse){
@@ -476,6 +480,13 @@ class Utils {
         return $groupedItems;
     }
 
+    /**
+     * Get the files for an individual.
+     * 
+     * @param int $individual_id The ID of the individual.
+     * @param string $file_type The type of file to fetch.
+     * @return array An array of files for the individual.
+     */
     public static function getFiles($individual_id, $file_type='%') {
         // Get the database instance
         $db = Database::getInstance();
@@ -495,6 +506,12 @@ class Utils {
         
     }
 
+    /**
+     * Get the discussions for an individual.
+     * 
+     * @param int $individual_id The ID of the individual.
+     * @return array An array of discussions for the individual.
+     */
     public static function getIndividualDiscussions($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
@@ -523,13 +540,61 @@ class Utils {
         return $discussions;
     }
 
+    /**
+     * Get the name of an individual given their ID.
+     * 
+     * @param int $individual_id The ID of the individual.
+     * @return string The full name of the individual.
+     */
     public static function getIndividualName($individual_id) {
         $sql="SELECT individuals.first_names, individuals.last_name FROM individuals WHERE individuals.id = ?"; 
         $db = Database::getInstance();
         $individual = $db->fetchOne($sql, [$individual_id]);
         return $individual['first_names']." ".$individual['last_name'];
     }
+    
+    /**
+     * Get the next available item identifier for a new item.
+     * 
+     * @return int The next available item identifier.
+     */
+    public static function getNextItemIdentifier() {
+        $sql = "SELECT COALESCE(MAX(item_identifier), 0) + 1 AS new_item_identifier FROM items";
+        $db = Database::getInstance();
+        $result = $db->fetchOne($sql);
+        return $result['new_item_identifier'];        
+    }
 
+    /**
+     * Returns a list of all items and their associated files and links.
+     * 
+     * @param int $individual_id The ID of the individual to filter by.
+     * @return array An array of items with associated files and links.
+     */
+    public static function getAllFilesAndLinks($individual_id=null) {
+        $sql = "
+        SELECT items.*, item_links.item_id as item_link_item_id, item_links.individual_id as item_link_individual_id, fileConnections.*
+        FROM `items` 
+            INNER JOIN item_links ON items.item_id = item_links.item_id 
+            LEFT JOIN ( 
+                SELECT files.file_type, files.file_path, files.file_format, files.file_description, files.user_id as file_user_id, file_links.id as file_link_id, file_links.individual_id as file_link_individual_id, file_links.item_id as file_link_item_id 
+                FROM file_links 
+                INNER JOIN files ON files.id=file_links.file_id 
+            ) as fileConnections ON fileConnections.file_link_item_id=items.item_id";
+        if($individual_id) {
+            $sql .= " WHERE item_links.individual_id = ?";
+        }
+        $sql .= " ORDER BY items.item_id ASC; ";
+        $db = Database::getInstance();
+        $itemlist = $db->fetchAll($sql);
+        return $itemlist;        
+    }
+
+    /**
+     * Returns a list of all items and their associated files and links.
+     * 
+     * 
+     */
     public static function getItemTypes() {
         $response=array();
         // Marriage
@@ -648,6 +713,11 @@ class Utils {
         return $response;
     }
 
+    /**
+     * Returns a list of all items and their associated files and links.
+     * 
+     * 
+     */
     public static function getItemStyles() {
         $response=array();
         $response['Spouse']="individual"; 
@@ -668,15 +738,5 @@ class Utils {
         $response['Photo']="file";
         $response['File']="file";
         return $response;
-    }
-
-    public static function generateItemIdentifier() {
-        // This is a new unique INTEGER identifier for the item
-        // So we need to get the highest existing identifier and add 1 to it
-        $db = Database::getInstance();
-        $sql = "SELECT MAX(item_identifier) as max_id FROM items";
-        $max_id = $db->fetchOne($sql);
-        return $max_id['max_id']+1;
-        
     }
 }

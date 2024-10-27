@@ -1,7 +1,11 @@
 <?php
 // If the user is already logged in, redirect to the home page
 if ($auth->isLoggedIn()) {
-    header('Location: index.php?to=home');
+    ?>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=home";
+    </script>
+    <?php
     exit;
 }
 
@@ -12,6 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Attempt to log the user in
     $login_result = $auth->login($email, $password);
+
+    $error_class = 'text-red-500';
 
     if ($login_result === 'unapproved') {
         include("views/header.php");
@@ -27,6 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+if (isset($_GET['justRegistered']) && $_GET['justRegistered'] == 1) {
+    $error_class = 'text-green-500';
+
+    $email = $_GET['login'];
+    $error_message = "<b>Registration successful!</b><br />Your account has been created and an email has been sent to ".$email." for you to confirm. Please wait for an administrator to approve your account.<br /><span class='italic text-xs'>In the meantime, feel free to <a href='?to=home' class='link'>browse our public areas</a></span>.";
+}
 ?>
 
 <!-- HTML form for login -->
@@ -36,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- Display error message if login fails or user is unapproved -->
         <?php if (isset($error_message)): ?>
-            <div class="mb-4 text-red-500 text-center">
+            <div class="mb-4 <?= $error_class ?> text-center">
                 <?php echo $error_message; ?>
             </div>
         <?php endif; ?>

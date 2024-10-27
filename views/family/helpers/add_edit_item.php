@@ -14,6 +14,12 @@
  * a blank form if it does not.
  */
 
+/*
+    @uses Utils::getItemTypes() to get a list of pre-defined item types
+    @uses Utils::getItemStyles() to get a list of pre-defined item styles
+    @uses Utils::generateItemIdentifier() to generate an item identifier
+*/
+
 // Get a list of pre-defined item types
 $item_types = Utils::getItemTypes();
 $item_styles= Utils::getItemStyles();

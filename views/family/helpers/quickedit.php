@@ -16,10 +16,10 @@
                         <label for="first_name" class="block">First Name</label>
                         <div class="flex items-center mt-1">
                                 <input type="text" id="edit-first-names" name="first_names" class="flex-grow px-4 py-2 border rounded-lg" required>
-                                <button type="button" title="Add other names for this person" id="toggle-aka" class="ml-2 px-2 py-1 bg-gray-300 rounded text-xs">AKA</button>
+                                <button type="button" title="Add other names for this person" id="edit-toggle-aka" class="ml-2 px-2 py-1 bg-gray-300 rounded text-xs">AKA</button>
                             </div>                    
                     </div>
-                    <div id="aka" class="mb-4" style="display: none">
+                    <div id="edit-aka" class="mb-4" style="display: none">
                             <label for="aka_names" class="block text-gray-700">Other name(s) used</label>
                             <input type="text" id="edit-aka-names" name="aka_names" class="w-full px-4 py-2 border rounded-lg">
                     </div>                

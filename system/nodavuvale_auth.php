@@ -90,7 +90,7 @@ class Auth {
         return isset($_SESSION['user_id']) && isset($_SESSION['approved']) && $_SESSION['approved'] > 0;
     }
 
-    public function register($email, $password, $relative_name, $relationship, $role, $approved) {
+    public function register($first_name, $last_name, $email, $password, $relative_name, $relationship, $role, $approved) {
         // Check if the email already exists
         $existing_user = $this->db->fetchOne("SELECT * FROM users WHERE email = ?", [$email]);
         if ($existing_user) {
@@ -99,12 +99,12 @@ class Auth {
 
         // Hash the password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        echo "Inserting "."INSERT INTO users (email, password, relative_name, relationship, role, approved) VALUES (?, ?, ?, ?, 'unconfirmed', 0)";
+        //echo "Inserting "."INSERT INTO users (email, password, relative_name, relationship, role, approved) VALUES (?, ?, ?, ?, 'unconfirmed', 0)";
         // Insert the new user into the database with 'unconfirmed' role and 'approved' = 0
         try {
             $this->db->query(
-                "INSERT INTO users (email, password, relative_name, relationship, role, approved) VALUES (?, ?, ?, ?, ?, ?)", 
-                [$email, $hashed_password, $relative_name, $relationship, $role, $approved]
+                "INSERT INTO users (first_name, last_name, email, password, relative_name, relationship, role, approved) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [$first_name, $last_name, $email, $hashed_password, $relative_name, $relationship, $role, $approved]
             );
         } catch (Exception $e) {
             error_log($e->getMessage());
@@ -118,8 +118,8 @@ class Auth {
 
         //Now send an email to the admin
         $to = "jason@cleeland.org";
-        $subject = "New User Registration";
-        $message = "A new user has registered. Please log in to the admin panel to approve or deny their registration.";
+        $subject = "New NodaVuvale User Registration ($first_name $last_name)";
+        $message = "<p>A new user has registered for your NodaVuvale Site!</p><p><b>Details:</b><br /> $first_name $last_name ($email).</p> <p>Please log in to the admin panel to approve or deny their registration.</p>";
         
         //Send SMTP email, not using the PHP mail function
         $mail = new PHPMailer(true);
@@ -149,5 +149,14 @@ class Auth {
 
 
         return true;  // Registration successful
+    }
+
+    public function approveAccess($user_id) {
+        //First make sure that the person doing this is an admin
+        if($this->getUserRole() != 'admin') {
+            return false;
+        }
+        // Update the user's role to 'member' and set 'approved' to 1
+        $this->db->query("UPDATE users SET role = 'member', approved = 1 WHERE id = ?", [$user_id]);
     }
 }

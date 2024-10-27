@@ -363,8 +363,8 @@ if ($individual_id) {
                                     
                                     
                                     <?php if(!empty($item['file_id'])): ?>
-
                                         <?php if($item['file_type']=='image'): ?>
+
                                             <div class="<?= $key != "Singleton" ? "float-left w-2/3" : "mx-auto w-3/4" ?>">
                                                 <div class="<?= $key != "Singleton" ? "relative w-11/12" : "relative" ?> h-auto p-0 m-0 mt-2">
                                                     <a href="<?= $item['file_path'] ?>" target="_blank">
@@ -373,7 +373,9 @@ if ($individual_id) {
                                                     <p class="absolute <?= $key != "Singleton" ? "w-full" : "w-full" ?> leading-tight bottom-0 rounded text-xxs text-white bg-gray-800 bg-opacity-40 text-center py-1 p-0" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" ><?= $item['file_description'] ?></p>
                                                 </div>
                                             </div>
+
                                         <?php else: ?>
+
                                             <div class="float-left w-2/3">
                                                 <div class='border rounded text-xs pr-1 pb-1 mx-2 mt-1 bg-cream no-indent <?= $key != "Singleton" ? "inline" : "" ?>'>
                                                     <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
@@ -382,32 +384,43 @@ if ($individual_id) {
                                                     <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
                                                 </div>
                                             </div>
+                                            
                                             <?= $key != "Singleton" ? "<div style='clear: both'></div>" : "" ?>
-                                        <?php endif; ?>
-
+                                        
+                                            <?php endif; ?>
                                     <?php else: ?>
-
                                         <?php if (!empty($item['detail_value'])): ?>
-
                                             <?php if($item_styles[$itemname] == "individual") : ?>
+                                        
                                                 <div class="float-left w-2/3">
                                                     <a href="index.php?to=family/individual&individual_id=<?= $item['detail_value'] ?>" class="text-blue-600 hover:text-blue-800"><?= $individuals[$item['detail_value']]['first_names']; ?> <?= $individuals[$item['detail_value']]['last_name']; ?></a>
                                                 </div>
 
-                                            <?php else: ?>
-                                                <div class="float-left w-2/3">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo htmlspecialchars($web->truncateText($item['detail_value'], 100)); ?></span>
-                                                </div>
-                                            <?php endif; ?>
+                                            <?php elseif($item_styles[$itemname] == "textarea") : ?>
                                         
+                                                <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id'])); ?></span>
+                                                </div>
+                                                <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars($item['detail_value'])) ?></div>                                                    
+
+                                            <?php else: ?>
+
+                                                <div class="float-left w-2/3">
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars($item['detail_value'])); ?></span>
+                                                </div>
+                                        
+                                            <?php endif; ?>
                                         <?php endif; ?>
 
                                     <?php endif; ?>
                                     <?php if($key != "Singleton") : ?>
+
                                         <button data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$itemname] ?>" data-group-id="<?= $item['item_identifier'] ?>" class="absolute text-burnt-orange nv-text-opacity-50 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>', event);">
                                             <i class="fas fa-trash"></i>
                                         </button>
+
                                     <?php endif; ?>
+                                    
                                     <div style="clear: both"></div>
 
                                 </div>

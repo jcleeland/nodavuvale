@@ -120,6 +120,7 @@ function showCustomPrompt(title, message, inputs, values, callback) {
     var customPromptMessage = document.getElementById('customPromptMessage');
     var customPromptInputs = document.getElementById('customPromptInputs');
     var customPromptCancel = document.getElementById('customPromptCancel');
+    var customPromptClose = document.getElementById('customPromptClose');
     var customPromptOk = document.getElementById('customPromptOk');
 
     customPromptTitle.textContent = title;
@@ -152,13 +153,19 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                 inputElement.className = 'w-full p-2 border rounded mb-2';
                 inputElement.value = values[index] || '';
                 customPromptInputs.appendChild(inputElement);
-                console.log(individuals);
-                individuals.forEach(function(individual) {
-                    var option = document.createElement('option');
-                    option.value = individual.id;
-                    option.text = individual.name;
-                    inputElement.appendChild(option);
-                });
+                if(typeof individuals !== 'undefined' && individuals !== null) {
+                    var startoption = document.createElement('option');
+                    startoption.value='';
+                    startoption.text='Select Individual..';
+
+                    inputElement.appendChild(startoption);
+                    individuals.forEach(function(individual) {
+                        var option = document.createElement('option');
+                        option.value = individual.id;
+                        option.text = individual.name;
+                        inputElement.appendChild(option);
+                    });
+                }
                 return;
             default:
                 var inputElement = document.createElement('input');
@@ -173,6 +180,11 @@ function showCustomPrompt(title, message, inputs, values, callback) {
     });
 
     customPrompt.classList.add('show');
+
+    customPromptClose.onclick = function() {
+        customPrompt.classList.remove('show');
+        callback(null);
+    };
 
     customPromptCancel.onclick = function() {
         customPrompt.classList.remove('show');
@@ -193,10 +205,19 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     // Handle Enter key for submission
     customPromptInputs.onkeydown = function(event) {
-        if (event.key === 'Enter') {
+        if (event.target.tagName === 'TEXTAREA' && event.key === 'Enter') {
+            event.stopPropagation(); // Prevent the event from bubbling up
+        } else if (event.key === 'Enter') {
             customPromptOk.click();
         }
     };
+}
+
+function showStory(title, textId) {
+    var text=document.getElementById(textId).textContent;
+    showCustomPrompt(title, text, [], [], function(inputValues) {
+        //Do nothing
+    });
 }
 
 // Placeholder for fetching individual data (replace with actual data fetching logic)
@@ -251,3 +272,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+

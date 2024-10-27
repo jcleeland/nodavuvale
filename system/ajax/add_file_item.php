@@ -1,32 +1,44 @@
 <?php
 // Initialize variables for the individual, event, and file
-
-//If there's no "event type" or "event detail" provided, set them to empty strings
+//   - If there's no "event type" or "event detail" provided, set them to empty strings
 
 $individual_id = (int)$data['individual_id']; // Ensure proper integer casting
 $events = !empty($data['events']) ? $data['events'] : [];
 $file_description = !empty($data['file_description']) ? trim($data['file_description']) : '';
 $user_id = (int)$_SESSION['user_id']; // Ensure proper integer casting
 $group_id = !empty($data['item_identifier']) ? $data['item_identifier'] : null;
-
+$new_item_identifier = Utils::getNextItemIdentifier();
 $item_styles=Utils::getItemStyles();
 
-// Initialize the response array
-$response=array();
+/**
+ * Initialize 
+ *  - the response array which is returned at the end of this process
+ *  - the filelink_item_ids array which is used to store the relevant file links after they're created
+ *  - the item_ids array which is used to store the relevant item ids after they're created
+ */
+$response=[];
+$filelink_item_ids=[];
+$item_ids=[];
 
-// Just in case we may need to create a new event, let's find the next consecutive item_identifier
-$sql = "SELECT COALESCE(MAX(item_identifier), 0) + 1 AS new_item_identifier FROM items";
-$result = $db->fetchOne($sql);
-$new_item_identifier = $result['new_item_identifier'];
+/**
+ * Set up basic SQL queries used in later process
+ */
+$event_insert_sql = "INSERT INTO items (detail_type, detail_value, item_identifier, user_id) VALUES (?, ?, ?, ?)";
+$event_update_sql = "UPDATE items SET detail_value = ? WHERE item_id = ?";
+$checksql = "SELECT item_id FROM items WHERE item_identifier = ? AND detail_type = ?";
 
-// Process the uploaded file
+
+/**
+ * If there is a file attachment, first make sure that everything has arrived OK,
+ * then move the file to the appropriate directory and save the file path to the database
+ * and create the relevant links to the individual and any events that are provided.
+ * 
+ */
 if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
     //Find out if this is an image or a document
     $file_type = $data['file']['type'];
     $file_type = explode('/', $file_type);
     $file_type = $file_type[0];
-
-    // if the file is an image, save it to uploads/images, otherwise to uploads/documents
     $upload_dir = 'uploads/' . ($file_type === 'image' ? 'images/' : 'documents/');
     
     // Generate a unique file name and save the file
@@ -40,53 +52,42 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             // Begin transaction
             $db->beginTransaction();
             $event_count = count($events);
-
-            // Step 0: Check to see if this already has an entry in the items table
-
-
-            // Step 1: Insert the event into the 'items' table (if event data is provided)
             $item_id = null;  // Initialize the item_id to null in case there's no event
+
             if (!empty($events) && is_array($events)) {
-                
-                //Basic queries, to be re-used
-                $event_insert_sql = "INSERT INTO items (detail_type, detail_value, item_identifier) VALUES (?, ?, ?)";
-                $event_update_sql = "UPDATE items SET detail_value = ? WHERE item_id = ?";
-                //If there's only one event, let's start assuming that there is no need for an item_identifier
-                // - although we'll check in a second to see if there's an item_identifier in the event,
-                //   in which case this is part of an already existing event group.
                 if($event_count < 2) {
-                    $new_item_identifier = null;
+                    $new_item_identifier = null; // Default scenario for a single item is that there is no need for a new item_identifier
                 }
-                $item_ids=[];
-                $filelink_item_ids=[];
+                
                 foreach($events as $event) {
-                    //echo "<pre>"; print_r($event); echo "</pre>";
-                    $event_type = $event['event_type'];  
-                    $event_detail = $event['event_detail'];
+                    $event_type = $event['event_type'];         //eg "Date"
+                    $event_detail = $event['event_detail'];     //eg "2000-01-01"
+                    
                     if(isset($event['item_identifier']) && !empty($event['item_identifier'])) {
-                        $checksql = "SELECT item_id FROM items WHERE item_identifier = ? AND detail_type = ?";
+                        /** This is a new item for an existing event/items group
+                         *  - so we need to check if this item_identifier already exists in the database
+                         *  - if it does, we update the item with the new event_detail
+                         *  - if it doesn't, we create a new item
+                         */
                         $checkparams = [$event['item_identifier'], $event_detail];
-                        $checkresults = $db->fetchOne($checksql, $checkparams);
-                        //echo $checksql;
-                        //echo "<pre>PARAMS:"; print_r($checkparams); echo "</pre>";
-                        //echo "<pre>CHECKRESULTS:"; print_r($checkresults); echo "</pre>";
+                        $checkresults = $db->fetchOne($checksql, $checkparams); //Have a look and see if there is already an item with this item_identifier and event_type
                         
                         if(is_array($checkresults) && count($checkresults) > 0) {
                             $updateItemId = $checkresults['item_id'];
                             $db->update($event_update_sql, [$file_description, $updateItemId]);
                             $filelink_item_ids[]=$updateItemId;                            
                         } else {
-                            $db->insert($event_insert_sql, [$event_type, $file_description, $event['item_identifier']]);
+                            $db->insert($event_insert_sql, [$event_type, $file_description, $event['item_identifier'], $user_id]);
                             $this_item_id = $db->lastInsertId();
                             $item_ids[]=$this_item_id;
                             $filelink_item_ids[]=$this_item_id;
                         }
                     } else {
                         $item_identifier = $new_item_identifier;
-                        $db->insert($event_insert_sql, [$event_type, $event_detail, $item_identifier]);
+                        $db->insert($event_insert_sql, [$event_type, $event_detail, $item_identifier, $user_id]);
                         $this_item_id = $db->lastInsertId(); // Get the ID of the inserted event
                         $item_ids[]=$this_item_id;
-                        if($item_styles[$event_type] == "file") {
+                        if($item_styles[str_replace(" ", "_", $event_type)] == "file") {
                             $filelink_item_ids[]=$this_item_id;
                         }
                     }
@@ -94,32 +95,27 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
 
                 //If there are multiple events, then also add an entry to "item_groups" linking the $item_identifier with
                 // the group event name ($data['event_group_name'])
-                if(isset($data['event_group_name']) && $event_count > 1) {
+                if(isset($data['event_group_name']) && $event_count > 1 && !isset($event['item_identifier'])) {
                     $event_group_name = $data['event_group_name'];
                     $event_group_sql = "INSERT INTO item_groups (group_name, item_identifier) VALUES (?, ?)";
                     $db->insert($event_group_sql, [$event_group_name, $new_item_identifier]);
                 }
                 
 
-                // Step 2: Insert into 'item_links' to link the event to the individual
+                // Finally, add a record into 'item_links' to link the event to the individual
                 $event_link_sql = "INSERT INTO item_links (individual_id, item_id) VALUES (?, ?)";
                 foreach($item_ids as $item_id) {
                     $db->insert($event_link_sql, [$individual_id, $item_id]);
                 }
             }
             
-            // Step 3: Insert the file metadata into the 'files' table
+            // Insert the file metadata into the 'files' table
             $file_insert_sql = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) 
                                 VALUES (?, ?, ?, ?, ?)";
             $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description, $user_id]);
             $file_id = $db->lastInsertId(); // Get the ID of the uploaded file
             
-            // Step 4: Link the file to the individual in 'file_links'
-            // - should really only be one of them, but who knows what the future holds
-            //echo "<pre>Filelinks array"; print_r($filelink_item_ids); echo "</pre>";
-            //echo "FileId: ".$file_id;
-            //echo "IndividualId: ".$individual_id;
-            //$db->rollback(); die();
+            // Link the file to the individual in 'file_links'
             foreach($filelink_item_ids as $filelink_item_id) {
                 $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES (?, ?, ?)";
                 $db->insert($file_link_sql, [$file_id, $individual_id, $filelink_item_id]); // item_id can be null
@@ -143,61 +139,54 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
         $response['status'] = 'error';
         $response['message'] = 'Failed to upload file.';
     }
-} else if(!isset($_FILES['file'])) {
-    //This is simply the creation of an event (or events) without a file
+} 
+
+
+else if(!isset($_FILES['file'])) {
+    
     try {
-        
         // Begin transaction
         $db->beginTransaction();
         $event_count = count($events);
 
+        /**
+         * There are some different ways of submitting the data through AJAX
+         * so this next line is just to make sure that either way, it is presented
+         * in the same format for this script to process.
+         */
         $response['POSTData']=json_encode($_POST);
 
-        
-        // Step 1: Insert the event into the 'items' table (if event data is provided)
         $item_id = null;  // Initialize the item_id to null in case there's no event
+        
         if (!empty($events) && is_array($events)) {
-            
-            //Basic queries, to be re-used
-            $event_insert_sql = "INSERT INTO items (detail_type, detail_value, item_identifier) VALUES (?, ?, ?)";
-            $event_update_sql = "UPDATE items SET detail_value = ? WHERE item_id = ?";
-            //If there's only one event, let's start assuming that there is no need for an item_identifier
-            // - although we'll check in a second to see if there's an item_identifier in the event,
-            //   in which case this is part of an already existing event group.
             if($event_count < 2) {
-                $new_item_identifier = null;
+                $new_item_identifier = null; // Default scenario for a single item is that there is no need for a new item_identifier
             }
-            $item_ids=[];
 
             foreach($events as $event) {
-                //echo "<pre>"; print_r($event); echo "</pre>";
                 $response['eventArray'][]=json_encode($event);
                 $event_type = $event['event_type'];
                 $event_detail = $event['event_detail'];
+                
                 if(isset($event['item_identifier']) && !empty($event['item_identifier'])) {
-                    $checksql = "SELECT item_id FROM items WHERE item_identifier = ? AND detail_type = ?";
                     $checkparams = [$event['item_identifier'], $event_type];
                     $checkresults = $db->fetchOne($checksql, $checkparams);
-                    //echo $checksql;
-                    //echo "<pre>PARAMS:"; print_r($checkparams); echo "</pre>";
-                    //echo "<pre>CHECKRESULTS:"; print_r($checkresults); echo "</pre>";
-                    
                     if(is_array($checkresults) && count($checkresults) > 0) {
                         $updateItemId = $checkresults['item_id'];
                         $db->update($event_update_sql, [$event_detail, $updateItemId]);
                         $item_ids[]=$updateItemId;                            
                     } else {
-                        $db->insert($event_insert_sql, [$event_type, $event_detail, $event['item_identifier']]);
+                        $db->insert($event_insert_sql, [$event_type, $event_detail, $event['item_identifier'], $user_id]);
                         $item_ids[]=$db->lastInsertId();
                     }
                 } else {
                     $item_identifier = $new_item_identifier;
-                    $db->insert($event_insert_sql, [$event_type, $event_detail, $item_identifier]);
-                    $item_ids[] = $db->lastInsertId(); // Get the ID of the inserted event
+                    $db->insert($event_insert_sql, [$event_type, $event_detail, $item_identifier, $user_id]);
+                    $item_ids[] = $db->lastInsertId();
                 }
             }
 
-            // Step 2: Insert into 'item_links' to link the event to the individual
+            // Insert into 'item_links' to link the event to the individual
             $event_link_sql = "INSERT INTO item_links (individual_id, item_id) VALUES (?, ?)";
             foreach($item_ids as $item_id) {
                 $db->insert($event_link_sql, [$individual_id, $item_id]);
@@ -210,7 +199,9 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
         // Return success response
         $response['status'] = 'success';
         $response['message'] = $event_count.' event(s) recorded successfully.';
+
     } catch (Exception $e) {
+        
         // Roll back the transaction in case of error
         $db->rollBack();
         error_log($e->getMessage());

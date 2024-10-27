@@ -5,27 +5,28 @@ if ($auth->isLoggedIn()) {
     exit;
 }
 
+//Set variables
+$first_name = $_POST['first_name'] ?? '';
+$last_name = $_POST['last_name'] ?? '';
+$email = $_POST['email'] ?? '';
+$relative_name = $_POST['relative_name'] ?? '';
+$relationship = $_POST['relationship'] ?? '';
+$role = "unconfirmed";
+$approved = 0;
+
 // Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $first_name = $_POST['first_name'];
-    $last_name = $_POST['last_name'];
-    $email = $_POST['email'];
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
-    $relative_name = $_POST['relative_name'];
-    $relationship = $_POST['relationship'];
-    $role = "unconfirmed";
-    $approved = 0;
-
 
     // Validate form input
     if (filter_var($email, FILTER_VALIDATE_EMAIL) && !empty($password) && !empty($relative_name) && !empty($relationship) && !empty($first_name) && !empty($last_name)) {
         // Check if the passwords match
         if ($password === $confirm_password) {
             // Attempt to register the user
-            if ($auth->register($email, $password, $first_name, $last_name, $relative_name, $relationship, $role, $approved)) {
+            if ($auth->register($first_name, $last_name, $email, $password, $relative_name, $relationship, $role, $approved)) {
                 // Redirect to login page after successful registration
-                header('Location: index.php?to=login');
+                header('Location: index.php?to=login&justRegistered=1&login=' . $email);
                 exit;
             } else {
                 die();
@@ -55,22 +56,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form action="index.php?to=register" method="POST">
+        <input type="hidden" name="action" value="register" />
             <!-- First Name field -->
             <div class="mb-4">
                 <label for="first_name" class="block text-gray-700">First Name</label>
-                <input type="text" id="first_name" name="first_name" class="w-full px-4 py-2 border rounded-lg" required>
+                <input type="text" id="first_name" name="first_name" class="w-full px-4 py-2 border rounded-lg" required value="<?= $first_name ?>">
             </div>
 
             <!-- Last Name field -->
             <div class="mb-4">
                 <label for="last_name" class="block text-gray-700">Last Name</label>
-                <input type="text" id="last_name" name="last_name" class="w-full px-4 py-2 border rounded-lg" required>
+                <input type="text" id="last_name" name="last_name" class="w-full px-4 py-2 border rounded-lg" required value="<?= $last_name ?>">
             </div>
 
             <!-- Email (username) field -->
             <div class="mb-4">
                 <label for="email" class="block text-gray-700">Email (will be your username)</label>
-                <input type="email" id="email" name="email" class="w-full px-4 py-2 border rounded-lg" required>
+                <input type="email" id="email" name="email" class="w-full px-4 py-2 border rounded-lg" required value="<?= $email ?>">
             </div>
 
             <!-- Password field -->
@@ -93,13 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Relative's Name field -->
             <div class="mb-4">
                 <label for="relative_name" class="block text-gray-700">Relative's Name</label>
-                <input type="text" id="relative_name" name="relative_name" class="w-full px-4 py-2 border rounded-lg" required>
+                <input type="text" id="relative_name" name="relative_name" class="w-full px-4 py-2 border rounded-lg" required value="<?= $relative_name ?>">
             </div>
 
             <!-- Relationship field -->
             <div class="mb-4">
                 <label for="relationship" class="block text-gray-700">Relationship to You</label>
-                <input type="text" id="relationship" name="relationship" class="w-full px-4 py-2 border rounded-lg" required>
+                <input type="text" id="relationship" name="relationship" class="w-full px-4 py-2 border rounded-lg" required value="<?= $relationship ?>">
             </div>
 
 

@@ -88,6 +88,11 @@ if((isset($_POST['action']) && $_POST['action'] == 'login') && (isset($_GET['to'
     include("views/login.php");
     exit;
 }
+
+if((isset($_POST['action']) && $_POST['action'] == 'register' && (isset($_GET['to']) && $_GET['to'] == 'register'))) {
+    include("views/register.php");
+    exit;
+}
 // Include the header
 include('views/header.php');
 

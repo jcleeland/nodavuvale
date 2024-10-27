@@ -35,16 +35,21 @@ if(isset($_GET['individual_id'])) {
 <input type='hidden' id='js_user_id' value='<?= isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '' ?>'>
 
     <!-- shared modal prompt for all pages --> 
-    <div id="customPrompt" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-1/3">
-            <h2 id="customPromptTitle" class="text-xl font-bold mb-4">Custom Prompt</h2>
-            <p id="customPromptMessage" class="mb-4"></p>
-            <div id="customPromptInputs" class="mb-4">
-                <!-- Form content will go here -->
+    <div id="customPrompt" class="modal">
+        <div class="modal-content min-w-sm max-h-screen my-5 overflow-y-auto">
+            <div class="modal-header">
+                <span id="customPromptClose" class="close-story-btn">&times;</span>
+                <h2 id="customPromptTitle" class="text-xl font-bold mb-4 text-center">Custom Prompt</h2>
             </div>
-            <div class="flex justify-end">
-                <button id="customPromptCancel" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
-                <button id="customPromptOk" class="bg-blue-500 text-white px-4 py-2 rounded">OK</button>
+            <div class="modal-body">
+                <p id="customPromptMessage" class="mb-4"></p>
+                <div id="customPromptInputs" class="mb-4">
+                    <!-- Form content will go here -->
+                </div>
+                <div class="flex justify-end">
+                    <button id="customPromptCancel" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button id="customPromptOk" class="bg-blue-500 text-white px-4 py-2 rounded">OK</button>
+                </div>
             </div>
         </div>
     </div>

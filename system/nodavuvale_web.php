@@ -78,10 +78,12 @@ class Web {
         return $time_ago;
     }
 
-    public function truncateText($text, $wordLimit = 100) {
+    public function truncateText($text, $wordLimit = 100, $readMoreMessage='Read more', $textDivId = 'truncatedTextDiv') {
+        $text=htmlspecialchars($text);
         $words = explode(' ', $text);
+        $text=addslashes($text);
         if (count($words) > $wordLimit) {
-            return implode(' ', array_slice($words, 0, $wordLimit)) . '...';
+            return implode(' ', array_slice($words, 0, $wordLimit)) . '<span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer" onClick="showStory(\'Story\', \''.$textDivId.'\')"> &hellip; </span>';
         }
         return $text;
     }
