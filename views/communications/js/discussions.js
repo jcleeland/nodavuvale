@@ -149,3 +149,49 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => console.error('Error:', error)); // Catch and log any errors
     }
 });
+
+function deleteDiscussion($discussionId) {
+    if (confirm('Are you sure you want to delete this story? Doing so will also delete all the comments and reactions.')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=communications/discussions';
+    
+        var deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_discussion';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+    
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'discussionId';
+        idInput.value = $discussionId; // Make sure $discussionId is defined and accessible
+        form.appendChild(idInput);
+    
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function deleteComment($commentId) {
+    if (confirm('Are you sure you want to delete this comment? Doing so will also delete all the reactions.')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=communications/discussions';
+    
+        var deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_comment';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+    
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'commentId';
+        idInput.value = $commentId; // Make sure $commentId is defined and accessible
+        form.appendChild(idInput);
+    
+        document.body.appendChild(form);
+        form.submit();
+    }
+}

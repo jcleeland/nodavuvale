@@ -9,8 +9,8 @@ $user_id=$_SESSION['user_id'];
 $is_admin = $auth->getUserRole() === 'admin';
 
 // Handle deletion of discussions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion'])) {
-    $discussion_id = $_POST['discussion_id'] ?? 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion']) && $_POST['delete_discussion'] === 'true') {
+    $discussion_id = $_POST['discussionId'] ?? 0;
     $user_id = $_SESSION['user_id'] ?? 0;
 
     // Check if the user is the author or an admin
@@ -18,7 +18,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion']))
     if ($discussion && ($discussion['user_id'] == $user_id || $is_admin)) {
         // Double-check before deletion
         if ($db->fetchOne("SELECT id FROM discussions WHERE id = ? AND user_id = ?", [$discussion_id, $discussion['user_id']])) {
-            $db->query("DELETE FROM discussions WHERE id = ?", [$discussion_id]);
+            //Do this in a "try" block to catch any errors that may occur
+            try {
+                //Set up a log to rollback if there's an error
+                $db->beginTransaction();
+                //Delete all reactions to comments on this discussion
+                $db->query("DELETE FROM discussion_comment_reactions WHERE comment_id IN (SELECT id FROM discussion_comments WHERE discussion_id = ?)", [$discussion_id]);
+                //Delete all comments for this discussion
+                $db->query("DELETE FROM discussion_comments WHERE discussion_id = ?", [$discussion_id]);
+                //Delete all reactions to this discussion
+                $db->query("DELETE FROM discussion_reactions WHERE discussion_id = ?", [$discussion_id]);
+                //Delete all reactions
+                $db->query("DELETE FROM discussions WHERE id = ?", [$discussion_id]);
+                //Commit the transaction
+                $db->commit();
+            } catch (Exception $e) {
+                // Rollback the transaction
+                $db->rollBack();
+                // Log the error
+                error_log($e->getMessage());
+            }
         }
     }
     // Optionally redirect to avoid form resubmission issues
@@ -69,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['make_sticky'])) {
 
 
 // Handle deletion of comments
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
-    $comment_id = $_POST['comment_id'] ?? 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment']) && $_POST['delete_comment'] === 'true') {
+    $comment_id = $_POST['commentId'] ?? 0;
     $user_id = $_SESSION['user_id'] ?? 0;
 
     // Check if the user is the author or an admin
@@ -78,7 +97,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
     if ($comment && ($comment['user_id'] == $user_id || $is_admin)) {
         // Double-check before deletion
         if ($db->fetchOne("SELECT id FROM discussion_comments WHERE id = ? AND user_id = ?", [$comment_id, $comment['user_id']])) {
-            $db->query("DELETE FROM discussion_comments WHERE id = ?", [$comment_id]);
+            //start a "try"
+            try {
+                //Set up a log to rollback if there's an error
+                $db->beginTransaction();
+                //Delete all reactions to this comment
+                $db->query("DELETE FROM discussion_comment_reactions WHERE comment_id = ?", [$comment_id]);
+                //Delete the comment
+                $db->query("DELETE FROM discussion_comments WHERE id = ?", [$comment_id]);
+                //Commit the transaction
+                $db->commit();
+            } catch (Exception $e) {
+                // Rollback the transaction
+                $db->rollBack();
+                // Log the error
+                error_log($e->getMessage());
+            }
         }
     }
     // Optionally redirect to avoid form resubmission issues
@@ -221,7 +255,7 @@ function getCommentsForDiscussion($discussion_id) {
                                     <button type="button" title="Edit this story" onClick="editStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-20 top-2 font-normal text-xs">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button type="button" title="Delete this story" onClick="deleteStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                    <button type="button" title="Delete this story" onClick="deleteDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 <?php endif; ?>
@@ -283,7 +317,7 @@ function getCommentsForDiscussion($discussion_id) {
                                                     <button type="button" title="Edit this story" onClick="editStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button type="button" title="Delete this story" onClick="deleteStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                                    <button type="button" title="Delete this story" onClick="deleteComment(<?= $comment['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 <?php endif; ?>                                                  
