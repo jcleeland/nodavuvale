@@ -93,6 +93,7 @@ if((isset($_POST['action']) && $_POST['action'] == 'register' && (isset($_GET['t
     include("views/register.php");
     exit;
 }
+
 // Include the header
 include('views/header.php');
 

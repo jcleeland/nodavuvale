@@ -8,25 +8,6 @@
 $user_id=$_SESSION['user_id'];
 $is_admin = $auth->getUserRole() === 'admin';
 
-// Fetch discussions from the database
-$discussions = $db->fetchAll("SELECT discussions.*, users.first_name, users.last_name, users.avatar
-    FROM discussions 
-    INNER JOIN users ON discussions.user_id=users.id 
-    WHERE discussions.individual_id < 1
-    ORDER BY is_sticky DESC, created_at DESC");
-
-// Function to fetch comments for a discussion
-function getCommentsForDiscussion($discussion_id) {
-    global $db;
-    return $db->fetchAll("
-        SELECT c.*, u.first_name, u.last_name, u.avatar 
-        FROM discussion_comments c 
-        INNER JOIN users u ON c.user_id = u.id 
-        WHERE c.discussion_id = ? 
-        ORDER BY c.created_at ASC
-    ", [$discussion_id]);
-}
-
 // Handle deletion of discussions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion'])) {
     $discussion_id = $_POST['discussion_id'] ?? 0;
@@ -40,7 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion']))
             $db->query("DELETE FROM discussions WHERE id = ?", [$discussion_id]);
         }
     }
-    header('Location: ?to=communications/discussions');
+    // Optionally redirect to avoid form resubmission issues
+    ?>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=communications/discussions";
+    </script>
+    <?php
     exit;
 }
 
@@ -54,7 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_sticky'])) {
     if ($discussion && ($discussion['user_id'] == $user_id || $is_admin)) {
         $db->query("UPDATE discussions SET is_sticky = 0 WHERE id = ?", [$discussion_id]);
     }
-    header('Location: ?to=communications/discussions');
+    // Optionally redirect to avoid form resubmission issues
+    ?>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=communications/discussions";
+    </script>
+    <?php
     exit;
 }
 
@@ -67,7 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['make_sticky'])) {
     if ($discussion && ($discussion['user_id'] == $user_id || $is_admin)) {
         $db->query("UPDATE discussions SET is_sticky = 1 WHERE id = ?", [$discussion_id]);
     }
-    header('Location: ?to=communications/discussions');
+    // Optionally redirect to avoid form resubmission issues
+    ?>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=communications/discussions";
+    </script>
+    <?php
     exit;
 }
 
@@ -85,7 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
             $db->query("DELETE FROM discussion_comments WHERE id = ?", [$comment_id]);
         }
     }
-    header('Location: ?to=communications/discussions');
+    // Optionally redirect to avoid form resubmission issues
+    ?>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=communications/discussions";
+    </script>
+    <?php
     exit;
 }
 
@@ -101,7 +102,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'], $_POST['di
         $db->insert("INSERT INTO discussion_comments (discussion_id, user_id, comment, created_at) VALUES (?, ?, ?, NOW())", [$discussion_id, $user_id, $comment]);
         
         // Optionally redirect to avoid form resubmission issues
-        header("Location: index.php?to=communications/discussions");
+        ?>
+        <script type="text/javascript">
+            window.location.href = "index.php?to=communications/discussions";
+        </script>
+        <?php
         exit;
     }
 }
@@ -124,6 +129,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
         exit;
     }
 }
+
+// Fetch discussions from the database
+$discussions = $db->fetchAll("SELECT discussions.*, users.first_name, users.last_name, users.avatar
+    FROM discussions 
+    INNER JOIN users ON discussions.user_id=users.id 
+    WHERE discussions.individual_id < 1
+    ORDER BY is_sticky DESC, created_at DESC");
+
+// Function to fetch comments for a discussion
+function getCommentsForDiscussion($discussion_id) {
+    global $db;
+    return $db->fetchAll("
+        SELECT c.*, u.first_name, u.last_name, u.avatar 
+        FROM discussion_comments c 
+        INNER JOIN users u ON c.user_id = u.id 
+        WHERE c.discussion_id = ? 
+        ORDER BY c.created_at ASC
+    ", [$discussion_id]);
+}
+
 
 ?>
 
