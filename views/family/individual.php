@@ -1,10 +1,10 @@
 <?php
-
-
-/* if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    echo "<pre>"; print_r($_POST); print_r($_FILES); echo "</pre>";
-    die("The form was posted!"); die();
-}*/
+/*
+    @uses Database class
+    @uses Auth class
+    @uses Web class
+    @uses Utils class
+*/
 //Handle form submission for updating individuals
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_individual') {
     include("helpers/update_individual.php");
@@ -513,9 +513,7 @@ if ($individual_id) {
             <div class="text-center p-2">
                 <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                     Siblings
-                    <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a sibling to <?= $individual['first_name'] ?>" onclick="openModal('add_sibling', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
-                        <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                    </button>                
+                                 
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
                     <?php foreach ($siblings as $sibling): ?>

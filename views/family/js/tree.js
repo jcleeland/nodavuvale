@@ -48,6 +48,11 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('relationships').style.display = 'block';
         document.getElementById('additional-fields').style.display = 'none';
         document.getElementById('choice-new-individual').checked = false;
+
+        document.getElementById('relationship-form-action').value = 'link_relationship';
+        document.getElementById('first_names').removeAttribute('required');
+        document.getElementById('last_name').removeAttribute('required');
+        document.getElementById('additional-fields').style.display = 'none';      
     });
 
     //When someone selects id='choice-new-individual', hide the id='existing-individuals' div and show the id='additional-fields' div
@@ -56,6 +61,11 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('relationships').style.display = 'block';
         document.getElementById('additional-fields').style.display = 'block';
         document.getElementById('choice-existing-individual').checked = false;
+
+        document.getElementById('relationship-form-action').value = 'add_relationship';
+        document.getElementById('first_names').setAttribute('required', '');
+        document.getElementById('last_name').setAttribute('required', '');
+        document.getElementById('additional-fields').style.display = 'block';              
     });
 
  
@@ -80,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function() {
         openModal('add_daughter', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
 
-    document.getElementById('lookup').addEventListener('input', function() {
+    document.getElementById('findindividual_lookup').addEventListener('input', function() {
         var input = this.value.toLowerCase();
         var select = document.getElementById('connect_to');
         var options = select.options;
@@ -100,7 +110,7 @@ document.addEventListener("DOMContentLoaded", function() {
         select.style.display = hasMatch ? '' : 'none';
     });
 
-    document.getElementById('connect_to').addEventListener('change', function() {
+    document.getElementById('findindividual_connect_to').addEventListener('change', function() {
         var selectedValue = this.value;
         if (selectedValue) {
             document.getElementById('form-action').value = 'link_relationship';
@@ -168,7 +178,7 @@ function openModal(action, individualId, individualGender) {
     // Get the modal and form elements for the "Add" form
     var modal = document.getElementById('popupForm');
     var closeButton = document.querySelector('.close-btn');
-    var formActionInput = document.getElementById('form-action');
+    //var formActionInput = document.getElementById('form-action');
     var formActionGender = document.getElementById('gender');
     var formActionRelationship = document.getElementById('relationship');
     var relatedIndividualInput = document.getElementById('related-individual');    
@@ -202,7 +212,7 @@ function openModal(action, individualId, individualGender) {
     document.getElementById('death_date').value = '';
     document.getElementById('gender').value = '';
     // Set the form data based on the action
-    formActionInput.value = action;  // Set the action (add_parent, add_spouse, etc.)
+    //formActionInput.value = action;  // Set the action (add_parent, add_spouse, etc.)
     relatedIndividualInput.value = individualId;  // Set the related individual ID
     //Clear the other parent select of options
     var select = document.getElementById('second-parent');
@@ -240,7 +250,7 @@ function openModal(action, individualId, individualGender) {
             formActionRelationship.value='child';
             formActionGender.value='male';
             getSpouses(individualId).then(spouses => {
-                console.log(spouses);
+                //console.log('Found spouses', spouses);
                 var select = document.getElementById('second-parent');
                 select.innerHTML = '';
                 var option = document.createElement('option');
@@ -248,9 +258,11 @@ function openModal(action, individualId, individualGender) {
                 option.text = 'None or not known';
                 select.add(option);
                 spouses.forEach(spouse => {
+                    //console.log('Processing sppouse', spouse);
                     var option = document.createElement('option');
                     option.value = spouse.parent_id;
                     option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
+                    //console.log('Option built:', option);
                     select.add(option);
                 });
             });
@@ -375,6 +387,12 @@ function findNodeForIndividualId(id) {
         // Reject if no match is found
         reject('Node not found');
     });
+}
+
+function viewTreeSearch() {
+    //alert('Not yet built!');
+    //Show the customPrompt
+    showCustomPrompt('Enter the name of the individual to search for:', 'Search for Individual', [name], [name], 'searchIndividual');
 }
 
 

@@ -72,9 +72,10 @@ class Utils {
             }
 
             $parentLink="";
+            //If there are no parents being displayed in the tree, or it's the first generation, and - in either case - the count of parents is greater than 0
             if((!$parentsInTree || $generation==1) && isset($parents) && count($parents) > 0) {
                 $parentLinkId=$parents[0]['id'];
-                $parentLink = '<div class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange text-xs" title="View parents" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
+                $parentLink = '<div data-parents-in-tree="'.$parentsInTree.'" data-generation="'.$generation.'" data-count-parents="'.count($parents).'" class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange text-xs" title="View parents" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
             }
 
             $nodeBodyTemplate = "

@@ -104,6 +104,16 @@ class Database {
     }
 
     public function getSiteSettings() {
+        $default_settings=array(
+            'site_name' => 'NodaVuvale',
+            'site_description' => 'A simple social network',
+            'email_server' => 'smtp.example.com',
+            'email_username' => 'someone@somewhere.com',
+            'email_password' => 'password',
+            'email_port' => '587',
+            'notifications_email' => 'someone@somewhere.com'
+        );
+
         $settings = $this->fetchAll("SELECT * FROM site_settings");
         $site_settings = [];
         //If $site_settings is empty, then we need to set the default values
@@ -114,21 +124,31 @@ class Database {
             $this->update("INSERT INTO site_settings (name, value) VALUES ('email_username', 'someone@somewhere.com')");
             $this->update("INSERT INTO site_settings (name, value) VALUES ('email_password', 'password')");
             $this->update("INSERT INTO site_settings (name, value) VALUES ('email_port', '587')");
+            $this->update("INSERT INTO site_settings (name, value) VALUES ('notifications_email', 'someone@somewhere.com')");
             $settings = $this->fetchAll("SELECT * FROM site_settings");
         }
+        
         foreach ($settings as $setting) {
             $site_settings[$setting['name']] = $setting['value'];
+        }
+
+        foreach($default_settings as $key=>$value) {
+            if(!isset($site_settings[$key])) {
+                $site_settings[$key]=$value;
+                $this->update("INSERT INTO site_settings (name, value) VALUES (?, ?)", [$key, $value]);
+            }
         }
         return $site_settings;
     }
 
-    public function updateSiteSettings($site_name, $site_description, $email_server, $email_username, $email_password, $email_port) {
+    public function updateSiteSettings($site_name, $site_description, $notifications_email, $email_server, $email_username, $email_password, $email_port) {
         $this->update("UPDATE site_settings SET value = ? WHERE name = 'site_name'", [$site_name]);
         $this->update("UPDATE site_settings SET value = ? WHERE name = 'site_description'", [$site_description]);
         $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_server'", [$email_server]);
         $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_username'", [$email_username]);
         $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_password'", [$email_password]);
         $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_port'", [$email_port]);
+        $this->update("UPDATE site_settings SET value = ? WHERE name = 'notifications_email'", [$notifications_email]);
     }
 
     // Function to read MySQL dump file and extract schema

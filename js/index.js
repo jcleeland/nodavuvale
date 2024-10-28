@@ -234,7 +234,7 @@ async function getIndividualDataById(id) {
 async function getSpouses(id) {
     try {
         var output = await getAjax('getspouses', { id: id });
-        console.log(output);
+        //console.log('Output from getSpouses:', output);
         return output.parents;
     } catch (error) {
         console.error('Error fetching individual data:', error);
@@ -271,5 +271,40 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('activeTabId', this.getAttribute('data-tab'));
         });
     });
+
+    // Add event listener to the "Find Individual" look-ahead input
+    // Check to see if it exists before adding the event listener
+    if(document.getElementById('findindividual_lookup') !== null) {
+        document.getElementById('findindividual_lookup').addEventListener('input', function() {
+            var input = this.value.toLowerCase();
+            var select = document.getElementById('findindividual_connect_to');
+            var options = select.options;
+            var hasMatch = false;
+
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                var text = option.text.toLowerCase();
+                if (text.includes(input)) {
+                    option.style.display = '';
+                    hasMatch = true;
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+
+            select.style.display = hasMatch ? '' : 'none';
+        });    
+    }
+
+    if(document.getElementById('findindividual_connect_to') !== null) {
+        document.getElementById('findindividual_connect_to').addEventListener('change', function() {
+            var selectedValue = this.value;
+            if (selectedValue) {
+                document.getElementById('findindividual_lookup').value = this.options[this.selectedIndex].text;
+                this.style.display = 'none';
+            }
+        }); 
+    }
+
 });
 

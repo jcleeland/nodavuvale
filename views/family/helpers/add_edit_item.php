@@ -15,9 +15,10 @@
  */
 
 /*
-    @uses Utils::getItemTypes() to get a list of pre-defined item types
-    @uses Utils::getItemStyles() to get a list of pre-defined item styles
-    @uses Utils::generateItemIdentifier() to generate an item identifier
+    @uses Database class
+    @uses Auth class
+    @uses Web class
+    @uses Utils class
 */
 
 // Get a list of pre-defined item types
@@ -49,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
         //Generate an item_identifer to use for this group of items
         $item_identifier = null;
         if(count($values) > 1) {
-            $item_identifier = Utils::generateItemIdentifier($individual_id, $item_type);
+            $item_identifier = Utils::getNextItemIdentifier($individual_id, $item_type);
         }
         foreach($values as $key=>$value) {
             //echo "Doing $key => $value";

@@ -2,7 +2,7 @@
 /**
  * Handle new individuals and/or new relationships
  */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpos($_POST['action'], 'relationship-add_') === 0 || $_POST['action'] == 'link_relationship'))) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpos($_POST['action'], 'add_relationship') === 0 || $_POST['action'] == 'link_relationship'))) {
     $first_names = $_POST['first_names'];
     $aka_names = $_POST['aka_names'];
     $last_name = $_POST['last_name'];
@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
     //Mark as isdeceased if there is a $_POST['death_year'] or a $POST['is_deceased'] value of 1
     $isdeceased = !empty($_POST['death_year']) || !empty($_POST['is_deceased']) ? 1 : 0;
 
+
     // Save the new individual to `individuals` or `temp_individuals`
     $oktoadd=true;
     if($_POST['action'] == 'add_individual' || empty($_POST['connect_to'])) {
@@ -23,6 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
         if(isset($_POST['confirmed']) && $_POST['confirmed'] == 1) {
             //We've already checked
             $oktoadd=true;
+        } elseif (isset($_POST['confirmed']) && $_POST['confirmed'] == 'denied') {
+            //The user has checked and decided this is the same person
+            ?>
+            <script type="text/javascript">
+                window.location.href = "index.php?".$_SESSION['QUERY_STRING'];
+            </script>
+            <?php
+            exit;
         } else {
             //Do the check
             $existing_individual = $db->fetchAll("SELECT * FROM individuals WHERE first_names = ? AND last_name = ?", [$first_names, $last_name]);
@@ -56,23 +65,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
         if(!$oktoadd) {
             //If there is reason to think this could be a duplicate, let's give the submitter the final say by asking them to confirm.
             // we can show them the other person's details and ask them to confirm that this is a different person
+            
+            //Get the current URL query string
+            $query = $_SERVER['QUERY_STRING'];
             ?>
-                <div class="modal" id="checking-to-confirm">
+                <div class="modal" id="checking-to-confirm" style="display: block">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h2>Confirm adding this person</h2>
                             It looks like a person with the same name already exists in the database. Please confirm that this is a different person.
                         </div>
                         <div class="modal-body">
-                            <form id="add-relationship-form" action="?to=family/tree" method="POST">
+                            <pre><?php print_r($existing_individual); ?></pre>
+                            <form id="add-relationship-form" action="index.php?<?= $query ?>" method="POST">
                                 <input type="hidden" name="confirmed" value="1">
                                 <?php foreach($_POST as $key=>$value): ?>
-                                    <input type='hidden' name='<?= $key ?>' value='<?= $value ?>'>";
+                                    <input type='hidden' name='<?= $key ?>' value='<?= $value ?>'>
                                 <?php endforeach; ?>
-                                <button type="submit" name="action" value="add_individual" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                                <button type="submit" name="confirmed" value="1" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                                     Yes, add this person
                                 </button>
-                                <button type="submit" name="action" value="cancel" class="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                                <button type="submit" name="confirmed" value="denied" class="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
                                     No, cancel
                                 </button>
                             </form>
@@ -197,16 +210,7 @@ function checkFor2Parents($db, $individual_id) {
 
                     <!-- Lookup field to select an existing individual -->
                     <div id="existing-individuals" class="mb-4" style='display: none'>
-                        <label for="lookup" class="block text-gray-700">Connect to Existing Individual</label>
-                        <input type="text" id="lookup" name="lookup" class="w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">
-                        <select id="connect_to" name="connect_to" class="w-full px-4 py-2 border rounded-lg mt-2" size="5" style="display: none;">
-                            <option value="">Select someone...</option>
-                            <?php foreach ($individuals as $indi): ?>
-                                <option value="<?php echo $indi['id']; ?>">
-                                    <?php echo $indi['first_names'] . ' ' . $indi['last_name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <?= Web::showFindIndividualLookAhead($individuals, 'lookup') ?>
                     </div>
 
                     <!-- New Individual Form -->

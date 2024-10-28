@@ -28,7 +28,12 @@ $individuals = $db->fetchAll("SELECT individuals.*,
                             FROM individuals");
 $relationships = $db->fetchAll("SELECT * FROM relationships");
 
-$rootId=Web::getRootId();
+$rootId=isset($_SESSION['rootId']) ? $_SESSION['rootId'] : Web::getRootId();
+
+
+include("helpers/quickedit.php");
+
+include("helpers/add_relationship.php");
 
 $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
 
@@ -37,7 +42,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
 ?>
 
 <section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick=""><i class="fas fa-search"></i></button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
     <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" onclick="navigator.clipboard.writeText(JSON.stringify(tree))">&#128203;</button>
     <button class="add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg float-right" title="Add new individual">+</button>
     <h1 class="text-3xl font-bold mb-6">Family Tree</h1>
@@ -119,11 +124,6 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
 
 
 
-    <?php include("helpers/quickedit.php"); ?>
-
-
-
-    <?php include("helpers/add_relationship.php"); ?>
 
 
 

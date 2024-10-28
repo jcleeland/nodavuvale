@@ -3,6 +3,11 @@
  * Manage the Site Settings
  */
 
+/*
+@ uses Database class
+@ uses Auth class
+*/
+
 // Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the form data
@@ -13,9 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_password = $_POST['email_password'];
     $email_port = $_POST['email_port'];
     $root_individual = $_POST['root_individual'];
-
+    $notifications_email = $_POST['notifications_email'];
     // Update the site settings in the database
-    $db->updateSiteSettings($site_name, $site_description, $email_server, $email_username, $email_password, $email_port);
+    $db->updateSiteSettings($site_name, $site_description, $notifications_email, $email_server, $email_username, $email_password, $email_port);
 }
 ?>
 
@@ -46,6 +51,10 @@ $site_settings = $db->getSiteSettings();
         <div class="border-t border-gray-500 my-4 mt-8">
             <h2>Email Settings</h2>
         </div> 
+        <div class="mb-4">
+            <label for="notifications_email" class="block text-gray-700">Notifications Email Address</label>
+            <input type="email" id="notifications_email" name="notifications_email" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['notifications_email']; ?>" required>
+        </div>
         <div class="mb-4">
             <label for="email_server" class="block text-gray-700">Site Email Server</label>
             <input type="text" id="email_server" name="site_email_server" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['email_server']; ?>" required>
