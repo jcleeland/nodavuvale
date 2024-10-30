@@ -49,6 +49,9 @@ class Web {
      * Returns the HTML & javascript for the individual lookup
      */
     public static function showFindIndividualLookAhead($individuals=array(), $fieldName="findindividual_lookup") {
+        if(empty($individuals)) {
+            return "NO PEOPLE!";
+        }
         $lookahead="";
         $lookahead .= '<label for="'.$fieldName.'" class="block text-gray-700">Connect to Existing Individual</label>'."\n";
         $lookahead .= '<input type="text" id="findindividual_lookup" name="'.$fieldName.'" class="w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";

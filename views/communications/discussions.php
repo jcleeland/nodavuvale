@@ -7,6 +7,24 @@
 // Check if the user is an admin
 $user_id=$_SESSION['user_id'];
 $is_admin = $auth->getUserRole() === 'admin';
+$view_discussion_id=isset($_GET['view_discussion_id']) ? $_GET['view_discussion_id'] : null;
+
+?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get the discussion_id from PHP
+            const discussionId = '<?php echo $view_discussion_id; ?>';
+
+            // If discussion_id is set, scroll to the matching div
+            if (discussionId) {
+                const targetDiv = document.getElementById('discussion_id_' + discussionId);
+                if (targetDiv) {
+                    targetDiv.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        });
+    </script>
+<?php
 
 // Handle deletion of discussions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion']) && $_POST['delete_discussion'] === 'true') {
@@ -244,7 +262,7 @@ function getCommentsForDiscussion($discussion_id) {
             <!-- Display all discussions -->
             <?php foreach ($discussions as $discussion): ?>
                 <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
-                <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative">
+                <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative" id="discussion_id_<?= $discussion['id'] ?>">
                     <div class="discussion-item"> 
                         <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
                         <div class='discussion-content'>

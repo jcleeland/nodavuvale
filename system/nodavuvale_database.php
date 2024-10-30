@@ -387,4 +387,13 @@ class Database {
 
         file_put_contents($filePath, $sqlDump);
     }
+
+    function updateUsersLastView($user_id) {
+        $this->query("UPDATE users SET last_view = NOW() WHERE id = ?", [$user_id]);
+    }
+
+    function getUsersLastViewTime($user_id) {
+        $user = $this->fetchOne("SELECT last_view FROM users WHERE id = ?", [$user_id]);
+        return $user['last_view'];
+    }
 }

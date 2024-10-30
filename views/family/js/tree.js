@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     document.getElementById('findindividual_lookup').addEventListener('input', function() {
         var input = this.value.toLowerCase();
-        var select = document.getElementById('connect_to');
+        var select = document.getElementById('findindividual_connect_to');
         var options = select.options;
         var hasMatch = false;
 
@@ -113,10 +113,10 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('findindividual_connect_to').addEventListener('change', function() {
         var selectedValue = this.value;
         if (selectedValue) {
-            document.getElementById('form-action').value = 'link_relationship';
+            document.getElementById('relationship-form-action').value = 'link_relationship';
             document.getElementById('first_names').removeAttribute('required');
             document.getElementById('last_name').removeAttribute('required');
-            document.getElementById('lookup').value = this.options[this.selectedIndex].text;
+            document.getElementById('findindividual_lookup').value = this.options[this.selectedIndex].text;
             this.style.display = 'none';
             document.getElementById('additional-fields').style.display = 'none';
         }
@@ -392,7 +392,7 @@ function findNodeForIndividualId(id) {
 function viewTreeSearch() {
     //alert('Not yet built!');
     //Show the customPrompt
-    showCustomPrompt('Enter the name of the individual to search for:', 'Search for Individual', [name], [name], 'searchIndividual');
+    showCustomPrompt('Enter the name of the individual to search for:', 'Search for Individual', ['individual_name'], [''], 'searchIndividual');
 }
 
 

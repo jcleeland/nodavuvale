@@ -1,3 +1,6 @@
+console.log('Initialising Tabs');
+initialiseTabs('.tab', '.tab-content', 'activeIndividualTabId');
+
 document.addEventListener("DOMContentLoaded", function() {
     // ------------------- Handling the "Edit" button and modal -------------------
 

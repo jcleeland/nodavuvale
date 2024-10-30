@@ -41,6 +41,9 @@ class Auth {
                 $_SESSION['last_name'] = $user['last_name'];
                 $_SESSION['individuals_id'] = $user['individuals_id'];
 
+                // Update the "last_login" timestamp in the database
+                $this->db->query("UPDATE users SET last_login = NOW() WHERE id = ?", [$user['id']]);
+
                 return self::LOGIN_SUCCESS;  // Login successful
             }
         }

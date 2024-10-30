@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
 
     // Save the new individual to `individuals` or `temp_individuals`
     $oktoadd=true;
-    if($_POST['action'] == 'add_individual' || empty($_POST['connect_to'])) {
+    if($_POST['action'] == 'add_individual' || empty($_POST['findindividual_connect_to'])) {
         //Checks to see if there is a matching record already in the individuals table
         if(isset($_POST['confirmed']) && $_POST['confirmed'] == 1) {
             //We've already checked
@@ -96,21 +96,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
             die();
 
         } else {
-            $sql = "INSERT INTO individuals (first_names, aka_names, last_name, birth_prefix, birth_year, birth_month, birth_date, death_prefix, death_year, death_month, death_date, gender, is_deceased) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            $params=[$first_names, $aka_names, $last_name, $_POST['birth_prefix'], $birthyear, $birthmonth, $birthdate, $_POST['death_prefix'], $deathyear, $deathmonth, $deathdate, $_POST['gender'], $isdeceased];
+            $sql = "INSERT INTO individuals (first_names, aka_names, last_name, birth_prefix, birth_year, birth_month, birth_date, death_prefix, death_year, death_month, death_date, gender, is_deceased, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $params=[$first_names, $aka_names, $last_name, $_POST['birth_prefix'], $birthyear, $birthmonth, $birthdate, $_POST['death_prefix'], $deathyear, $deathmonth, $deathdate, $_POST['gender'], $isdeceased, $user_id];
             //replace the ? in $sql with values from the $params array
             $insertsql = str_replace("?", "'%s'", $sql);
             $insertsql = vsprintf($insertsql, $params);
             
-            //echo $insertsql;
             $db->query(
                 $sql,
                 $params
             );
             $new_individual_id = $db->query("SELECT LAST_INSERT_ID()")->fetchColumn();
+        
         }
-        //die();
     } 
 
     
@@ -120,8 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
         $errormessage="";
 
         // Quick hack to make adding a relationship easier whether it is a new person added, or a connect_to person who already exists
-        if(!empty($_POST['connect_to'])) {
-            $new_individual_id=$_POST['connect_to'];
+        if(!empty($_POST['findindividual_connect_to'])) {
+            $new_individual_id=$_POST['findindividual_connect_to'];
         }
 
         /* Adjust the perspective for child/parent relationships
@@ -207,7 +206,7 @@ function checkFor2Parents($db, $individual_id) {
                         <input type="radio" id="choice-new-individual" name="choice-new-individual" value="new">
                         <label for="choice-new-individual" class="mr-3">New Individual</label>
                     </div>
-
+                    <pre><?php //print_r($individuals); ?></pre>
                     <!-- Lookup field to select an existing individual -->
                     <div id="existing-individuals" class="mb-4" style='display: none'>
                         <?= Web::showFindIndividualLookAhead($individuals, 'lookup') ?>

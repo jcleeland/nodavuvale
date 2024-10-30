@@ -740,4 +740,132 @@ class Utils {
         $response['File']="file";
         return $response;
     }
+
+    /**
+     * Returns a list of changes since the last time the user was doing anything
+     * 
+     * This includes new discussions, new comments in the communications section
+     * as well as changes to individuals in the family section - such as new individuals, new relationships, new items, new files, etc.
+     */
+    public static function getNewStuff($user_id, $show_since=null) {
+        $response=array();
+        // Get the database instance
+        $db = Database::getInstance();
+        if(!empty($show_since)) {
+            $last_active['last_view']=date('Y-m-d H:i:s', strtotime($show_since));
+        } else {
+            // Get the last time the user was active
+            $sql = "SELECT last_view FROM users WHERE id = ?";
+            $last_active = $db->fetchOne($sql, [$user_id]);
+        }
+        //If there is no last active time, set it to last week
+        if(!$last_active) {
+            $last_active['last_view']=date('Y-m-d H:i:s', strtotime('-1 week'));
+        }
+        $response['last_view']=$last_active['last_view'];
+        // Get all discussions that have been updated since the user was last active
+        $sql = "SELECT discussions.title, discussions.id as discussionId, users.first_name as user_first_name, 
+                users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name, 
+                discussions.individual_id,
+                individuals.last_name as tree_last_name, users.id as user_id, 'discussion' as change_type
+                FROM discussions 
+                JOIN users ON discussions.user_id = users.id
+                LEFT JOIN individuals ON discussions.individual_id = individuals.id
+                WHERE discussions.updated_at > ?
+                ORDER BY is_sticky DESC, updated_at DESC, created_at DESC";
+        $discussions = $db->fetchAll($sql, [$last_active['last_view']]);
+        //Iterate through the discussions, and find comments
+        foreach($discussions as $discussion) {
+            $response['discussions'][$discussion['discussionId']]=$discussion;
+        }
+        //Now find any comments that have been added since the u ser was last added, get their discussion_id
+        // and add those discussions to the list
+        $sql = "SELECT discussions.title, discussions.id as discussionId, users.first_name as user_first_name, 
+                users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name,
+                discussions.individual_id,
+                individuals.last_name as tree_last_name, users.id as user_id, 'comment' as change_type
+                FROM discussion_comments
+                JOIN discussions ON discussion_comments.discussion_id = discussions.id
+                JOIN users ON discussions.user_id=users.id
+                LEFT JOIN individuals ON discussions.individual_id = individuals.id
+                WHERE discussion_comments.created_at > ?";
+        $comments = $db->fetchAll($sql, [$last_active['last_view']]);
+        foreach($comments as $comment) {
+            $response['discussions'][$comment['discussionId']]=$comment;
+        }
+
+        //$response['discussions']=$discussions;
+
+
+
+        // Get all individuals that have been updated since the user was last active
+        $sql = "SELECT individuals.id as individualId, users.first_name as user_first_name, users.last_name as user_last_name,
+                    individuals.first_names as tree_first_name, individuals.last_name as tree_last_name,
+                    individuals.aka_names, individuals.gender,
+                    individuals.birth_year, individuals.death_year,
+                    COALESCE(
+                        (SELECT files.file_path 
+                            FROM file_links 
+                            JOIN files ON file_links.file_id = files.id 
+                            JOIN items ON items.item_id = file_links.item_id 
+                            WHERE file_links.individual_id = individuals.id 
+                            AND items.detail_type = 'Key Image'
+                            LIMIT 1), 
+                        '') AS keyimagepath
+                FROM individuals
+                LEFT JOIN users ON created_by = users.id
+                WHERE created > ?";
+        $individuals = $db->fetchAll($sql, [$last_active['last_view']]);
+        $response['individuals']=$individuals;
+
+
+        // Get all relationships that have been updated since the user was last active
+        $sql = "SELECT subject_individual.first_names as subject_first_names, subject_individual.last_name as subject_last_name, 
+                    subject_individual.id as subject_individualId, object_individual.first_names as object_first_names, 
+                    object_individual.last_name as object_last_name, object_individual.id as object_individualId, 
+                    relationships.relationship_type, relationships.updated 
+            FROM relationships
+            INNER JOIN individuals as subject_individual ON relationships.individual_id_1 = subject_individual.id
+            INNER JOIN individuals as object_individual ON relationships.individual_id_2 = object_individual.id 
+            WHERE relationships.updated > ?"; 
+        $relationships = $db->fetchAll($sql, [$last_active['last_view']]);
+        $response['relationships']=$relationships;
+
+
+        // Get all items that have been updated since the user was last active
+        $sql = "SELECT items.*, 
+                item_groups.item_group_name, files.id as file_id, files.*, 
+                individuals.id as individualId,
+                individuals.first_names as tree_first_name, 
+                individuals.last_name as tree_last_name, 
+                users.first_name as user_first_name, users.last_name as user_last_name,
+                IFNULL(items.item_identifier, FLOOR(RAND() * 1000000)) AS effective_item_identifier
+                FROM items 
+                INNER JOIN item_links ON items.item_id=item_links.item_id
+                LEFT JOIN individuals ON item_links.individual_id=individuals.id
+                LEFT JOIN file_links ON items.item_id = file_links.item_id
+                LEFT JOIN files ON file_links.file_id = files.id
+                LEFT JOIN item_groups ON items.item_identifier = item_groups.item_identifier
+                LEFT JOIN users ON items.user_id = users.id
+                WHERE items.updated > ?
+                GROUP BY effective_item_identifier
+                ORDER BY effective_item_identifier ASC, items.updated DESC";
+        $items = $db->fetchAll($sql, [$last_active['last_view']]);
+        $response['items']=$items;
+
+
+        // Get all files that have been updated since the user was last active (but only ones which aren't already connected to items)
+        $sql = "SELECT files.*, file_links.item_id, users.first_name as user_first_name, users.last_name as user_last_name,
+                individuals.id as individualId, individuals.first_names as tree_first_name, individuals.last_name as tree_last_name
+                FROM files 
+                JOIN file_links ON files.id = file_links.file_id 
+                JOIN individuals ON file_links.individual_id = individuals.id
+                LEFT JOIN users ON files.user_id = users.id
+                WHERE files.upload_date > ? AND file_links.item_id IS NULL";
+        $files = $db->fetchAll($sql, [$last_active['last_view']]);
+        $response['files']=$files;
+
+        return $response;
+        
+    }
 }
