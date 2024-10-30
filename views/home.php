@@ -34,16 +34,31 @@ $is_logged_in = isset($_SESSION['user_id']);
 ?>
 
     <!-- Changes and Updates Section -->
-    <section class="container mx-auto py-12 px-4 sm:px-6 lg: px-8 pt-10">
+    <section class="container mx-auto py-12 px-4 sm:px-3 xs:px-2 lg:px-8 pt-10">
         <h3 class="text-2xl font-bold">New since <?= date("d M Y", strtotime($changes['last_view'])) ?></h3>
-        <div class="relative pt-6">
-            <div class="tabs absolute -top-0 text-sm md:text-lg gap-2">
-                <div class="active tab px-4 py-2" data-tab="discussionstab">Chats</div>
-                <div class="tab px-4 py-2" data-tab="individualstab">Family</div>
-                <div class="tab px-4 py-2" data-tab="relationshipstab">Relationships</div>
-                <div class="tab px-4 py-2" data-tab="eventstab">Events</div>
-                <div class="tab px-4 py-2" data-tab="filestab">Media</div>
-            </div>  
+        <div class="relative pt-6 xs:pt-1">
+            <div class="tabs absolute -top-0 text-lg gap-2">
+                <div class="active tab px-4 py-2 h-11" data-tab="discussionstab">
+                    <span class="hidden sm:inline">Chats</span>
+                    <span class="sm:hidden" title="Chats"><i class="fas fa-comments"></i></span>
+                </div>
+                <div class="tab px-4 py-2 h-11" data-tab="individualstab">
+                    <span class="hidden sm:inline">Family</span>
+                    <span class="sm:hidden" title="Family"><i class="fas fa-users"></i></span>
+                </div>
+                <div class="tab px-4 py-2 h-11" data-tab="relationshipstab">
+                    <span class="hidden sm:inline">Relationships</span>
+                    <span class="sm:hidden" title="Relationships"><i class="fas fa-heart"></i></span>
+                </div>
+                <div class="tab px-4 py-2 h-11" data-tab="eventstab">
+                    <span class="hidden sm:inline">Events</span>
+                    <span class="sm:hidden" title="Events"><i class="fas fa-calendar-alt"></i></span>
+                </div>
+                <div class="tab px-4 py-2 h-11" data-tab="filestab">
+                    <span class="hidden sm:inline">Media</span>
+                    <span class="sm:hidden" title="Media"><i class="fas fa-photo-video"></i></span>
+                </div>
+            </div>
             <div class="grid grid-cols-1 gap-8">          
             <!-- Recent Changes Section -->
             <div class="p-6 bg-white shadow-lg rounded-lg mt-8">
@@ -51,22 +66,35 @@ $is_logged_in = isset($_SESSION['user_id']);
                     <div class="tab-content active" id="discussionstab">
                         <div class="flex flex-wrap justify-center">
                         <?php foreach ($changes['discussions'] as $discussion): ?>
-                            <div class='border float-left rounded p-0 m-2 text-center relative min-w-md'>
-                                <div class="w-full text-xs pt-0 ml-0 mr-0 mt-0 bg-brown rounded text-white">
+                            <div class='border float-left rounded px-0 pt-0 pb-2 m-2 text-center relative max-w-sm leading-tight'>
+                                <div class="w-full text-xs pt-0 ml-0 mr-0 mt-0 bg-brown rounded-t text-white">
                                 <?php if($discussion['individual_id']) {
-                                    echo "Family Tree Chat";
+                                    echo "Family Tree Chat: New ".$discussion['change_type'];
                                     $url="?to=family/individual&individual_id=".$discussion['individual_id'];
                                 } else {
-                                    echo "General Chat";
+                                    echo "General Chat: New ".$discussion['change_type'];
                                     $url="?to=communications/discussions&view_discussion_id=".$discussion['discussionId'];
                                 }
                                 ?>
                                 </div>
-                                <div class="px-1 pt-1 pb-1 max-w-xs leading-none">
+                                <div class="text-left max-w-sm"> 
+                                <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "pt-1 pl-1 avatar-float-left object-cover"); ?>
+                                    <div class='discussion-content text-left pr-1'>
+                                        <div class="text-sm text-gray-500">
+                                            <b><?= $discussion['user_first_name'] ?>&nbsp;<?= $discussion['user_last_name'] ?></b>
+                                            <span title="<?= date('F j, Y, g:i a', strtotime($discussion['updated_at'])) ?>"><?= $web->timeSince($discussion['updated_at']); ?></span>
+                                        </div>
+                                        <a href='<?= $url ?>'><b class="leading-tight text-md font-bold"><?= $discussion['title'] ?></b></a>
+                                        <p class="text-sm"><?= $web->truncateText($discussion['content'], 10, "Read more", "discussion_".$discussion['discussionId']) ?></p>
+                                    </div>
+                                </div>
+
+
+                                <!--<div class="px-1 pt-1 pb-1 max-w-xs leading-none">
                                     <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "avatar-float-left object-cover"); ?>
                                     <a href='<?= $url ?>'><?= $discussion['title'] ?></a><br />
                                     <div class='absolute bottom-1 right-1 text-xxs whitespace-no-wrap bg-white-800 bg-opacity-20'>Added by <?= $discussion['user_first_name'] . " " . $discussion['user_last_name'] ?></div>
-                                </div>
+                                </div>-->
                             </div>
                         <?php endforeach; ?>
                         </div>
