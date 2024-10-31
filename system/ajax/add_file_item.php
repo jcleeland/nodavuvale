@@ -114,11 +114,18 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
                                 VALUES (?, ?, ?, ?, ?)";
             $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description, $user_id]);
             $file_id = $db->lastInsertId(); // Get the ID of the uploaded file
-            
-            // Link the file to the individual in 'file_links'
-            foreach($filelink_item_ids as $filelink_item_id) {
-                $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES (?, ?, ?)";
-                $db->insert($file_link_sql, [$file_id, $individual_id, $filelink_item_id]); // item_id can be null
+            $response['sql']['file_insert_sql'][] = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) VALUES ('$file_type', '$file_path', '$file_format', '$file_description', $user_id)";
+            if(empty($filelink_item_ids)) { //If this is a file that isn't associated with an event, better create a file link
+                $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id) VALUES ($file_id, $individual_id)";
+                $file_link_sql = "INSERT INTO file_links (file_id, individual_id) VALUES (?, ?)";
+                $db->insert($file_link_sql, [$file_id, $individual_id]);
+            } else {
+                // Link the file to the individual in 'file_links'
+                foreach($filelink_item_ids as $filelink_item_id) {
+                    $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES ($file_id, $individual_id, $filelink_item_id)";
+                    $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES (?, ?, ?)";
+                    $db->insert($file_link_sql, [$file_id, $individual_id, $filelink_item_id]); // item_id can be null
+                }
             }
             
             // Commit transaction

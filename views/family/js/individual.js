@@ -462,8 +462,8 @@ async function uploadPhoto(individualId) {
         formData.append('file', file);  // Append the selected file
         formData.append('method', 'add_file_item');  // Method for your ajax.php
         
-        var events = [];
-        var event_group_name = null;
+        var events = []; //This isn't an event, just a file upload
+        var event_group_name = null;   //This isn't an event group either, just a file upload
         var fileDescriptionDefault = "Photo of " + document.getElementById('individual_brief_name').value;
 
         // Show the custom prompt
@@ -505,7 +505,7 @@ async function uploadPhoto(individualId) {
     }    
 }
 
-// Handle the file selection and upload
+// Handle the keyImage file selection and upload
 async function uploadKeyImage(individualId) {
     var fileInput = document.getElementById('keyPhotoUpload');
     var file = fileInput.files[0];  // Get the selected file
