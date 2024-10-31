@@ -1,7 +1,156 @@
-console.log('Initialising Tabs');
-initialiseTabs('.tab', '.tab-content', 'activeIndividualTabId');
-
 document.addEventListener("DOMContentLoaded", function() {
+    console.log('Init tabs');
+    initialiseTabs('.tab', '.tab-content', 'activeIndividualTabId');
+
+    const reactionButtons = document.querySelectorAll('.reaction-btn');
+
+    reactionButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const reaction = this.getAttribute('data-reaction');
+            const discussionId = this.closest('.discussion-reactions')?.getAttribute('data-discussion-id');
+            const commentId = this.closest('.comment-reactions')?.getAttribute('data-comment-id');
+            const userId = document.getElementById('js_user_id').value;
+
+            let data = {
+                method: commentId ? 'react_to_comment' : 'react_to_discussion',
+                data: {
+                    reaction,
+                    user_id: userId,
+                    discussion_id: discussionId,
+                    comment_id: commentId
+                }
+            };
+
+            if (reaction === 'remove') {
+                data.method = commentId ? 'remove_comment_reaction' : 'remove_discussion_reaction';
+                delete data.data.reaction; // Remove the reaction from the data
+            }
+
+            console.log('Sending data:', data); // Log the data being sent
+
+            // Make the AJAX request
+            fetch('ajax.php', {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Received result:', result); // Log the result received
+                if (result.success) {
+                    // Update the reaction summary
+                    updateReactionSummary(discussionId, commentId);
+                } else {
+                    console.error(result.error);
+                }
+            })
+            .catch(error => console.error('Error:', error)); // Catch and log any errors
+        });
+    });
+
+    function updateReactionSummary(discussionId = null, commentId = null) {
+        let data = {
+            method: commentId ? 'get_comment_reactions' : 'get_discussion_reactions',
+            data: {
+                discussion_id: discussionId,
+                comment_id: commentId
+            }
+        };
+
+        console.log('Fetching reaction summary with data:', data); // Log the data being sent
+
+        fetch('ajax.php', {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            console.log('Received reaction summary:', result); // Log the result received
+            if (result.success) {
+                const selector = commentId ? `[data-comment-id="${commentId}"] .reaction-summary` : `[data-discussion-id="${discussionId}"] .reaction-summary`;
+                console.log('Selector:', selector); // Log the selector
+                const summaryElement = document.querySelector(selector);
+                if (summaryElement) {
+                    let summaryHTML = '';
+                    if (result.reactions.like > 0) summaryHTML += `<span class="reaction-item">👍 <span class="reaction-count">${result.reactions.like}</span></span> `;
+                    if (result.reactions.love > 0) summaryHTML += `<span class="reaction-item">❤️ <span class="reaction-count">${result.reactions.love}</span></span> `;
+                    if (result.reactions.haha > 0) summaryHTML += `<span class="reaction-item">😂 <span class="reaction-count">${result.reactions.haha}</span></span> `;
+                    if (result.reactions.wow > 0) summaryHTML += `<span class="reaction-item">😮 <span class="reaction-count">${result.reactions.wow}</span></span> `;
+                    if (result.reactions.sad > 0) summaryHTML += `<span class="reaction-item">😢 <span class="reaction-count">${result.reactions.sad}</span></span> `;
+                    if (result.reactions.angry > 0) summaryHTML += `<span class="reaction-item">😡 <span class="reaction-count">${result.reactions.angry}</span></span> `;
+                    if (result.reactions.care > 0) summaryHTML += `<span class="reaction-item">🤗 <span class="reaction-count">${result.reactions.care}</span></span> `;
+                    summaryElement.innerHTML = summaryHTML.trim(); // Remove trailing space
+                } else {
+                    console.error('Element not found for selector:', selector); // Log if element is not found
+                }
+            } else {
+                console.log('Error: ' + result.error);
+            }
+        })
+        .catch(error => console.error('Error:', error)); // Catch and log any errors
+    }
+
+    const discussionReactions = document.querySelectorAll('.discussion-reactions');
+    const commentReactions = document.querySelectorAll('.comment-reactions');
+
+    // Fetch reactions for discussions
+    discussionReactions.forEach(discussion => {
+        const discussionId = discussion.getAttribute('data-discussion-id');
+        fetchReactions(discussionId, 'discussion');
+    });
+
+    // Fetch reactions for comments
+    commentReactions.forEach(comment => {
+        const commentId = comment.getAttribute('data-comment-id');
+        fetchReactions(commentId, 'comment');
+    });
+
+    function fetchReactions(id, type) {
+        if(type === 'discussion') {discussionId=id; commentId=null;}
+        else if(type === 'comment') {discussionId=null; commentId=id;}
+        let data = {
+            method: commentId ? 'get_comment_reactions' : 'get_discussion_reactions',
+            data: {
+                discussion_id: discussionId,
+                comment_id: commentId
+            }
+        };
+        fetch('ajax.php', {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const selector = type === 'discussion' ? `[data-discussion-id="${id}"] .reaction-summary` : `[data-comment-id="${id}"] .reaction-summary`;
+                    const summaryElement = document.querySelector(selector);
+                    if (summaryElement) {
+                        let summaryHTML = '';
+                        if (result.reactions.like > 0) summaryHTML += `<span class="reaction-item" title="Like">👍 <span class="reaction-count">${result.reactions.like}</span></span> `;
+                        if (result.reactions.love > 0) summaryHTML += `<span class="reaction-item" title="Love">❤️ <span class="reaction-count">${result.reactions.love}</span></span> `;
+                        if (result.reactions.haha > 0) summaryHTML += `<span class="reaction-item" title="Haha">😂 <span class="reaction-count">${result.reactions.haha}</span></span> `;
+                        if (result.reactions.wow > 0) summaryHTML += `<span class="reaction-item" title="Wow">😮 <span class="reaction-count">${result.reactions.wow}</span></span> `;
+                        if (result.reactions.sad > 0) summaryHTML += `<span class="reaction-item" title="Sad">😢 <span class="reaction-count">${result.reactions.sad}</span></span> `;
+                        if (result.reactions.angry > 0) summaryHTML += `<span class="reaction-item" title="Angry">😡 <span class="reaction-count">${result.reactions.angry}</span></span> `;
+                        if (result.reactions.care > 0) summaryHTML += `<span class="reaction-item" title="Care">🤗 <span class="reaction-count">${result.reactions.care}</span></span> `;
+                        summaryElement.innerHTML = summaryHTML.trim(); // Remove trailing space
+                    } else {
+                        console.error('Element not found for selector:', selector); // Log if element is not found
+                    }
+                } else {
+                    console.error('Error fetching reactions:', result.error);
+                }
+            })
+            .catch(error => console.error('Error:', error)); // Catch and log any errors
+    }    
     // ------------------- Handling the "Edit" button and modal -------------------
 
     //Reset the form to clear the previous data
@@ -145,6 +294,52 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 });
+
+function deleteDiscussion($discussionId) {
+    if (confirm('Are you sure you want to delete this story? Doing so will also delete all the comments and reactions.')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=communications/discussions';
+    
+        var deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_discussion';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+    
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'discussionId';
+        idInput.value = $discussionId; // Make sure $discussionId is defined and accessible
+        form.appendChild(idInput);
+    
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function deleteComment($commentId) {
+    if (confirm('Are you sure you want to delete this comment? Doing so will also delete all the reactions.')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=communications/discussions';
+    
+        var deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_comment';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+    
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'commentId';
+        idInput.value = $commentId; // Make sure $commentId is defined and accessible
+        form.appendChild(idInput);
+    
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 
 // Trigger the file upload dialog
 function triggerKeyPhotoUpload() {
@@ -612,7 +807,6 @@ function updateEventContents(eventType) {
     });
 }
 
-
 function openModal(action, individualId, individualGender) {
     console.log('Opened modal with action:', action, 'for individual ID:', individualId, ' and gender', individualGender);
 
@@ -759,7 +953,7 @@ function openModal(action, individualId, individualGender) {
     modal.style.display = 'block';  // Show the modal
 }
 
-function deleteStory(discussionId) {
+function deleteDiscussion(discussionId) {
     if (confirm('Are you sure you want to delete this entire discussion?')) {
         // Perform the deletion via AJAX or redirect to a URL with the necessary parameters
         // Example using AJAX:
@@ -821,10 +1015,43 @@ function deleteComment(commentId) {
     }
 }
 
-function editStory(discussion_id) {
-
+function editDiscussion(discussion_id) {
+    console.log('Editing discussion with ID:', discussion_id);
+    //Get the discussion title and discussion text from ajax
+    getAjax('get_discussion', {discussion_id: discussion_id})
+        .then(response => {
+            console.log(response.discussion);
+            if (response.success) {
+                var discussion = response.discussion;
+                var title = discussion.title;
+                var text = discussion.content;
+                //Use the showCustomPrompt function to allow the user to edit the discussion
+                showCustomPrompt('Edit Discussion', 'Edit the discussion here:', ['text_Title', 'textarea_Content'], [title, text], async function(inputValues) {
+                    if (inputValues !== null) {
+                        var newTitle = inputValues[0];
+                        var newText = inputValues[1];
+                        getAjax('update_discussion', {discussion_id: discussion_id, title: newTitle, content: newText})
+                            .then(response => {
+                                if(response.status === 'success') {
+                                    document.getElementById('discussion_title_'+discussion_id).textContent=newTitle;
+                                    document.getElementById('discussion_text_'+discussion_id).textContent=newText;
+                                } else {
+                                    alert('Error: ' + response.message);
+                                }
+                            })
+                            .catch(error => {
+                                alert('An error occurred while updating the discussion: ' + error.message);
+                            });
+                    }
+                });
+            } else {
+                console.error('Error fetching discussion:', response.error);
+            }
+        }
+    )
 }
 
 function editComment(comment_id) {
+    console.log('Editing comment with ID:', comment_id);
 
 }

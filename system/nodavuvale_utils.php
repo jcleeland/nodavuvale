@@ -444,22 +444,31 @@ class Utils {
         return $siblings;
     }
 
-    public static function getItems($individual_id) {
+    public static function getItems($individual_id, $since='1900-01-01 00:00:00') {
         // Get the database instance
         $db = Database::getInstance();
         // Fetch items using the updated query
+        if($since=='1900-01-01 00:00:00') {
+            $order = "ORDER BY item_identifier ASC, items.updated ASC";
+        } else {
+            $order = "ORDER BY items.updated ASC, item_identifier ASC";
+        }
         $query = "
-            SELECT items.*, item_groups.item_group_name, files.id as file_id, files.*, users.first_name, users.last_name
+            SELECT items.*, item_groups.item_group_name, files.id as file_id, files.*, 
+            users.first_name, users.last_name,
+            individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId
             FROM items 
             INNER JOIN item_links ON items.item_id=item_links.item_id
+            INNER JOIN individuals ON item_links.individual_id=individuals.id
             LEFT JOIN file_links ON items.item_id = file_links.item_id
             LEFT JOIN files ON file_links.file_id = files.id
             LEFT JOIN item_groups ON items.item_identifier = item_groups.item_identifier
             LEFT JOIN users ON items.user_id = users.id
-            WHERE item_links.individual_id = ?
-            ORDER BY item_identifier ASC, items.updated DESC 
+            WHERE item_links.individual_id like ?
+            AND items.updated > ?
+            $order 
         ";
-        $items = $db->fetchAll($query, [$individual_id]);
+        $items = $db->fetchAll($query, [$individual_id, $since]);
         //echo "<pre>"; print_r($items); echo "</pre>";
 
         // Group items by item_identifier - if there is none, treat as individual groups
@@ -748,10 +757,16 @@ class Utils {
      * as well as changes to individuals in the family section - such as new individuals, new relationships, new items, new files, etc.
      */
     public static function getNewStuff($user_id, $show_since=null) {
-        $response=array();
+        $response=array(
+            'discussions'=>array(),
+            'individuals'=>array(),
+            'relationships'=>array(),
+            'items'=>array(),
+            'files'=>array()
+        );
         // Get the database instance
         $db = Database::getInstance();
-        if(!empty($show_since)) {
+        if($show_since) {
             $last_active['last_view']=date('Y-m-d H:i:s', strtotime($show_since));
         } else {
             // Get the last time the user was active
@@ -759,7 +774,7 @@ class Utils {
             $last_active = $db->fetchOne($sql, [$user_id]);
         }
         //If there is no last active time, set it to last week
-        if(!$last_active) {
+        if(!$last_active['last_view']) {
             $last_active['last_view']=date('Y-m-d H:i:s', strtotime('-1 week'));
         }
         $response['last_view']=$last_active['last_view'];
@@ -799,10 +814,11 @@ class Utils {
 
 
         // Get all individuals that have been updated since the user was last active
-        $sql = "SELECT individuals.id as individualId, users.first_name as user_first_name, users.last_name as user_last_name,
+        $sql = "SELECT individuals.id as individualId, 
+                    users.first_name as user_first_name, users.last_name as user_last_name,
                     individuals.first_names as tree_first_name, individuals.last_name as tree_last_name,
                     individuals.aka_names, individuals.gender,
-                    individuals.birth_year, individuals.death_year,
+                    individuals.birth_year, individuals.death_year, individuals.created, individuals.updated,
                     COALESCE(
                         (SELECT files.file_path 
                             FROM file_links 
@@ -820,7 +836,7 @@ class Utils {
 
 
         // Get all relationships that have been updated since the user was last active
-        $sql = "SELECT subject_individual.first_names as subject_first_names, subject_individual.last_name as subject_last_name, 
+        /* $sql = "SELECT subject_individual.first_names as subject_first_names, subject_individual.last_name as subject_last_name, 
                     subject_individual.id as subject_individualId, object_individual.first_names as object_first_names, 
                     object_individual.last_name as object_last_name, object_individual.id as object_individualId, 
                     relationships.relationship_type, relationships.updated 
@@ -829,11 +845,12 @@ class Utils {
             INNER JOIN individuals as object_individual ON relationships.individual_id_2 = object_individual.id 
             WHERE relationships.updated > ?"; 
         $relationships = $db->fetchAll($sql, [$last_active['last_view']]);
-        $response['relationships']=$relationships;
+        $response['relationships']=$relationships; */
 
 
         // Get all items that have been updated since the user was last active
-        $sql = "SELECT items.*, 
+        $items=Utils::getItems('%', $last_active['last_view']);
+        /* $sql = "SELECT items.*, 
                 item_groups.item_group_name, files.id as file_id, files.*, 
                 individuals.id as individualId,
                 individuals.first_names as tree_first_name, 
@@ -850,7 +867,7 @@ class Utils {
                 WHERE items.updated > ?
                 GROUP BY effective_item_identifier
                 ORDER BY effective_item_identifier ASC, items.updated DESC";
-        $items = $db->fetchAll($sql, [$last_active['last_view']]);
+        $items = $db->fetchAll($sql, [$last_active['last_view']]); */
         $response['items']=$items;
 
 

@@ -150,6 +150,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+function editDiscussion($discussionId) {
+
+}
+
+function editComment($commentId) {
+
+}
+
 function deleteDiscussion($discussionId) {
     if (confirm('Are you sure you want to delete this story? Doing so will also delete all the comments and reactions.')) {
         var form = document.createElement('form');

@@ -24,12 +24,13 @@ if ($is_admin && isset($_GET['user_id'])) {
 // Fetch the user’s account details to be edited
 $user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accountUpdate'])) {
     $first_name = trim($_POST['first_name']);
     $last_name = trim($_POST['last_name']);
     $relative_name = trim($_POST['relative_name']);
     $relationship = trim($_POST['relationship']);
     $email = trim($_POST['email']);
+    $individuals_id = trim($_POST['individuals_id']);
     
     // Admin-only fields
     $approved = isset($_POST['approved']) ? 1 : 0;
@@ -71,8 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Update the user's details in the database
-        $params = [$first_name, $last_name, $relative_name, $relationship, $email, $approved, $role];
-        $sql = "UPDATE users SET first_name = ?, last_name = ?, relative_name = ?, relationship = ?, email = ?, approved = ?, role = ?";
+        $params = [$first_name, $last_name, $individuals_id, $relative_name, $relationship, $email, $approved, $role];
+        $sql = "UPDATE users 
+                SET first_name = ?, last_name = ?, 
+                    individuals_id = ?,
+                    relative_name = ?, relationship = ?, 
+                    email = ?, approved = ?, `role` = ?";
 
         // Add the avatar if uploaded
         if (isset($avatar)) {
@@ -109,7 +114,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Optionally redirect to avoid form resubmission
         if (!isset($error)) {
             //echo $fullsql; die();
-            header('Location: index.php?to=account' . ($is_admin ? "&user_id=$user_id" : ''));
+            ?>
+            <script type="text/javascript">
+                window.location.href = "index.php?to=account<?= ($is_admin) ? "&user_id=$user_id" : "" ?>";
+            </script>
+            <?php            
             exit();
         }
     }
@@ -149,13 +158,26 @@ $avatar_path = $user['avatar'] ?? 'uploads/avatars/default-avatar.png';
                 <input type="text" name="last_name" id="last_name" value="<?= htmlspecialchars($user['last_name']) ?>" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm" required>
             </div>
 
-            <!-- Avatar Upload -->
+            <!-- Family Tree Individual ID -->
             <div class="mb-4">
-                <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-lg">
-                <label for="avatar" class="block text-sm font-medium text-gray-700">Upload Avatar</label>
-                <input type="file" name="avatar" id="avatar" accept="image/*" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm">
+                <label for="individuals_id" class="block text-sm font-medium text-gray-700">Family Tree Connection</label>
+                <input type="text" placeholder="This is your link to your information in the family tree!" name="individuals_id" id="individuals_id" value="<?= $user['individuals_id'] ?>" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm" required>
             </div>
 
+            <!-- Avatar Upload -->
+            <div>
+                <label for="avatar" class="block text-sm font-medium text-gray-700 cursor-pointer">Upload Avatar
+                <div class="ml-1 mb-4 flex flex-cols-2 w-full">
+                    <div>
+                        <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-lg object-cover"></label>
+                    </div>
+                    <div>
+                        
+                        <input type="file" name="avatar" id="avatar" accept="image/*" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm">
+
+                    </div>
+                </div>
+            </div>
             <!-- Relative Name -->
             <div class="mb-4">
                 <label for="relative_name" class="block text-sm font-medium text-gray-700">Relative Name</label>
@@ -208,7 +230,7 @@ $avatar_path = $user['avatar'] ?? 'uploads/avatars/default-avatar.png';
 
             <!-- Submit Button -->
             <div class="flex justify-end">
-                <button type="submit" class="mt-4 bg-warm-red text-white py-2 px-4 rounded-lg hover:bg-burnt-orange">Update Account</button>
+                <button type="submit" name="accountUpdate" class="mt-4 bg-warm-red text-white py-2 px-4 rounded-lg hover:bg-burnt-orange">Update Account</button>
             </div>
         </form>
     </div>

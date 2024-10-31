@@ -8,7 +8,6 @@
  * 
  * This software is provided as-is, without any warranty or guarantee of any kind.
  */
-
 session_name('nodavuvale_app_session');
 session_start();
 

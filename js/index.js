@@ -242,43 +242,50 @@ async function getSpouses(id) {
 }
 
 function initialiseTabs(tabSelector, contentSelector, storageKey) {
-    document.addEventListener('DOMContentLoaded', function() {
-        const tabs = document.querySelectorAll(tabSelector);
-        if (tabs.length === 0) return;
+    const tabs = document.querySelectorAll(tabSelector);
+    if (tabs.length === 0) return;
 
-        // Retrieve the active tab from localStorage
-        console.log('Storage key');
-        console.log(storageKey);
-        console.log(localStorage.getItem(storageKey));
-        const activeTabId = localStorage.getItem(storageKey);
-        if (activeTabId) {
+    // Retrieve the active tab from localStorage
+    console.log('Storage key');
+    console.log(storageKey);
+    console.log(localStorage.getItem(storageKey));
+    const activeTabId = localStorage.getItem(storageKey);
+    //Check that the chosen activeTabId is a valid tab
+    if (activeTabId) {
+        // Remove active class from all tabs and tab contents
+        document.querySelectorAll(tabSelector).forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll(contentSelector).forEach(content => content.classList.remove('active'));
+
+        // Add active class to the stored tab and its content
+        tempTabName=activeTabId;
+        if(document.querySelector(`${tabSelector}[data-tab="${activeTabId}"]`) === null) {
+            console.log('Its null');
+            tempTabName = 'discussionstab';
+        } 
+        document.querySelector(`${tabSelector}[data-tab="${tempTabName}"]`).classList.add('active');
+        document.getElementById(tempTabName).classList.add('active');
+    }
+
+    // Add click event listeners to tabs
+    document.querySelectorAll(tabSelector).forEach(tab => {
+        tab.addEventListener('click', function() {
             // Remove active class from all tabs and tab contents
-            document.querySelectorAll(tabSelector).forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll(contentSelector).forEach(content => content.classList.remove('active'));
+            document.querySelectorAll(tabSelector).forEach(t => t.classList.remove('active'));
+            document.querySelectorAll(contentSelector).forEach(tc => tc.classList.remove('active'));
 
-            // Add active class to the stored tab and its content
-            document.querySelector(`${tabSelector}[data-tab="${activeTabId}"]`).classList.add('active');
-            document.getElementById(activeTabId).classList.add('active');
-        }
+            // Add active class to the clicked tab and its content
+            this.classList.add('active');
+            document.getElementById(this.getAttribute('data-tab')).classList.add('active');
 
-        // Add click event listeners to tabs
-        document.querySelectorAll(tabSelector).forEach(tab => {
-            tab.addEventListener('click', function() {
-                // Remove active class from all tabs and tab contents
-                document.querySelectorAll(tabSelector).forEach(t => t.classList.remove('active'));
-                document.querySelectorAll(contentSelector).forEach(tc => tc.classList.remove('active'));
-
-                // Add active class to the clicked tab and its content
-                this.classList.add('active');
-                document.getElementById(this.getAttribute('data-tab')).classList.add('active');
-
-                // Store the active tab ID in localStorage
-                localStorage.setItem(storageKey, this.getAttribute('data-tab'));
-            });
+            // Store the active tab ID in localStorage
+            localStorage.setItem(storageKey, this.getAttribute('data-tab'));
         });
     });
 }
 
+/**
+ * Check for the "findindividual_lookup" and "findindividual_connect_to" elements
+ */
 document.addEventListener('DOMContentLoaded', function() {
     // Add event listener to the "Find Individual" look-ahead input
     // Check to see if it exists before adding the event listener

@@ -47,12 +47,12 @@
     border-radius: 30%;
 }
 
-.parents-link {
+#family-tree .parents-link {
     cursor: pointer;
     z-index: 100;
 }
 
-.bodyName {
+#family-tree .bodyName {
     font-size: 0.9rem;
     font-weight: bold; 
     cursor: pointer;
@@ -74,7 +74,7 @@
     stroke-linecap: round;
 }
 
-.treegender_female {
+#family-tree .treegender_female {
     /* Earthy green with gradient */
     background: linear-gradient(to right, #a8d5ba, #7bb38d);
     justify-content: center;
@@ -82,7 +82,7 @@
     text-align: center;
 }
 
-.treegender_male {
+#family-tree .treegender_male {
     /* Warm amber with gradient */
     background: linear-gradient(to bottom, #f7d1a1, #e9b379);
     justify-content: center;
@@ -90,7 +90,7 @@
     text-align: center;
 }
 
-.treegender_other {
+#family-tree .treegender_other {
     /* Muted purple gradient */
     background: linear-gradient(to bottom, #c8c0e7, #a59bc6);
     justify-content: center;

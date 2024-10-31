@@ -192,10 +192,10 @@ if ($individual_id) {
                                         <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b><br />
                                         <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
                                         <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
-                                            <button type="button" title="Edit this story" onClick="editStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                            <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" title="Delete this story" onClick="deleteStory(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                            <button type="button" title="Delete this story" onClick="deleteDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         <?php endif; ?>  
