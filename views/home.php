@@ -110,7 +110,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                                 <div class="node treegender_<?= $individual['gender'] ?> rounded">
                                     <div class='nodeBodyText p-1'>
                                         <img src='<?= $keyImagePath ?>' class='nodeImage border object-cover' title='<?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>'>
-                                        <span class='bodyName' title='See details for <?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
+                                        <span class='bodyName' title='See details for <?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id=<?= $individual['individualId'] ?>&apos;'>
                                             <?= $individual['tree_first_name'] ?><br>
                                             <?= $individual['tree_last_name'] ?>
                                         </span><br />
