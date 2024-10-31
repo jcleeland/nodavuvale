@@ -165,9 +165,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
 
 
     // After the changes, reload the page to show the updated tree
+    ?>
+    <script type="text/javascript">
+        window.location.href = "index.php?<?= $_SESSION['QUERY_STRING'] ?>";
+    </script>
+    <?php
+    exit;
     //header("Location: " . $_SERVER['REQUEST_URI']);
     //exit; // Make sure to stop further script execution
 }
+
 function checkForDuplicateRelationship($db, $related_id, $new_id, $relationship_type) {
     //Make sure there isn't already a child/parent relationship between these two individuals
     $existing_relationship = $db->fetchAll("SELECT * FROM relationships WHERE individual_id_1 = ? AND individual_id_2 = ? AND relationship_type = ?", [$related_id, $new_id, $relationship_type]);

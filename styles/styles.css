@@ -452,7 +452,7 @@
 *  Family Tree Container
 ***********************************************/
 .familytree {
-    background-color: #f8f8e894;
+    background-color: rgba(var(--brown-red), var(--brown-green), var(--brown-blue), 0.2);
     border: 1px solid #d1d1ac;
 }
 

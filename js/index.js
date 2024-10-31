@@ -290,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener to the "Find Individual" look-ahead input
     // Check to see if it exists before adding the event listener
     if(document.getElementById('findindividual_lookup') !== null) {
+        console.log('Found individual_lookup')
         document.getElementById('findindividual_lookup').addEventListener('input', function() {
             var input = this.value.toLowerCase();
             var select = document.getElementById('findindividual_connect_to');
@@ -311,15 +312,62 @@ document.addEventListener('DOMContentLoaded', function() {
         });    
     }
 
-    if(document.getElementById('findindividual_connect_to') !== null) {
-        document.getElementById('findindividual_connect_to').addEventListener('change', function() {
-            var selectedValue = this.value;
-            if (selectedValue) {
-                document.getElementById('findindividual_lookup').value = this.options[this.selectedIndex].text;
-                this.style.display = 'none';
-            }
-        }); 
+    // Store the parent element id for each of the "findindividual_lookup" elements
+    // in an array
+    var parentElements = [];
+
+
+    //Get all the elements with the class "findindividual_lookup" and if they haven't already got an event listener
+    // add an event listener to each
+    var elements = document.getElementsByClassName('findindividual_lookup');
+    for (var i = 0; i < elements.length; i++) {
+        if(elements[i].getAttribute('data-listener') !== 'true') {
+            //Save the parent element id in parentElements
+            parentElements.push(elements[i].parentElement.id);
+            
+            elements[i].setAttribute('data-listener', 'true');
+            elements[i].addEventListener('input', function() {
+                var input = this.value.toLowerCase();
+                var select = this.nextElementSibling;
+                var options = select.options;
+                var hasMatch = false;
+
+                for (var i = 0; i < options.length; i++) {
+                    var option = options[i];
+                    var text = option.text.toLowerCase();
+                    if (text.includes(input)) {
+                        option.style.display = '';
+                        hasMatch = true;
+                    } else {
+                        option.style.display = 'none';
+                    }
+                }
+
+                select.style.display = hasMatch ? '' : 'none';
+            });
+        }
     }
+
+    //Now go through all the parentElements, and add an event listener to the select element with
+    // the class 'findindividual_connect_to'.
+    for (var i = 0; i < parentElements.length; i++) {
+        console.log('Looking at parent element: ' + parentElements[i]);
+        if(document.getElementById(parentElements[i]) !== null) {
+            console.log('Found parent element: ' + parentElements[i]);
+            //Add the event listener to the select element inside this parentElement
+            document.getElementById(parentElements[i]).getElementsByTagName('select')[0].addEventListener('change', function() {
+                console.log('Adding event listener to ' + this.id);
+                var selectedValue = this.value;
+                if (selectedValue) {
+                    this.previousElementSibling.value = this.options[this.selectedIndex].text;
+                    this.style.display = 'none';
+                }
+            });
+        }
+    }
+        
+
+
 
 });
 

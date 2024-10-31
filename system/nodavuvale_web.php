@@ -48,14 +48,14 @@ class Web {
     /**
      * Returns the HTML & javascript for the individual lookup
      */
-    public static function showFindIndividualLookAhead($individuals=array(), $fieldName="findindividual_lookup") {
+    public static function showFindIndividualLookAhead($individuals=array(), $fieldName="findindividual_lookup", $submitFieldName="findindividual_connect_to") {    
         if(empty($individuals)) {
             return "NO PEOPLE!";
         }
         $lookahead="";
         $lookahead .= '<label for="'.$fieldName.'" class="block text-gray-700">Connect to Existing Individual</label>'."\n";
-        $lookahead .= '<input type="text" id="findindividual_lookup" name="'.$fieldName.'" class="w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";
-        $lookahead .= '<select id="findindividual_connect_to" name="findindividual_connect_to" class="w-full px-4 py-2 border rounded-lg mt-2" size="5" style="display: none;">'."\n";
+        $lookahead .= '<input type="text" name="'.$fieldName.'" class="findindividual_lookup w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";
+        $lookahead .= '<select name="'.$submitFieldName.'" class="findindividual_connect_to w-full px-4 py-2 border rounded-lg mt-2" size="5" style="display: none;">'."\n";
         $lookahead .= '     <option value="">Select someone...</option>'."\n";
         foreach ($individuals as $indi):
             $lookahead .= '     <option value="'.$indi['id'].'">'.$indi['first_names'].' '.$indi['last_name'].'</option>'."\n";
