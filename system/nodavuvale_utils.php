@@ -303,7 +303,8 @@ class Utils {
                         WHERE file_links.individual_id = individuals.id 
                         AND items.detail_type = 'Key Image'
                         LIMIT 1), 
-                    '') AS keyimagepath
+                    '') AS keyimagepath,
+                relationships.id as relationshipId
             FROM relationships 
             JOIN individuals ON relationships.individual_id_1 = individuals.id 
             WHERE relationships.individual_id_2 = ? 
@@ -328,7 +329,8 @@ class Utils {
                         WHERE file_links.individual_id = individuals.id 
                         AND items.detail_type = 'Key Image'
                         LIMIT 1), 
-                    '') AS keyimagepath
+                    '') AS keyimagepath,
+                relationships.id as relationshipId
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
             WHERE relationships.individual_id_1 = ? 
@@ -351,7 +353,8 @@ class Utils {
                             ELSE r.individual_id_1 
                         END AS parent_id,
                         individual_spouse.*, 
-                        keyImages.file_path AS keyimagepath
+                        keyImages.file_path AS keyimagepath,
+                        r.id as relationshipId
                     FROM
                         relationships AS r
                     INNER JOIN individuals AS individual_spouse ON 
@@ -379,7 +382,8 @@ class Utils {
         //Then find implicit spouses as identified by the 'child' relationship type
         //First find any children of this person
         $cquery = "
-            SELECT distinct individuals.*, files.file_path as keyimagepath 
+            SELECT distinct individuals.*, files.file_path as keyimagepath,
+                relationships.id as relationshipId
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
             LEFT JOIN file_links ON file_links.individual_id=individuals.id 
@@ -392,7 +396,8 @@ class Utils {
         //Then find any OTHER parent of those children
         foreach($children as $child){
             $pquery = "
-                SELECT distinct individuals.*, files.file_path as keyimagepath
+                SELECT distinct individuals.*, files.file_path as keyimagepath,
+                    relationships.id as relationshipId, relationships.id as relationshipId
                 FROM relationships 
                 JOIN individuals ON relationships.individual_id_1 = individuals.id 
                 LEFT JOIN file_links ON file_links.individual_id=individuals.id 
@@ -426,7 +431,8 @@ class Utils {
                         WHERE file_links.individual_id = individuals.id 
                         AND items.detail_type = 'Key Image'
                         LIMIT 1), 
-                    '') AS keyimagepath
+                    '') AS keyimagepath,
+                relationships.id as relationshipId
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
                             
@@ -439,7 +445,12 @@ class Utils {
             AND relationships.individual_id_2 != ? 
             AND relationships.relationship_type = 'child'
         ";
-        $siblings = $db->fetchAll($query, [$individual_id, $individual_id]);
+        $siblingsquery = $db->fetchAll($query, [$individual_id, $individual_id]);
+        //Make sure we don't have duplicates
+        $siblings=[];
+        foreach($siblingsquery as $sibling) {
+            $siblings[$sibling['id']]=$sibling;
+        }
         
         return $siblings;
     }

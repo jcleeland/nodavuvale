@@ -250,6 +250,17 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
+    //Loops through each node and adds the event listener to the "Delete Relationship" buttons
+    document.querySelectorAll('.delete-relationship-btn').forEach(function(deleteButton) {
+        deleteButton.addEventListener('click', function(event) {
+            event.stopPropagation();  // Prevent triggering any other click handlers
+            const relationshipId = deleteButton.dataset.relationshipid;
+            const cardId = deleteButton.dataset.individualcardid;
+            const relationshipType = deleteButton.dataset.relationshiptype;
+            deleteRelationship(relationshipId, cardId, relationshipType);  // Delete the relationship
+        });
+    });
+
     // Close modal logic for "Edit" modal
     closeModalBtn.addEventListener('click', function() {
         editModal.style.display = 'none';
@@ -1014,6 +1025,29 @@ function deleteComment(commentId) {
         });
     }
 }
+
+function deleteRelationship(relationshipId, individualCardId, relationshipType) {
+    if (confirm('Are you sure you want to delete this relationship? This will not change any of the individual records, just the connection between the two.')) {
+        // Perform the deletion via AJAX or redirect to a URL with the necessary parameters
+
+        getAjax('delete_relationship', {relationshipId: relationshipId, relationshipType: relationshipType})
+            .then(response => {
+                if (response.status === 'success') {
+                    // Handle successful deletion (e.g., remove the relationship from the DOM)
+                    document.getElementById(individualCardId).remove();
+                } else {
+                    // Handle error
+                    alert('Failed to delete relationship. '+response.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the relationship.');
+            });
+    };
+    
+}
+
 
 function editDiscussion(discussion_id) {
     console.log('Editing discussion with ID:', discussion_id);

@@ -474,7 +474,7 @@ if ($individual_id) {
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
                     <?php foreach ($spouses as $spouse): ?>
-                        <?= $web->individual_card($spouse) ?>
+                        <?= $web->individual_card($spouse, $showrelationshipoption=true, $relationshiptype='spouse') ?>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -482,16 +482,20 @@ if ($individual_id) {
             <!-- Display Children -->
             <div class="text-center p-2">
                 <h3 class="text-2xl font-bold mt-8 mb-4 relative">
-                    Children (<?= count($children) ?>)
+                    <span title="<?= count($children) ?> children">Children</span>
                     <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a child to <?= $individual['first_name'] ?>" onclick="openModal('add_child', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
                         <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
                     </button>
                 </h3>
+                <?php if (empty($children)): ?>
+                    
+                <?php else: ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
                     <?php foreach ($children as $child): ?>
-                        <?= $web->individual_card($child) ?>
+                        <?= $web->individual_card($child, $showrelationshipoption=true, $relationshiptype='child') ?>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
             </div>
 
             <!-- Display Parents -->
@@ -504,7 +508,7 @@ if ($individual_id) {
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center">
                     <?php foreach ($parents as $parent): ?>
-                        <?= $web->individual_card($parent) ?>
+                        <?= $web->individual_card($parent, $showrelationshipoption=true, $relationshiptype='parent') ?>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -517,7 +521,7 @@ if ($individual_id) {
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
                     <?php foreach ($siblings as $sibling): ?>
-                        <?= $web->individual_card($sibling) ?>
+                        <?= $web->individual_card($sibling, false) ?>
                     <?php endforeach; ?>
                 </div>
             </div>        

@@ -57,6 +57,11 @@
     background-color: rgba(var(--cream-red), var(--cream-green), var(--cream-blue), var(--nv-bg-opacity));
 }
 
+.bg-burnt-orange-800 {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--burnt-orange-red), var(--burnt-orange-green), var(--burnt-orange-blue), var(--nv-bg-opacity));
+}
+
 .bg-burnt-orange {
     background-color: var(--burnt-orange);
 }

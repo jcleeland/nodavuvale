@@ -144,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
         }
 
         if($proceed) {
+            echo "Proceeding with db update";
             $db->query(
                 "INSERT INTO relationships (individual_id_1, individual_id_2, relationship_type) VALUES (?, ?, ?)",
                 [$_POST['related_individual'], $new_individual_id, $_POST['relationship']]
@@ -160,14 +161,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['action']) && ( strpo
                     );
                 }
             }                       
-        } 
+        }
     }
 
 
-    // After the changes, reload the page to show the updated tree
+    // After the changes, reload the page to show the updated tree and avoid resubmission of the form
     ?>
     <script type="text/javascript">
-        window.location.href = "index.php?<?= $_SESSION['QUERY_STRING'] ?>";
+        window.location.href = "index.php?<?= $_SERVER['QUERY_STRING'] ?>";
     </script>
     <?php
     exit;
