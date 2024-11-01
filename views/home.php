@@ -9,13 +9,22 @@ $is_logged_in = isset($_SESSION['user_id']);
     <div class="container hero-content">
         <h2 class="text-4xl font-bold">Welcome to <i><?= $site_name ?></i></h2>
         <p class="mt-4 text-lg">Connecting our family and preserving our cultural heritage.</p>
-        <!-- Button-styled anchor tag -->
-        <a href="?to=about/aboutvirtualnataleira" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
-            Our website
-        </a>
-        <a href="?to=about/aboutnataleira" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
-            Our village
-        </a>
+        <?php if (!$is_logged_in): ?>
+            <!-- Button-styled anchor tag -->
+            <a href="?to=about/aboutvirtualnataleira" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+                Our website
+            </a>
+            <a href="?to=about/aboutnataleira" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+                Our village
+            </a>
+        <?php else: ?>
+            <a href="?to=family/tree" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+                Browse The Tree
+            </a>
+            <a href="?to=communications/discussions" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+                Chat with Family
+            </a>
+        <?php endif; ?>
 
     </div>
 </section>

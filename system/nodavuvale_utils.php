@@ -83,7 +83,7 @@ class Utils {
             <input type='hidden' class='individualgender' value='{individualGender}'>
             <div class='nodeBodyText'>
                 {parentLink}
-                <img src='{individualKeyImage}' class='nodeImage border object-cover' title='{individualFullName}'>
+                <img src='{individualKeyImage}' class='nodeImage border object-cover cursor-pointer' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                 <span class='bodyName' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                     {individualPrefName}<br>
                     {individualLastName}
@@ -235,10 +235,21 @@ class Utils {
 
             // Step 3: Add children with only one parent (unknown spouse)
             if (!empty($childrenWithSingleParent)) {
+
+                $unknownNode="
+            <div class='nodeBodyText opacity-70'>
+                <img src='images/default_avatar.webp' class='nodeImage border object-cover opacity-50' title='Unknown parent'>
+                <span class='bodyName'>
+                    Unknown
+                </span>
+            </div>
+            ";
                 $marriages[] = [
                     'spouse' => [
                         'id' => 'unknown_spouse_' . $id,
-                        'name' => '<b>Unknown</b>'
+                        'name' => $unknownNode,
+                        'class' => 'node treegender_other generation_'.$generation,
+                        'depthOffset' => 0
                     ],
                     'children' => $childrenWithSingleParent
                 ];

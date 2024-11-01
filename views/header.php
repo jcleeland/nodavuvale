@@ -19,7 +19,7 @@ if(isset($_GET['individual_id'])) {
     <link href="styles/styles.css" rel="stylesheet">
 
     <!-- Link to dTree CSS -->
-    <link rel="stylesheet" href="vendor/dTree/dist/dTree.css">
+    <link rel="stylesheet" href="styles/dTree.css">
 
     <!-- Link to main js file -->
     <script src="js/index.js"></script>

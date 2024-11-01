@@ -324,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(elements[i].getAttribute('data-listener') !== 'true') {
             //Save the parent element id in parentElements
             parentElements.push(elements[i].parentElement.id);
+            //console.log('Added parent element to array ' + elements[i].parentElement.id);
             
             elements[i].setAttribute('data-listener', 'true');
             elements[i].addEventListener('input', function() {
@@ -351,12 +352,12 @@ document.addEventListener('DOMContentLoaded', function() {
     //Now go through all the parentElements, and add an event listener to the select element with
     // the class 'findindividual_connect_to'.
     for (var i = 0; i < parentElements.length; i++) {
-        console.log('Looking at parent element: ' + parentElements[i]);
+        //console.log('Looking at parent element: ' + parentElements[i]);
         if(document.getElementById(parentElements[i]) !== null) {
-            console.log('Found parent element: ' + parentElements[i]);
+            //console.log('Found parent element: ' + parentElements[i]);
             //Add the event listener to the select element inside this parentElement
             document.getElementById(parentElements[i]).getElementsByTagName('select')[0].addEventListener('change', function() {
-                console.log('Adding event listener to ' + this.id);
+                //console.log('Adding event listener to ' + this.id);
                 var selectedValue = this.value;
                 if (selectedValue) {
                     this.previousElementSibling.value = this.options[this.selectedIndex].text;
