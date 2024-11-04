@@ -167,6 +167,27 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                     });
                 }
                 return;
+            case 'select':
+                var inputElement = document.createElement('select');
+                inputElement.id = 'customPromptInput' + index;
+                inputElement.className = 'w-full p-2 border rounded mb-2';
+                inputElement.value = values[index] || '';
+                customPromptInputs.appendChild(inputElement);
+                //The options should be an array in the values array
+                if(typeof values[index] !== 'undefined' && values[index] !== null) {
+                    var startoption = document.createElement('option');
+                    startoption.value='';
+                    startoption.text='Select Option..';
+
+                    inputElement.appendChild(startoption);
+                    values[index].forEach(function(option) {
+                        var optionElement = document.createElement('option');
+                        optionElement.value = option;
+                        optionElement.text = option;
+                        inputElement.appendChild(optionElement);
+                    });
+                }
+                return;
             default:
                 var inputElement = document.createElement('input');
                 inputElement.type = input.split('_')[0];

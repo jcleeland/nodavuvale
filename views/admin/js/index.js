@@ -1,6 +1,6 @@
 function addUser() {
-    var inputs=['text_First Name', 'text_Last Name', 'text_Email', 'password_Password', 'text_Role', 'text_Approved', 'individual_Tree ID'];
-    showCustomPrompt('Create User', 'Add a new user to your site', inputs, ['', '', '', '', 'member', '0', null], async function(inputValues) {
+    var inputs=['text_First Name', 'text_Last Name', 'text_Email', 'password_Password', 'select_Role', 'select_Approved', 'individual_Tree ID'];
+    showCustomPrompt('Create User', 'Add a new user to your site', inputs, ['', '', '', '', ['unconfirmed','member','admin'], ['0','1'], null], async function(inputValues) {
         if (inputValues !== null) {
 
             
@@ -10,12 +10,22 @@ function addUser() {
             console.log(inputValues);
             //return;
             
-                var itemDetails=inputValues[0];
+                var first_name=inputValues[0];
+                var last_name=inputValues[1];
+                var email=inputValues[2];
+                var password=inputValues[3];
+                var role=inputValues[4];
+                var approved=inputValues[5];
+                var individuals_id=inputValues[6];
                 formData.append('method', 'add_user');
                 formData.append('data', JSON.stringify({
-                    individual_id: individualId,
-                    events: [{event_type: actionId, event_detail: itemDetails, item_identifier: groupId}],
-                    event_group_name: event_group_name
+                    first_name: first_name,
+                    last_name: last_name,
+                    email: email,
+                    password: password,
+                    role: role,
+                    approved: approved,
+                    individuals_id: individuals_id
                 }));
 
             
@@ -27,7 +37,7 @@ function addUser() {
             }
 
             try {
-                const response = await getAjax('add_file_item', formData);
+                const response = await getAjax('add_user', formData);
                 if (response.status === 'success') {
                     // Reload the page
                     //alert('Item has been added');
