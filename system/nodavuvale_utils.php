@@ -823,7 +823,7 @@ class Utils {
                 individuals.last_name as tree_last_name, users.id as user_id, 'comment' as change_type
                 FROM discussion_comments
                 JOIN discussions ON discussion_comments.discussion_id = discussions.id
-                JOIN users ON discussions.user_id=users.id
+                JOIN users ON discussion_comments.user_id=users.id
                 LEFT JOIN individuals ON discussions.individual_id = individuals.id
                 WHERE discussion_comments.created_at > ?";
         $comments = $db->fetchAll($sql, [$last_active['last_view']]);
@@ -852,7 +852,8 @@ class Utils {
                         '') AS keyimagepath
                 FROM individuals
                 LEFT JOIN users ON created_by = users.id
-                WHERE created > ?";
+                WHERE created > ?
+                ORDER BY created DESC";
         $individuals = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['individuals']=$individuals;
 
@@ -900,7 +901,8 @@ class Utils {
                 JOIN file_links ON files.id = file_links.file_id 
                 JOIN individuals ON file_links.individual_id = individuals.id
                 LEFT JOIN users ON files.user_id = users.id
-                WHERE files.upload_date > ? AND file_links.item_id IS NULL";
+                WHERE files.upload_date > ? AND file_links.item_id IS NULL
+                ORDER BY files.upload_date DESC";
         $files = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['files']=$files;
 
