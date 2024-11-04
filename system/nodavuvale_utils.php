@@ -84,7 +84,7 @@ class Utils {
             <div class='nodeBodyText'>
                 {parentLink}
                 <img src='{individualKeyImage}' class='nodeImage border object-cover cursor-pointer' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
-                <span class='bodyName' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
+                <span class='bodyName' id='treeindividualsname_{individualId}' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                     {individualPrefName}<br>
                     {individualLastName}
                 </span>

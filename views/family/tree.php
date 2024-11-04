@@ -46,7 +46,6 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
 // Insert a little button that will allow the user to "copy" the $tree_data to the clipboard just at the beginning of the next section
 
 ?>
-    <!-- shared modal prompt for all pages --> 
     <div id="findOnTree" class="modal">
         <div class="modal-content min-w-sm max-h-screen my-5 overflow-y-auto">
             <div class="modal-header">
@@ -59,6 +58,59 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
             </div>
         </div>
     </div>
+
+    <div id="TheFamilyTreeDescription" class="modal">
+        <div class="modal-content min-w-sm max-h-screen my-5 overflow-y-auto">
+            <div class="modal-header">
+                <span id="TheFamilyTreeDescriptionClose" class="close-story-btn">&times;</span>
+                <h2 id="TheFamilyTreeDescriptionTitle" class="text-xl font-bold mb-4 text-center">The Family Tree</h2>
+            </div>
+            <div class="modal-body">
+                <p>
+                    This is the family tree, by default showing the descendants of Soli and Leonard. 
+                    You can click on any individual's picture or name to view their information. 
+                    You can also search for an individual by clicking the magnifying glass icon in the top right corner.
+                </p>
+                &nbsp;
+                <p>
+                    Each person has their own card, showing their name, birth and death dates, and a picture if available.<br />
+                    At the bottom of their card are three buttons:
+                    <ul class="list-disc pl-5">
+                        <li>📝 to edit their information, 
+                        <li>🔗 to add a relationship to them, 
+                        <li>➜ to set them as the 'top' person in the tree.
+                    </ul>
+                </p>
+                &nbsp;
+                <p>
+                    <b>FAQs</b>
+                    <ul class='list-disc pl-5'>
+                        <li><b>Something is wrong on the tree</b><br />
+                        This is one of the reasons we have this site! You can fix it up.<br />
+                        If you <b><i>know for sure</i></b> that something is wrong, and you know the correction, you can edit that family individual and correct it.<br />
+                        On the other hand, if you <i>think</i> something is wrong, or your family has a different story, you can create a discussion about that person, and we 
+                        can all work together to figure out the truth. Or, alternatively, if the truth can't be found, we can have multiple stories about that person.
+                        <li><b>Can I add more people to the three?</b><br />
+                        Yes. Absolutely. If you know of someone who should be on the tree, you can add them.<br />The trick is to find someone they are related to, visit their "individual" page, and then add them as a spouse, a parent or a child.
+                        <li><b>Can I add a sibling to someone?</b><br />Yes you can, but siblings are a little different. You can't add a sibling directly. You need to add the sibling to the parent, as a child of the same parent to another sibling.
+                        <li><b>I'm not sure I want information about me to be visible on this page</b><br />
+                        That's fine. Although the privacy feature isn't yet complete, this will be available soon. You'll be able to decide how much and which information is visible to others.
+                        <li><b>Something isn't working, or it should work better, or I think I had a great idea!!</b><br />
+                        Email <a href='mailto:jason@cleeland.org'>Jason</a>! He's the admin and developer of this site. He's always looking for ways to make it better, and he's always looking for feedback.
+                        
+
+                    </ul>
+                </p>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        //Add a listener to the close button
+        document.getElementById('TheFamilyTreeDescriptionClose').addEventListener('click', function() {
+            document.getElementById('TheFamilyTreeDescription').style.display = 'none';
+        });
+    </script>
     
     <script>
         //When the select with the name "findOnTree" changes, zoom to the selected individual
@@ -93,6 +145,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
     </script>
 
 <section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How does this work?" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
     <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" onclick="navigator.clipboard.writeText(JSON.stringify(tree))">&#128203;</button>
     <button class="add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg float-right" title="Add new individual">+</button>

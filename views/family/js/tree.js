@@ -138,6 +138,9 @@ function showDropdown(button, individualId, gender) {
  
 }
 
+function showHelp() {
+    document.getElementById('TheFamilyTreeDescription').style.display = 'block';
+}
 
 // Function to open the modal with dynamic form data
 function openModal(action, individualId, individualGender) {
@@ -151,7 +154,14 @@ function openModal(action, individualId, individualGender) {
     //var formActionInput = document.getElementById('form-action');
     var formActionGender = document.getElementById('gender');
     var formActionRelationship = document.getElementById('relationship');
-    var relatedIndividualInput = document.getElementById('related-individual');    
+    var relatedIndividualInput = document.getElementById('related-individual');
+    if(document.getElementById('treeindividualsname_'+individualId)) {
+        var sourcePersonsName=document.getElementById('treeindividualsname_'+individualId).innerHTML;
+        //Remove <br /> from the name
+        sourcePersonsName=sourcePersonsName.replace('<br>', ' ');
+    } else {
+        var sourcePersonsName='Unknown';
+    }
 
 
     // Close the "Add" modal when the user clicks the close button
@@ -188,7 +198,7 @@ function openModal(action, individualId, individualGender) {
     var select = document.getElementById('second-parent');
     select.innerHTML = '';
 
-    document.getElementById('modal-title').innerHTML = 'Add New Relationship';
+    document.getElementById('modal-title').innerHTML = 'Add New Relationship to ' + sourcePersonsName;
     //document.getElementById('existing-individuals').style.display = 'block';
     document.getElementById('relationships').style.display = 'block';
     document.getElementById('choose-second-parent').style.display = 'none';

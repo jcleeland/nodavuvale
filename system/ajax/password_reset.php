@@ -59,7 +59,7 @@ if($auth->getUserRole() !== 'admin') {
 }
 
 //Generate a random password
-$length = 10;
+$length = 8;
 $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 $charactersLength = strlen($characters);
 $randomString = '';

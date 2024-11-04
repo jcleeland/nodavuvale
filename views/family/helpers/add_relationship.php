@@ -208,11 +208,15 @@ function checkFor2Parents($db, $individual_id) {
                     <input type="hidden" id="root_id" name="root_id" value="<?= $rootId; ?>">
 
                     <div id="add-relationship-choice" class="mb-4 text-sm text-center mt-2">
-                    Connect to 
+                    This relationship will be with an ..
+                    <span class=" rounded">
                         <input type="radio" id="choice-existing-individual" name="choice-existing-individual" value="existing">
-                        <label for="choice-existing-individual" class="mr-3">Existing Individual</label>
+                        <label for="choice-existing-individual" class="mr-3" title="someone who is already in this tree">existing person</label>
+                    </span> &nbsp;or ..
+                    <span class=" rounded">
                         <input type="radio" id="choice-new-individual" name="choice-new-individual" value="new">
-                        <label for="choice-new-individual" class="mr-3">New Individual</label>
+                        <label for="choice-new-individual" class="mr-3" title="Someone I'll create and add to this tree">a new person</label>
+                    </span>
                     </div>
                     <pre><?php //print_r($individuals); ?></pre>
                     <!-- Lookup field to select an existing individual -->
