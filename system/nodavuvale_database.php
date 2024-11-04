@@ -111,7 +111,8 @@ class Database {
             'email_username' => 'someone@somewhere.com',
             'email_password' => 'password',
             'email_port' => '587',
-            'notifications_email' => 'someone@somewhere.com'
+            'notifications_email' => 'someone@somewhere.com',
+            'bcc_allemails' => '0',
         );
 
         $settings = $this->fetchAll("SELECT * FROM site_settings");
@@ -141,14 +142,31 @@ class Database {
         return $site_settings;
     }
 
-    public function updateSiteSettings($site_name, $site_description, $notifications_email, $email_server, $email_username, $email_password, $email_port) {
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'site_name'", [$site_name]);
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'site_description'", [$site_description]);
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_server'", [$email_server]);
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_username'", [$email_username]);
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_password'", [$email_password]);
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'email_port'", [$email_port]);
-        $this->update("UPDATE site_settings SET value = ? WHERE name = 'notifications_email'", [$notifications_email]);
+    public function updateSiteSettings($site_name, $site_description, $notifications_email, $bcc_allemails, $email_server, $email_username, $email_password, $email_port) {
+
+        //Get all the site_settings
+        $settings = $this->fetchAll("SELECT * FROM site_settings");
+        $site_settings = [];
+        foreach ($settings as $setting) {
+            $site_settings[$setting['name']] = $setting['value'];
+        }
+        //The setting names should match the paramater namees for this function
+        // - so first, iterate through the keys in the $site_settings array,
+        //   and if there is a matching parameter, update the value in the database
+        // - Keep a record of which function paramaters have been used, and which haven't
+        $used_params=[];
+        foreach($site_settings as $key=>$value) {
+            if(isset($$key)) {
+                $this->update("UPDATE site_settings SET value = ? WHERE name = ?", [$$key, $key]);
+                $used_params[]=$key;
+            }
+        }
+        //Now iterate through the function parameters, and if they haven't been used, insert them into the database
+        foreach(['site_name', 'site_description', 'notifications_email', 'bcc_allemails', 'email_server', 'email_username', 'email_password', 'email_port'] as $param) {
+            if(!in_array($param, $used_params)) {
+                $this->update("INSERT INTO site_settings (name, value) VALUES (?, ?)", [$param, $$param]);
+            }
+        }
     }
 
     // Function to read MySQL dump file and extract schema

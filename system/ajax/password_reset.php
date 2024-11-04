@@ -121,6 +121,8 @@ if(isset($data['action']) && $data['action'] === 'welcome') {
     $emailSubject=$passwordResetSubject;
 }
 
+$site_settings=$db->getSiteSettings();
+
 //Send an email to the user with the new password
 if($response['status'] === 'success') {
     $user = $db->fetchOne("SELECT first_name, last_name, email FROM users WHERE id = ?", [$data['user_id']]);
@@ -134,6 +136,9 @@ if($response['status'] === 'success') {
     $mail->Port = $smtp_port;
     $mail->setFrom($smtp_username, $site_name.' Admin');
     $mail->addAddress($user['email'], $user['first_name'].' '.$user['last_name']);
+    if($site_settings['bcc_allemails']==1 && isset($site_settings['notifications_email'])) {
+        $mail->addBCC($site_settings['notifications_email']);
+    }
     $mail->isHTML(true);
     $mail->Subject = $emailSubject;
     $mail->Body = $emailMessage;

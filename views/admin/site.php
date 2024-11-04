@@ -19,8 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_port = $_POST['email_port'];
     $root_individual = $_POST['root_individual'];
     $notifications_email = $_POST['notifications_email'];
+    //If the $bcc_allemails is checked, set it to 1, otherwise set it to 0
+    $bcc_allemails = 0;
+    if(isset($_POST['bcc_allemails'])) {
+        $bcc_allemails = 1;
+    }
     // Update the site settings in the database
-    $db->updateSiteSettings($site_name, $site_description, $notifications_email, $email_server, $email_username, $email_password, $email_port);
+    $db->updateSiteSettings($site_name, $site_description, $notifications_email, $bcc_allemails, $email_server, $email_username, $email_password, $email_port);
 }
 ?>
 
@@ -54,6 +59,11 @@ $site_settings = $db->getSiteSettings();
         <div class="mb-4">
             <label for="notifications_email" class="block text-gray-700">Notifications Email Address</label>
             <input type="email" id="notifications_email" name="notifications_email" class="w-full px-4 py-2 border rounded-lg" value="<?php echo $site_settings['notifications_email']; ?>" required>
+        </div>
+        <div class="mb-4">
+            <label for="email_address" class="block text-gray-700">BCC all emails to Notifications Email?</label>
+            <!-- checkbox for whether or not to send a bcc of any email to the notifications email address -->
+            <input type="checkbox" id="bcc_allemails" name="bcc_allemails" class="w-full px-4 py-2 border rounded-lg" <?php if($site_settings['bcc_allemails']==1) echo "checked"  ?> required>
         </div>
         <div class="mb-4">
             <label for="email_server" class="block text-gray-700">Site Email Server</label>
