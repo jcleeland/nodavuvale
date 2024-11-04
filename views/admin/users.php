@@ -20,7 +20,7 @@ const individuals = [
 <?php
 
 //Gather a list of users
-$sql = "SELECT * FROM users order by last_name, first_name";
+$sql = "SELECT * FROM users WHERE role != 'deleted' order by last_name, first_name";
 $users = $db->fetchAll($sql);
 ?>
 <script>
@@ -37,34 +37,60 @@ $users = $db->fetchAll($sql);
 if(count($users) > 0) {
     echo '<table class="w-full border pb-8">';
     echo '<thead>';
-    echo '<tr>';
+    echo '<tr class="text-white bg-brown">';
     echo '<th class="border px-4 py-2">First Name</th>';
     echo '<th class="border px-4 py-2">Last Name</th>';
     echo '<th class="border px-4 py-2">Email</th>';
     echo '<th class="border px-4 py-2">Role</th>';
     echo '<th class="border px-4 py-2">Approved</th>';
     echo '<th class="border px-4 py-2">Tree Id</th>';
-    echo '<th class="border px-4 py-2">Change Password</th>';
+    echo '<th class="border px-4 py-2">Reset Password</th>';
     echo '<th class="border px-4 py-2">Actions</th>';
     echo '</tr>';
     echo '</thead>';
     echo '<tbody>';
     foreach($users as $user) {
-        echo '<tr id="user_'.$user['id'].'">';
+        echo '<tr id="user_'.$user['id'].'" class="bg-opacity-10 ';
+        if($user['approved'] == 0) { echo "bg-red-700";} else {echo "bg-green-500";}
+        echo '">';
         echo '<td class="border px-4 py-2">'.$user['first_name'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['last_name'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['email'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['role'].'</td>';
         echo '<td class="border px-4 py-2 text-center">';
         if($user['approved'] == 0) {
-            echo ' <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded float" onclick="approveUser('.$user['id'].')">Approve</button>';
+            echo ' <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded float" title="Grant user access" onclick="approveUser('.$user['id'].')">';
+            echo ' <i class="fas fa-check"></i>';
+            echo '</button>';
         } else {
-            echo ' <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded float" onclick="approveUser('.$user['id'].', true)">Unapprove</button>';
+            echo ' <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded float" title="Cancel user\'s access" onclick="approveUser('.$user['id'].', true)">'; 
+            echo ' <i class="fas fa-times"></i>';
+            echo '</button>';
         }
         echo '</td>';
-        echo '<td class="border px-4 py-2">'.$user['individuals_id'].'</td>';
-        echo '<td class="border px-4 py-2 text-center"><button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">PW</button></td>';
-        echo '<td class="border px-4 py-2"><button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded" onclick="editUser('.$user['id'].')">Edit</button></td>';
+        echo '<td class="border px-4 py-2 text-xs">';
+        if(isset($individuals[$user['individuals_id']])) {
+            echo "<a href='?to=family/individual&individual_id=".$user['individuals_id']."'>";
+            echo explode(" ",$individuals[$user['individuals_id']]['first_names'])[0] . ' ' . $individuals[$user['individuals_id']]['last_name'];
+            echo "</a>";
+        }
+        echo '</td>';
+        echo '<td class="border px-4 py-2 text-center">';
+        echo '  <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" title="Send user a password reset email" onclick="passwordReset('.$user['id'].')">'; 
+        echo '<i class="fas fa-key"></i>';
+        echo '</button>';
+        echo '</td>';
+        echo '<td class="border px-4 py-2 text-center flex flex-cols-3 gap-1">';
+        echo '  <button class="text-xs bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded" title="Edit user details" onclick="editUser('.$user['id'].')">';
+        echo '  <i class="fas fa-edit"></i>';
+        echo '</button>';
+        echo '  <button class="text-xs bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded" title="Send user a welcome and login password setup details" onclick="emailUserLoginDetails('.$user['id'].')">';
+        echo '  <i class="fas fa-envelope"></i>';
+        echo '</button>';
+        echo '  <button class="text-xs bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" title="Delete this user" onclick="deleteUser('.$user['id'].')">';
+        echo '  <i class="fas fa-trash"></i>';
+        echo '</button>';
+        echo '</td>';
         echo '</tr>';
     }
     echo '</tbody>';

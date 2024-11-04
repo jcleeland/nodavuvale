@@ -372,3 +372,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
+function userResetPassword() {
+    var proposedEmailAddress=document.getElementById('requested_user_email').value;
+
+    if(proposedEmailAddress.length === 0) {
+        alert('Please enter an email address');
+        return;
+    }
+
+    //Send the email by ajax & 'password_reset' method
+    var formData = new FormData();
+    formData.append('method', 'password_reset');
+    formData.append('data', JSON.stringify({
+        email: proposedEmailAddress,
+    }));
+
+    //Debugging: Log the formData object
+    for (var pair of formData.entries()) {
+        console.log(pair[0]+ ', ' + pair[1]); 
+    }
+
+    getAjax('password_reset', formData).then(response => {
+        if (response.status === 'success') {
+            // Reload the page
+            document.getElementById('emailSent').classList.remove('hidden');
+            document.getElementById('resetPasswordButton').classList.add('hidden');
+        } else {
+            alert('Error: ' + response.message);
+        }
+    }).catch(error => {
+        alert('An error occurred while sending the password reset email: ' + error.message);
+    });
+}

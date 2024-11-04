@@ -5,37 +5,19 @@ function addUser() {
 
             
             var formData = new FormData();
-            var event_group_name = groupName;
 
             console.log('Input Values returned are:');
             console.log(inputValues);
             //return;
-            if(groupType === 'file') {
-                var file = inputValues[0];
-                var fileDescription = inputValues[1];
-                //Append the file & other data to the formData object
-                if (file instanceof File) {
-                    formData.append('file', file);
-                } else {
-                    console.error('The selected file is not a valid File object.');
-                }
-                formData.append('method', 'add_file_item');
-                formData.append('data', JSON.stringify({
-                    individual_id: individualId,
-                    events: [{event_type: actionId, event_detail: fileDescription, item_identifier: groupId}],
-                    event_group_name: event_group_name,
-                    file_description: fileDescription
-                }));
-            } else {
+            
                 var itemDetails=inputValues[0];
-                formData.append('method', 'add_file_item');
+                formData.append('method', 'add_user');
                 formData.append('data', JSON.stringify({
                     individual_id: individualId,
                     events: [{event_type: actionId, event_detail: itemDetails, item_identifier: groupId}],
                     event_group_name: event_group_name
                 }));
 
-            }
             
 
 
@@ -91,6 +73,35 @@ async function approveUser($id, unapprove=false) {
     } catch (error) {
         alert('An error occurred while adding the item: ' + error.message);
     }
+}
+
+function deleteUser(userId) {
+    if(confirm('Are you sure you want to delete this user?')) {
+        if(confirm('Seriously, deleting a user isn\'t something you should do lightly. \r\n\r\n Are you REALLY REALLY sure you want to delete this user?')) {
+            var formData = new FormData();
+            formData.append('method', 'delete_user');
+            formData.append('data', JSON.stringify({
+                user_id: userId
+            }));
+
+            //Debugging: Log the formData object
+            for (var pair of formData.entries()) {
+                console.log(pair[0]+ ', ' + pair[1]); 
+            }
+
+            getAjax('delete_user', formData).then(response => {
+                if (response.status === 'success') {
+                    // Reload the page
+                    alert('User has been deleted');
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }).catch(error => {
+                alert('An error occurred while deleting the user: ' + error.message);
+            });
+        }
+    }   
 }
 
 function editUser(userId) {
@@ -165,4 +176,61 @@ function updateUser() {
     }).catch(error => {
         alert('An error occurred while updating the user: ' + error.message);
     });
+}
+
+function passwordReset(userId) {
+    
+    if(confirm("This will reset the users password to a random password and send them an email with the new password. Are you sure you want to continue?")) {
+        //Send the email by ajax & 'password_reset' method
+        var formData = new FormData();
+        formData.append('method', 'password_reset');
+        formData.append('data', JSON.stringify({
+            user_id: userId,
+        }));
+
+        //Debugging: Log the formData object
+        for (var pair of formData.entries()) {
+            console.log(pair[0]+ ', ' + pair[1]); 
+        }
+
+        getAjax('password_reset', formData).then(response => {
+            if (response.status === 'success') {
+                // Reload the page
+                alert('Password reset email has been sent');
+            } else {
+                alert('Error: ' + response.message);
+            }
+        }).catch(error => {
+            alert('An error occurred while sending the password reset email: ' + error.message);
+        });
+    }
+}
+
+function emailUserLoginDetails(userId) {
+    
+    if(confirm("This will send the user an email with their login details. It will also generate a NEW password for them. Are you sure you want to continue?")) {
+        //Send the email by ajax & 'email_login_details' method
+        var formData = new FormData();
+        formData.append('method', 'password_reset');
+        formData.append('data', JSON.stringify({
+            user_id: userId,
+            action: 'welcome',
+        }));
+
+        //Debugging: Log the formData object
+        for (var pair of formData.entries()) {
+            console.log(pair[0]+ ', ' + pair[1]); 
+        }
+
+        getAjax('password_reset', formData).then(response => {
+            if (response.status === 'success') {
+                // Reload the page
+                alert('Login details email has been sent');
+            } else {
+                alert('Error: ' + response.message);
+            }
+        }).catch(error => {
+            alert('An error occurred while sending the login details email: ' + error.message);
+        });
+    }
 }

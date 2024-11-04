@@ -8,6 +8,10 @@
  * 
  * It loads the required classes.
  */
+/**
+ * Include the Composer autoloader
+ */
+require 'vendor/autoload.php';
 
 // Load required files
 session_name('nodavuvale_app_session');
@@ -58,13 +62,16 @@ if(!empty($_FILES)) {
             //Include the requested file
             include('system/ajax/' . $method . '.php');
             echo json_encode($response);
+        } elseif ($method=='password_reset' && isset($data['email'])) {
+            include ('system/ajax/password_reset.php');
+            echo json_encode($response);
         } else {
             //User is not logged in
-            echo json_encode(['error' => 'User not logged in']);
+            echo json_encode(['status' => 'error', 'message' => 'User not logged in for '.$method]);
         }
     } else {
         //No method specified
-        echo json_encode(['error' => 'No method specified for file upload']);
+        echo json_encode(['status'=>'error', 'message' => 'No method specified for file upload']);
     }
 } else {
     // Handle JSON data
@@ -93,9 +100,12 @@ if(!empty($_FILES)) {
             // Include the requested file
             include('system/ajax/' . $method . '.php');
             echo json_encode($response);
+        } elseif ($method=='password_reset' && isset($data['email'])) {
+            include ('system/ajax/password_reset.php');
+            echo json_encode($response);
         } else {
             // User is not logged in
-            echo json_encode(['error' => 'User not logged in']);
+            echo json_encode(['status' => 'error', 'message' => 'User not logged in']);
         }
     } else {
         // No method specified

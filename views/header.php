@@ -126,8 +126,15 @@ if(isset($_GET['individual_id'])) {
                 navMenu.classList.add('hidden');
             }
         });
-        document.getElementById('user-menu-button').addEventListener('click', function() {
-            var menu = document.getElementById('user-menu');
-            menu.classList.toggle('hidden');
+        document.addEventListener('DOMContentLoaded', function() {
+            var userMenuButton = document.getElementById('user-menu-button');
+            if (userMenuButton) {
+                userMenuButton.addEventListener('click', function() {
+                    var menu = document.getElementById('user-menu');
+                    if (menu) {
+                        menu.classList.toggle('hidden');
+                    }
+                });
+            }
         });
     </script>
