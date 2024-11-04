@@ -47,9 +47,9 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
 
 ?>
     <div id="findOnTree" class="modal">
-        <div class="modal-content min-w-sm max-h-screen my-5 overflow-y-auto">
+        <div class="modal-content w-3/4 min-w-xs max-h-screen my-5">
             <div class="modal-header">
-                <span id="findOnTreeClose" class="close-story-btn">&times;</span>
+                <span id="findOnTreeClose" class="close-story-btn" onclick="document.getElementById('findOnTree').style.display='none';">&times;</span>
                 <h2 id="findOnTreeTitle" class="text-xl font-bold mb-4 text-center">Find someone on the tree</h2>
             </div>
             <div class="modal-body">
@@ -60,12 +60,12 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
     </div>
 
     <div id="TheFamilyTreeDescription" class="modal">
-        <div class="modal-content min-w-sm max-h-screen my-5 overflow-y-auto">
+        <div class="modal-content w-3/4 min-w-sm h-4/5 max-h-screen my-5">
             <div class="modal-header">
                 <span id="TheFamilyTreeDescriptionClose" class="close-story-btn">&times;</span>
-                <h2 id="TheFamilyTreeDescriptionTitle" class="text-xl font-bold mb-4 text-center">The Family Tree</h2>
+                <h2 id="TheFamilyTreeDescriptionTitle" class="text-xl font-bold mb-4 text-center">Using The Family Tree</h2>
             </div>
-            <div class="modal-body">
+            <div class="modal-body overflow-y-hidden overflow-y-scroll" style="height: 88%">
                 <p>
                     This is the family tree, by default showing the descendants of Soli and Leonard. 
                     You can click on any individual's picture or name to view their information. 
@@ -90,7 +90,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
                         If you <b><i>know for sure</i></b> that something is wrong, and you know the correction, you can edit that family individual and correct it.<br />
                         On the other hand, if you <i>think</i> something is wrong, or your family has a different story, you can create a discussion about that person, and we 
                         can all work together to figure out the truth. Or, alternatively, if the truth can't be found, we can have multiple stories about that person.
-                        <li><b>Can I add more people to the three?</b><br />
+                        <li><b>Can I add more people to the tree?</b><br />
                         Yes. Absolutely. If you know of someone who should be on the tree, you can add them.<br />The trick is to find someone they are related to, visit their "individual" page, and then add them as a spouse, a parent or a child.
                         <li><b>Can I add a sibling to someone?</b><br />Yes you can, but siblings are a little different. You can't add a sibling directly. You need to add the sibling to the parent, as a child of the same parent to another sibling.
                         <li><b>I'm not sure I want information about me to be visible on this page</b><br />

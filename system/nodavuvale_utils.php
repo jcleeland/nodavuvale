@@ -809,7 +809,7 @@ class Utils {
                 JOIN users ON discussions.user_id = users.id
                 LEFT JOIN individuals ON discussions.individual_id = individuals.id
                 WHERE discussions.updated_at > ?
-                ORDER BY is_sticky DESC, updated_at DESC, created_at DESC";
+                ORDER BY updated_at DESC, created_at DESC";
         $discussions = $db->fetchAll($sql, [$last_active['last_view']]);
         //Iterate through the discussions, and find comments
         foreach($discussions as $discussion) {
@@ -825,7 +825,8 @@ class Utils {
                 JOIN discussions ON discussion_comments.discussion_id = discussions.id
                 JOIN users ON discussion_comments.user_id=users.id
                 LEFT JOIN individuals ON discussions.individual_id = individuals.id
-                WHERE discussion_comments.created_at > ?";
+                WHERE discussion_comments.created_at > ?
+                ORDER BY discussion_comments.updated_at DESC, discussion_comments.created_at DESC";
         $comments = $db->fetchAll($sql, [$last_active['last_view']]);
         foreach($comments as $comment) {
             $response['discussions'][$comment['discussionId']]=$comment;
