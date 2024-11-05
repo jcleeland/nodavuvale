@@ -42,7 +42,7 @@ if($auth->getUserRole() === 'admin' && !isset($data['user_id'])) {
 
 //If the user is not an admin, find the user_id from the email address
 if($auth->getUserRole() !== 'admin') {
-    $user = $db->fetchOne("SELECT id FROM users WHERE email = ?", [$data['email']]);
+    $user = $db->fetchOne("SELECT id, first_name, last_name, email FROM users WHERE email = ?", [$data['email']]);
     if(!$user) {
         $response['message']='User not found';
         echo json_encode($response);
@@ -110,7 +110,8 @@ $welcomeEmailMessage='Hi '.$user['first_name'].',
 <hr />
 <p><i>Note: If you do not know what this is and didn\'t want an account on <i>'.$site_name.'</i>, please contact the site administrator.</i></p>
 <p>Lolomas,</p>
-<b><i>'.$site_name.' Admin</i></b>';
+<b><i>Jason ('.$site_name.' Admin)</i></b><br />
+jason@cleeland.org';
 $welcomeEmailSubject='Welcome to '.$site_name.'. This is your account information.';
 
 if(isset($data['action']) && $data['action'] === 'welcome') {

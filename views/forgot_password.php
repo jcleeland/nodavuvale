@@ -15,7 +15,7 @@
         <p class="text-center text-gray-600 mb-6">Enter the email address you use to login below and we will send you a new password.</p>
         <!-- Display error message if login fails or user is unapproved -->
         <div class="mb-4 text-green-500 text-center hidden" id="emailSent">
-            If the login email you provide is registered, you will receive an email with a new password.
+            If the login email you provide is registered, you will shortly receive an email with a new password.
         </div>
         <div class="mb-4">
             <label for="email" class="block text-gray-700">Email</label>

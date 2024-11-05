@@ -473,7 +473,7 @@ class Utils {
         if($since=='1900-01-01 00:00:00') {
             $order = "ORDER BY item_identifier ASC, items.updated ASC";
         } else {
-            $order = "ORDER BY items.updated ASC, item_identifier ASC";
+            $order = "ORDER BY items.updated DESC, item_identifier ASC";
         }
         $query = "
             SELECT items.*, item_groups.item_group_name, files.id as file_id, files.*, 

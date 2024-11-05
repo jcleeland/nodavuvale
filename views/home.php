@@ -2,6 +2,7 @@
 
 // Check if the user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
+$viewnewsince=isset($_SESSION['last_login']) ? $_SESSION['last_login'] : date("Y-m-d H:i:s", strtotime('1 week ago'));
 ?>
 
 <!-- Hero Section -->
@@ -32,7 +33,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 <!-- Conditional Content Section Based on Login Status -->
 <?php if ($is_logged_in): ?>
 <?php
-    $changes=Utils::getNewStuff($user_id, null);
+    $changes=Utils::getNewStuff($user_id, $viewnewsince);
     $summary=array();
     $summary['Discussions']=count($changes['discussions'])>0 ? count($changes['discussions'])." new discussions" : "";
     $summary['Individuals']=count($changes['individuals'])>0 ? count($changes['individuals'])." new individuals" : "";
@@ -120,7 +121,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                                     <div class='nodeBodyText p-1'>
                                         <img src='<?= $keyImagePath ?>' class='nodeImage border object-cover' title='<?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>'>
                                         <span class='bodyName' title='See details for <?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id=<?= $individual['individualId'] ?>&apos;'>
-                                            <?= $individual['tree_first_name'] ?><br>
+                                            <?= explode(" ", $individual['tree_first_name'])[0] ?><br>
                                             <?= $individual['tree_last_name'] ?>
                                         </span><br />
                                         <span class="text-xxs italic">Added by <?= $individual['user_first_name'] . " " . $individual['user_last_name'] ?><br /><?= date("l, d F Y", strtotime($individual['updated']) ) ?></span>
@@ -188,6 +189,11 @@ $is_logged_in = isset($_SESSION['user_id']);
                                                 <b><?= $itemdetail['detail_type'] ?>:</b>
                                             <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
                                                 <a href='?to=family/individual&individual_id=<?=$itemdetail['detail_value'] ?>'><?= $itemdetail['detail_value'] ?></a>
+                                            <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
+                                                <?php print_r($itemdetail); ?>
+                                                <?php if($itemdetail['detail_type'] == "Photo"): ?>
+                                                    <img class="w-3/4 h-auto rounded object-cover" src='<?= $itemdetail['detail_value'] ?>' alt="<?= $itemdetail['detail_value'] ?>"/>)
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
                                             <?php endif; ?>

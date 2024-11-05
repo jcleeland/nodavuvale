@@ -40,9 +40,11 @@ class Auth {
                 $_SESSION['first_name'] = $user['first_name'];
                 $_SESSION['last_name'] = $user['last_name'];
                 $_SESSION['individuals_id'] = $user['individuals_id'];
+                $_SESSION['last_login'] = $user['last_login'];
+                $_SESSION['last_view'] = $user['last_view'];
 
                 // Update the "last_login" timestamp in the database
-                $this->db->query("UPDATE users SET last_login = NOW() WHERE id = ?", [$user['id']]);
+                $this->db->query("UPDATE users SET last_login = NOW(), last_view = NOW() WHERE id = ?", [$user['id']]);
 
                 return self::LOGIN_SUCCESS;  // Login successful
             }

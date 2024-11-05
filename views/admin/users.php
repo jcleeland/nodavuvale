@@ -41,6 +41,7 @@ if(count($users) > 0) {
     echo '<th class="border px-4 py-2">First Name</th>';
     echo '<th class="border px-4 py-2">Last Name</th>';
     echo '<th class="border px-4 py-2">Email</th>';
+    echo '<th class="border px-4 py-2">Last Login</th>';
     echo '<th class="border px-4 py-2">Role</th>';
     echo '<th class="border px-4 py-2">Approved</th>';
     echo '<th class="border px-4 py-2">Tree Id</th>';
@@ -50,12 +51,14 @@ if(count($users) > 0) {
     echo '</thead>';
     echo '<tbody>';
     foreach($users as $user) {
+        $lastlogin=!empty($user['last_login']) ? $web->timeSince($user['last_login']) : 'Never';
         echo '<tr id="user_'.$user['id'].'" class="bg-opacity-10 ';
         if($user['approved'] == 0) { echo "bg-red-700";} else {echo "bg-green-500";}
         echo '">';
         echo '<td class="border px-4 py-2">'.$user['first_name'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['last_name'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['email'].'</td>';
+        echo '<td class="border px-4 py-2">'.$lastlogin.'</td>';
         echo '<td class="border px-4 py-2">'.$user['role'].'</td>';
         echo '<td class="border px-4 py-2 text-center">';
         if($user['approved'] == 0) {
