@@ -2,7 +2,7 @@
 
 // Check if the user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
-$viewnewsince=isset($_SESSION['last_login']) ? $_SESSION['last_login'] : date("Y-m-d H:i:s", strtotime('1 week ago'));
+$viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1 day', strtotime($_SESSION['last_login']))) : date("Y-m-d H:i:s", strtotime('1 week ago'));
 ?>
 
 <!-- Hero Section -->
@@ -217,7 +217,7 @@ $viewnewsince=isset($_SESSION['last_login']) ? $_SESSION['last_login'] : date("Y
                         <div class="flex flex-wrap justify-center">
                         <?php foreach ($changes['files'] as $file): ?>
                             <div class='border rounded p-2 m-2 text-center text-wrap max-w-xs'>
-                            <?= $file['file_description'] ?> added to <?= $file['tree_first_name'] ." ".$file['tree_last_name'] ?><br />
+                            <?= $file['file_description'] ?> added to <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>'><?= $file['tree_first_name'] ." ".$file['tree_last_name'] ?></a><br />
                             <?php if ($file['file_type'] == 'image'): ?>
                                 <img src='<?= $file['file_path'] ?>' class='w-full h-auto rounded' />
                             <?php else: ?>
