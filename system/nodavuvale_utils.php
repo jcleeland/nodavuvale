@@ -21,7 +21,7 @@ class Utils {
      * 4. Processes the tree starting from the root individual and recursively expands all relationships.
      * 5. Returns the tree data as a JSON-encoded string.
      */
-    public static function buildTreeData($rootId, $individuals, $relationships) {
+    public static function buildTreeData($rootId, $individuals, $relationships, $treesettings=array()) {
         $treeData = [];
         
 
@@ -40,11 +40,18 @@ class Utils {
         }
 
         // Recursive function to build the tree nodes
-        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData) {
+        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData, $treesettings) {
             global $rootId;
+
+            // Check if the generation limit is reached
+            if (isset($treesettings['generationsShown']) && $treesettings['generationsShown'] !== 'All' && $generation > $treesettings['generationsShown']) {
+                return null;
+            }
+
             if (!isset($individualLookup[$id]) || in_array($id, $processedIds)) {
                 return null;
             }
+            
             $processedIds[] = $id;
 
             $individual = $individualLookup[$id];
@@ -115,7 +122,7 @@ class Utils {
                 'id' => $individual['id'],
                 'name' => $nodeBodyText,
                 'class' => 'node treegender_'.$gender. ' generation_'.$generation,
-                'depthOffset' => 0
+                'depthOffset' => $treesettings['nodeSize'] ?? 1,
             ];
 
             return $node;
@@ -168,9 +175,9 @@ class Utils {
         }
 
         // Recursive function to build marriage groups and explore all relationships
-        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData) {
+        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData, $treesettings) {
             // Add the individual to the tree
-            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData);
+            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings);
             if (!$individualNode) return null;
 
             $marriages = [];
@@ -183,7 +190,7 @@ class Utils {
 
             // Add all explicit spouses to the marriages list
             foreach ($explicitSpouses as $spouseId) {
-                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData);
+                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings);
                 if ($spouseNode) {
                     $marriages[] = [
                         'spouse' => $spouseNode,
@@ -198,7 +205,7 @@ class Utils {
                 foreach ($relationshipLookup[$id] as $rel) {
                     if ($rel['relationship_type'] === 'child') {
                         $childId = $rel['individual_id_2'];
-                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1, $treeData);
+                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1, $treeData, $treesettings);
                         if ($childNode) {
                             $parentCount = countParents($childId, $relationshipLookup);
 
@@ -215,7 +222,7 @@ class Utils {
                                     }
                                 } else {
                                     // If the other parent isn't in existing spouses, add a new marriage
-                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData);
+                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings);
                                     if ($spouseNode) {
                                         $marriages[] = [
                                             'spouse' => $spouseNode,
@@ -249,7 +256,7 @@ class Utils {
                         'id' => 'unknown_spouse_' . $id,
                         'name' => $unknownNode,
                         'class' => 'node treegender_other generation_'.$generation,
-                        'depthOffset' => 0
+                        'depthOffset' => $treesettings['nodeSize'] ?? 1,
                     ],
                     'children' => $childrenWithSingleParent
                 ];
@@ -290,13 +297,14 @@ class Utils {
                 }
             }
             return null;  // No other parent found
-        }
+        }        
 
         // Process the tree starting from the root and recursively expand all relationships
         $processedIds = [];
-        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1, $treeData);
+        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1, $treeData, $treesettings);
 
         return json_encode($treeData);
+
     }
 
     public static function getParents($individual_id) {

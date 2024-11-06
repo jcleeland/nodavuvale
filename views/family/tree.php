@@ -3,7 +3,39 @@
 // Check if the user is logged in and their role
 $is_admin = ($auth->isLoggedIn() && $auth->getUserRole() === 'admin');
 
+if(isset($_POST['changeTreeSettings'])) {
+    $treeSettings['nodeSize'] = $_POST['treeSize'];
+    $treeSettings['generationsShown'] = $_POST['generationsShown'];
+    $treeSettings['colorScheme'] = $_POST['colorScheme'];
+    $treeSettings['rootId'] = $_POST['treeRootId'];
+    $_SESSION['rootId'] = $_POST['treeRootId'];
+    $_SESSION['treeSettings'] = $treeSettings;
+}
 
+$defaultTreeSettings=[
+    'nodeSize'=>1, //This is the spacing between generations
+    'generationsShown'=>'all', //This is the number of generations shown
+    'colorScheme'=>'gender', //This is the color scheme
+    'rootId'=>Web::getRootId() //This is the root individual
+];
+
+if(isset($_GET['view']) && $_GET['view'] == 'default') {
+    $_SESSION['treeSettings'] = $defaultTreeSettings;
+    $treeSettings = $defaultTreeSettings;
+}
+
+if(isset($_SESSION['treeSettings'])) {
+    //Fill out any empty treesettings with the defaults
+    foreach($defaultTreeSettings as $key=>$value) {
+        if(!isset($_SESSION['treeSettings'][$key])) {
+            $_SESSION['treeSettings'][$key]=$value;
+        }
+    }
+    $treeSettings = $_SESSION['treeSettings'];
+} else {
+    $treeSettings = $defaultTreeSettings;
+    $_SESSION['treeSettings'] = $treeSettings;
+}
 
 
 //Handle form submission for updating individuals
@@ -25,7 +57,8 @@ $individuals = $db->fetchAll("SELECT individuals.*,
                                         AND items.detail_type = 'Key Image'
                                         LIMIT 1), 
                                     '') AS keyimagepath
-                            FROM individuals");
+                            FROM individuals
+                            ORDER BY last_name, first_names");
 $relationships = $db->fetchAll("SELECT * FROM relationships");
 
 $quickindividuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
@@ -41,7 +74,7 @@ include("helpers/quickedit.php");
 
 include("helpers/add_relationship.php");
 
-$tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
+$tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSION['treeSettings']);
 
 // Insert a little button that will allow the user to "copy" the $tree_data to the clipboard just at the beginning of the next section
 
@@ -62,7 +95,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
     <div id="TheFamilyTreeDescription" class="modal">
         <div class="modal-content w-3/4 min-w-sm h-4/5 max-h-screen my-5">
             <div class="modal-header">
-                <span id="TheFamilyTreeDescriptionClose" class="close-story-btn">&times;</span>
+                <span id="TheFamilyTreeDescriptionClose" class="close-story-btn" onclick="document.getElementById('TheFamilyTreeDescription').style.display = 'none';">&times;</span>
                 <h2 id="TheFamilyTreeDescriptionTitle" class="text-xl font-bold mb-4 text-center">Using The Family Tree</h2>
             </div>
             <div class="modal-body overflow-y-hidden overflow-y-scroll" style="height: 88%">
@@ -105,12 +138,6 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
         </div>
 
     </div>
-    <script>
-        //Add a listener to the close button
-        document.getElementById('TheFamilyTreeDescriptionClose').addEventListener('click', function() {
-            document.getElementById('TheFamilyTreeDescription').style.display = 'none';
-        });
-    </script>
     
     <script>
         //When the select with the name "findOnTree" changes, zoom to the selected individual
@@ -145,11 +172,75 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships);
     </script>
 
 <section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How does this work?" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How to use the family tree" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
     <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" onclick="navigator.clipboard.writeText(JSON.stringify(tree))">&#128203;</button>
-    <button class="add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg float-right" title="Add new individual">+</button>
-    <h1 class="text-3xl font-bold mb-6">Family Tree</h1>
+    <button class="hidden add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Add new individual"><i class="fas fa-plus"></i></button>
+    <button class="treesettings bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Tree settings" onclick="document.getElementById('treeSettingsModal').style.display='block';"><i class="fas fa-cog"></i></button>
+    <img class="border border-blue object-cover cursor-pointer ml-1 float-right" style="width: 50px; height: 40px; border-radius: 30%;" src="images/default_avatar.webp" title="Reset the tree to the default view" onclick="window.location.href='?to=family/tree&view=default'" />
+    <h1 class="text-3xl font-bold mb-4">Family Tree</h1>
+
+    <form method='post' id='treeSettingsModal' class='hidden' action='?to=family/tree'>
+    <div class="grid grid-cols-5 gap-4 border rounded mb-1 px-2 text-sm">
+        <!--<div class="modal-content w-3/4 min-w-sm h-4/5 max-h-screen my-5">
+            <div class="modal-header">
+                <span id="treeSettingsModalClose" class="close-story-btn" onclick="document.getElementById('treeSettingsModal').style.display = 'none';">&times;</span>
+                <h2 id="treeSettingsModalTitle" class="text-xl font-bold mb-4 text-center">Tree Settings</h2>
+            </div>
+            <div class="modal-body overflow-y-hidden overflow-y-scroll" style="max-height: 88%">-->
+            <!-- A div that allows 5 columns of settings to be displayed -->
+                <div class="mb-4">
+                    <label for="treeRootId" class="block text-gray-700">Root Individual</label>
+                    <select id="treeRootId" name="treeRootId" class="w-full px-4 py-2 border rounded-lg">
+                        <?php
+                            foreach($individuals as $individual) {
+                                echo "<option value='".$individual['id']."'";
+                                if($individual['id'] == $rootId) {
+                                    echo " selected";
+                                }
+                                echo ">".$individual['first_names']." ".$individual['last_name']."</option>";
+                            }
+                        ?>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="treeNodeSize" class="block text-gray-700">Tree Spacings</label>
+                    <select id="treeNodeSize" name="treeSize" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="1">Normal</option>
+                        <option value="0">Compressed</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="treeGenerationsShown" class="block text-gray-700">Generations Shown</label>
+                    <select id="treeGenerationsShown" name="generationsShown" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="all">All</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="treeColorScheme" class="block text-gray-700">Colours</label>
+                    <select id="treeColorScheme" name="colorScheme" class="w-full px-4 py-2 border rounded-lg">
+                        <option value="gender">Gender</option>
+                        <option value="firstGenLines">1st Gen Lines</option>
+                    </select>
+                </div>
+                <div class="justify-right text-right">
+                    &nbsp;<br />
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2" onclick="document.getElementById('treeSettingsModal').style.display='none';">Hide</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" name="changeTreeSettings">Apply</button>
+                </div>
+    </div>
+    </form>
+    <script>
+        // match the tree settings modal options to the current settings
+        document.getElementById('treeNodeSize').value = '<?= $treeSettings['nodeSize'] ?>';
+        document.getElementById('treeGenerationsShown').value = '<?= $treeSettings['generationsShown'] ?>';
+        document.getElementById('treeColorScheme').value = '<?= $treeSettings['colorScheme'] ?>';
+        document.getElementById('treeRootId').value = '<?= $treeSettings['rootId'] ?>';
+    </script>    
     
     <!-- Family Tree Display -->
     <div id="family-tree" class="familytree"></div>

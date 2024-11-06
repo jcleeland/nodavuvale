@@ -61,17 +61,21 @@
 
 /* Adjust the linage class to ensure connector lines are narrow */
 #family-tree .linage {
-    stroke: #555;            /* Line color */
-    stroke-width: 1.0px;     /* Thin stroke for the lines */
+    stroke: RGB(107, 66, 38);            /* Line color */
+    stroke-width: 4px;     /* Thin stroke for the lines */
     fill: none;              /* Ensure there's no fill */
+    stroke-linejoin: round;  /* Rounded line joins */
+    z-index: 10;
 }
 
 #family-tree .marriage {
     stroke: #7109f8;
-    stroke-width: 1.5px;
+    stroke-width: 4px;
     fill: none;
-    /* make the stroke curved */
+    /* make the stroke ends curved */
     stroke-linecap: round;
+    stroke-linejoin: round;
+    z-index: 9;
 }
 
 #family-tree .treegender_female {
