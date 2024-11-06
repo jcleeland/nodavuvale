@@ -39,8 +39,10 @@ class Utils {
             $relationshipLookup[$rel['individual_id_1']][] = $rel;
         }
 
+        $colors = ['genline_1', 'genline_2', 'genline_3', 'genline_4', 'genline_5', 'genline_6', 'genline_7', 'genline_8', 'genline_9', 'genline_10', 'genline_11', 'genline_12', 'genline_13', 'genline_14', 'genline_15', 'genline_16', 'genline_18', 'genline_19', 'genline_20'];
+
         // Recursive function to build the tree nodes
-        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData, $treesettings) {
+        function addIndividualToTree($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData, $treesettings, $color=null) {
             global $rootId;
 
             // Check if the generation limit is reached
@@ -51,7 +53,7 @@ class Utils {
             if (!isset($individualLookup[$id]) || in_array($id, $processedIds)) {
                 return null;
             }
-            
+
             $processedIds[] = $id;
 
             $individual = $individualLookup[$id];
@@ -117,11 +119,15 @@ class Utils {
                 [$parentLink, $individual['id'], $gender, $keyImage, $fullName, $prefName, $individual['last_name'], $lifeSpan],
                 $nodeBodyTemplate
             );
-
+            if (isset($treesettings['colorScheme']) && $treesettings['colorScheme'] === 'firstGenLines' && $color !== null) {
+                $colourclass = $color;
+            } else {
+                $colourclass = "treegender_".$gender;
+            }
             $node = [
                 'id' => $individual['id'],
                 'name' => $nodeBodyText,
-                'class' => 'node treegender_'.$gender. ' generation_'.$generation,
+                'class' => 'node '.$colourclass.' generation_'.$generation,
                 'depthOffset' => $treesettings['nodeSize'] ?? 1,
             ];
 
@@ -175,9 +181,13 @@ class Utils {
         }
 
         // Recursive function to build marriage groups and explore all relationships
-        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData, $treesettings) {
+        function createMarriageGroup($id, $relationshipLookup, $individualLookup, &$processedIds, $generation, &$treeData, $treesettings, $colors, $color = null) {
+            if (isset($treesettings['generationsShown']) && $treesettings['generationsShown'] !== 'All' && $generation > $treesettings['generationsShown']) {
+                return null;
+            }
+            
             // Add the individual to the tree
-            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings);
+            $individualNode = addIndividualToTree($id, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings, $color);
             if (!$individualNode) return null;
 
             $marriages = [];
@@ -190,7 +200,7 @@ class Utils {
 
             // Add all explicit spouses to the marriages list
             foreach ($explicitSpouses as $spouseId) {
-                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings);
+                $spouseNode = addIndividualToTree($spouseId, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings, $color);
                 if ($spouseNode) {
                     $marriages[] = [
                         'spouse' => $spouseNode,
@@ -205,7 +215,12 @@ class Utils {
                 foreach ($relationshipLookup[$id] as $rel) {
                     if ($rel['relationship_type'] === 'child') {
                         $childId = $rel['individual_id_2'];
-                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1, $treeData, $treesettings);
+                        // Assign a different color to each child of the root individual
+                        $childColor = $color;
+                        if ($generation == 1 && isset($treesettings['colorScheme']) && $treesettings['colorScheme'] === 'firstGenLines') {
+                            $childColor = array_shift($colors);
+                        }
+                        $childNode = createMarriageGroup($childId, $relationshipLookup, $individualLookup, $processedIds, $generation + 1, $treeData, $treesettings, $colors, $childColor);
                         if ($childNode) {
                             $parentCount = countParents($childId, $relationshipLookup);
 
@@ -222,7 +237,7 @@ class Utils {
                                     }
                                 } else {
                                     // If the other parent isn't in existing spouses, add a new marriage
-                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings);
+                                    $spouseNode = addIndividualToTree($otherParent, $relationshipLookup, $individualLookup, $processedIds, $generation, $treeData, $treesettings, $childColor);
                                     if ($spouseNode) {
                                         $marriages[] = [
                                             'spouse' => $spouseNode,
@@ -301,7 +316,7 @@ class Utils {
 
         // Process the tree starting from the root and recursively expand all relationships
         $processedIds = [];
-        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1, $treeData, $treesettings);
+        $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1, $treeData, $treesettings, $colors );
 
         return json_encode($treeData);
 

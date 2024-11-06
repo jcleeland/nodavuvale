@@ -22,6 +22,11 @@ $defaultTreeSettings=[
 if(isset($_GET['view']) && $_GET['view'] == 'default') {
     $_SESSION['treeSettings'] = $defaultTreeSettings;
     $treeSettings = $defaultTreeSettings;
+    $_SESSION['rootId'] = Web::getRootId();
+}
+
+if(isset($_GET['root_id']) && !isset($_POST['changeTreeSettings'])) { //Override other settings if this is in the query string
+    $_SESSION['rootId'] = $_GET['root_id'];
 }
 
 if(isset($_SESSION['treeSettings'])) {
@@ -86,7 +91,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                 <h2 id="findOnTreeTitle" class="text-xl font-bold mb-4 text-center">Find someone on the tree</h2>
             </div>
             <div class="modal-body">
-                <?= Web::showFindIndividualLookAhead($quicklist, 'lookup', 'findOnTree') ?>
+                <?= Web::showFindIndividualLookAhead($quicklist, 'lookup', 'findOnTree', 'Find someone on the tree') ?>
                 <br />&nbsp;<br />
             </div>
         </div>
@@ -177,7 +182,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" onclick="navigator.clipboard.writeText(JSON.stringify(tree))">&#128203;</button>
     <button class="hidden add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Add new individual"><i class="fas fa-plus"></i></button>
     <button class="treesettings bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Tree settings" onclick="document.getElementById('treeSettingsModal').style.display='block';"><i class="fas fa-cog"></i></button>
-    <img class="border border-blue object-cover cursor-pointer ml-1 float-right" style="width: 50px; height: 40px; border-radius: 30%;" src="images/default_avatar.webp" title="Reset the tree to the default view" onclick="window.location.href='?to=family/tree&view=default'" />
+    <img class="border-blue-500 border-2 object-cover cursor-pointer ml-1 float-right" style="width: 50px; height: 40px; border-radius: 30%;" src="images/default_avatar.webp" title="Reset the tree to the default view" onclick="window.location.href='?to=family/tree&view=default'" />
     <h1 class="text-3xl font-bold mb-4">Family Tree</h1>
 
     <form method='post' id='treeSettingsModal' class='hidden' action='?to=family/tree'>
@@ -263,16 +268,6 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                 marriage: 'marriage',
                 text: 'nodeText',
             },
-            connectors: {
-                type: 'curve',  // straight, curve, step, elbow
-                style: {
-                    stroke: '#555',
-                    strokeWidth: 1.5,
-                    strokeLinecap: 'round'
-                },
-                curveRadius: 10,
-                curveFactor: 0.7,
-            },
             callbacks: {
                 nodeClick: function(name, extra) {
                     //console.log(name);
@@ -302,7 +297,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                         var parent = node.parentNode;
                         parent.style.transition = "all 0.5s";
                         parent.style.transformOrigin = "bottom left";
-                        parent.style.transform = "scale(1.2)";
+                        parent.style.transform = "scale(1.1)";
                         setTimeout(function() {
                             parent.style.transform = "scale(1)";
                         }, 600);

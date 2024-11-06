@@ -10,23 +10,23 @@
         <p class="mt-4 text-lg">
             The family of Soli Nataleira's descendants is spread far and wide, but through this project, 
             we aim to trace, connect, and document the genealogy of our people. By sharing our stories, 
-            we honor our ancestors and strengthen our connection to one another.
+            we honour our ancestors and strengthen our connection to one another.
         </p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Genealogy Section -->
-        <div class="p-6 bg-white shadow-lg rounded-lg">
-            <h3 class="text-2xl font-bold">Genealogy Research</h3>
+        <div class="p-6 bg-white shadow-lg rounded-lg cursor-pointer" onClick="window.location='?to=family/tree';">
+            <h3 class="text-2xl font-bold">Soli's Family Tree</h3>
             <p class="mt-2">Dive into the history and explore the roots of our family tree.</p>
             <a href="?to=family/tree" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>
 
         <!-- Find yourself -->
         <div class="p-6 bg-white shadow-lg rounded-lg">
-            <h3 class="text-2xl font-bold">Link yourself in</h3>
-            <p class="mt-2">We want to make sure Soli's family tree is accurate - and who better to confirm the details than you?</p>
-            <a href="?to=family/tree" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
+            <h3 class="text-2xl font-bold">Living History</h3>
+            <p class="mt-2">Fijian culture treasures family connections. Explore Soli's living legacy.</p>
+            <a href="?to=family/tree/users" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>
 
         <!-- Family Stories Section -->

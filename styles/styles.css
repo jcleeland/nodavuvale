@@ -490,7 +490,7 @@
 
 .gender_female {
     /* Earthy green with gradient */
-    background: linear-gradient(to right, #a8d5ba, #7bb38d);
+    background: linear-gradient(to bottom, #a8d5ba, #7bb38d);
 }
 
 .text-shadow-female {
@@ -514,6 +514,156 @@
 .text-shadow-other {
     text-shadow: -2px -2px 4px #c8c0e7;
 }
+
+/**********************************************
+*  Generation Line background Styles
+*  Twenty styles in the format "genline_1" to "genline_20"
+*  with strong, diverse and distinct background colors to indicate generational lines
+*  of descendants.
+***********************************************/
+.genline_1 {
+    background: linear-gradient(to bottom, #f5f5dc, #eeeebe);
+}
+.text-shadow-genline_1 {
+    text-shadow: -2px -2px 4px #f5f5dc;
+}
+
+.genline_2 {
+    background: linear-gradient(to bottom, #ffcccb, #ffb6b6);
+}
+.text-shadow-genline_2 {
+    text-shadow: -2px -2px 4px #ffcccb;
+}
+
+.genline_3 {
+    background: linear-gradient(to bottom, #add8e6, #87ceeb);
+}
+.text-shadow-genline_3 {
+    text-shadow: -2px -2px 4px #add8e6;
+}
+
+.genline_4 {
+    background: linear-gradient(to bottom, #90ee90, #7ccd7c);
+}
+.text-shadow-genline_4 {
+    text-shadow: -2px -2px 4px #90ee90;
+}
+
+.genline_5 {
+    background: linear-gradient(to bottom, #ffb6c1, #ff91a4);
+}
+.text-shadow-genline_5 {
+    text-shadow: -2px -2px 4px #ffb6c1;
+}
+
+.genline_6 {
+    background: linear-gradient(to bottom, #ffa07a, #ff7f50);
+}
+.text-shadow-genline_6 {
+    text-shadow: -2px -2px 4px #ffa07a;
+}
+
+.genline_7 {
+    background: linear-gradient(to bottom, #20b2aa, #3cb371);
+}
+.text-shadow-genline_7 {
+    text-shadow: -2px -2px 4px #20b2aa;
+}
+
+.genline_8 {
+    background: linear-gradient(to bottom, #87cefa, #00bfff);
+}
+.text-shadow-genline_8 {
+    text-shadow: -2px -2px 4px #87cefa;
+}
+
+.genline_9 {
+    background: linear-gradient(to bottom, #778899, #708090);
+}
+.text-shadow-genline_9 {
+    text-shadow: -2px -2px 4px #778899;
+}
+
+.genline_10 {
+    background: linear-gradient(to bottom, #b0c4de, #a2b5cd);
+}
+.text-shadow-genline_10 {
+    text-shadow: -2px -2px 4px #b0c4de;
+}
+
+.genline_11 {
+    background: linear-gradient(to bottom, #ffdead, #ffdab9);
+}
+.text-shadow-genline_11 {
+    text-shadow: -2px -2px 4px #ffdead;
+}
+
+.genline_12 {
+    background: linear-gradient(to bottom, #e9967a, #cd5c5c);
+}
+.text-shadow-genline_12 {
+    text-shadow: -2px -2px 4px #e9967a;
+}
+
+.genline_13 {
+    background: linear-gradient(to bottom, #f08080, #fa8072);
+}
+.text-shadow-genline_13 {
+    text-shadow: -2px -2px 4px #f08080;
+}
+
+.genline_14 {
+    background: linear-gradient(to bottom, #fafad2, #ffffe0);
+}
+.text-shadow-genline_14 {
+    text-shadow: -2px -2px 4px #fafad2;
+}
+
+.genline_15 {
+    background: linear-gradient(to bottom, #d3ffce, #c1ffc1);
+}
+.text-shadow-genline_15 {
+    text-shadow: -2px -2px 4px #d3ffce;
+}
+
+.genline_16 {
+    background: linear-gradient(to bottom, #ffefd5, #ffe4b5);
+}
+.text-shadow-genline_16 {
+    text-shadow: -2px -2px 4px #ffefd5;
+}
+
+.genline_17 {
+    background: linear-gradient(to bottom, #ffe4e1, #ffb6c1);
+}
+.text-shadow-genline_17 {
+    text-shadow: -2px -2px 4px #ffe4e1;
+}
+
+.genline_18 {
+    background: linear-gradient(to bottom, #f0e68c, #eee8aa);
+}
+.text-shadow-genline_18 {
+    text-shadow: -2px -2px 4px #f0e68c;
+}
+
+.genline_19 {
+    background: linear-gradient(to bottom, #dda0dd, #ee82ee);
+}
+.text-shadow-genline_19 {
+    text-shadow: -2px -2px 4px #dda0dd;
+}
+
+.genline_20 {
+    background: linear-gradient(to bottom, #ffdab9, #ffdead);
+}
+.text-shadow-genline_20 {
+    text-shadow: -2px -2px 4px #ffdab9;
+}
+
+
+
+
 /**********************************************
 *  Communications Section Styles
 ***********************************************/
