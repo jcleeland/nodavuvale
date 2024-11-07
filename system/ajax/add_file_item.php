@@ -35,6 +35,7 @@ $checksql = "SELECT item_id FROM items WHERE item_identifier = ? AND detail_type
  * 
  */
 if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+    $response['log'][] = 'File upload detected';
     //Find out if this is an image or a document
     $file_type = $data['file']['type'];
     $file_type = explode('/', $file_type);
@@ -45,9 +46,11 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
     $file_name = basename($_FILES['file']['name']);
     $file_path = $upload_dir . uniqid() . '_' . $file_name;
     $file_format = pathinfo($file_name, PATHINFO_EXTENSION);
+    $response['log'][] = 'File path set: '.$file_path;
     
     // Move the file to the designated directory
     if (move_uploaded_file($_FILES['file']['tmp_name'], $file_path)) {
+        $response['log'][] = 'File moved to '.$file_path;
         try {
             // Begin transaction
             $db->beginTransaction();
@@ -55,15 +58,18 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             $item_id = null;  // Initialize the item_id to null in case there's no event
 
             if (!empty($events) && is_array($events)) {
+                $response['log'][] = 'Events array detected';
                 if($event_count < 2) {
                     $new_item_identifier = null; // Default scenario for a single item is that there is no need for a new item_identifier
                 }
                 
                 foreach($events as $event) {
+                    $response['log'][] = 'Processing event: '.json_encode($event);
                     $event_type = $event['event_type'];         //eg "Date"
                     $event_detail = $event['event_detail'];     //eg "2000-01-01"
                     
                     if(isset($event['item_identifier']) && !empty($event['item_identifier'])) {
+                        $response['log'][] = 'Item identifier detected so this is part of a group: '.$event['item_identifier'];
                         /** This is a new item for an existing event/items group
                          *  - so we need to check if this item_identifier already exists in the database
                          *  - if it does, we update the item with the new event_detail
@@ -83,12 +89,16 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
                             $filelink_item_ids[]=$this_item_id;
                         }
                     } else {
+                        $response['log'][] = 'No item identifier detected so this is a single item event';
                         $item_identifier = $new_item_identifier;
                         $db->insert($event_insert_sql, [$event_type, $event_detail, $item_identifier, $user_id]);
                         $this_item_id = $db->lastInsertId(); // Get the ID of the inserted event
                         $item_ids[]=$this_item_id;
+                        $response['log'][] = 'A new Item ID has been generated: '.$this_item_id;
                         if($item_styles[str_replace(" ", "_", $event_type)] == "file") {
+                            $response['log'][] = 'This is a file type event so we need to link the file to this item';
                             $filelink_item_ids[]=$this_item_id;
+                            $response['log'][] = 'File link added to filelink_item_ids array ('.$this_item_id.')';
                         }
                     }
                 }
@@ -110,12 +120,14 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             }
             
             // Insert the file metadata into the 'files' table
+            $response['log'][] = 'Inserting file metadata into the files table';
             $file_insert_sql = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) 
                                 VALUES (?, ?, ?, ?, ?)";
             $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description, $user_id]);
             $file_id = $db->lastInsertId(); // Get the ID of the uploaded file
             $response['sql']['file_insert_sql'][] = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) VALUES ('$file_type', '$file_path', '$file_format', '$file_description', $user_id)";
             if(empty($filelink_item_ids)) { //If this is a file that isn't associated with an event, better create a file link
+                $response['log'][] = 'No file link items detected so this is a standalone file - creating a file link anyway with the file_id as '.$file_id.' and the individual_id as '.$individual_id.'';
                 $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id) VALUES ($file_id, $individual_id)";
                 $file_link_sql = "INSERT INTO file_links (file_id, individual_id) VALUES (?, ?)";
                 $db->insert($file_link_sql, [$file_id, $individual_id]);

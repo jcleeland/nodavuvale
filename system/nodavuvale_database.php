@@ -31,14 +31,14 @@ class Database {
 
     public function query($sql, $params = []) {
         try {
+            //Update users last_view time (do this before anything else, so that the lastInsertId() function works correctly)
+            if(isset($_SESSION['user_id'])) {
+                $currentTimeStamp=date("Y-m-d H:i:s");
+                $lastviewsql = "UPDATE users SET last_view = ? WHERE id = ?";
+                $this->pdo->prepare($lastviewsql)->execute([$currentTimeStamp, $_SESSION['user_id']]);
+            }            
             $stmt = $this->pdo->prepare($sql);
             if($stmt->execute($params)) {
-                //Update users last_view time
-                if(isset($_SESSION['user_id'])) {
-                    $currentTimeStamp=date("Y-m-d H:i:s");
-                    $lastviewsql = "UPDATE users SET last_view = ? WHERE id = ?";
-                    $this->pdo->prepare($lastviewsql)->execute([$currentTimeStamp, $_SESSION['user_id']]);
-                }
                 return $stmt;
             } else {
                 //Log the error details

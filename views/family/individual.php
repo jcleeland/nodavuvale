@@ -466,7 +466,7 @@ if ($individual_id) {
 
             <!-- Display Spouse(s) -->
             <div class="text-center p-2">
-                <h3 class="text-2xl font-bold mt-8 mb-4 relative">
+                <h3 class="text-2xl font-bold mt-8 mb-4 relative cursor-help" title="Spouses are significant relationships to the individual - it could be someone they married, or someone they had a child with, or someone that they have a deep personal relationship to. A spouse relationship is not just formed by a marriage, but rather by a significant relationship as determined by the individual themself (which could include a marriage) or as a result of parenting children together.">
                     Spouses
                     <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a spouse to <?= $individual['first_name'] ?>" onclick="openModal('add_spouse', '<?= $individual['id'] ?>', '<?= $individual['gender'] ?>');">
                         <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
