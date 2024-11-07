@@ -35,8 +35,9 @@ class Database {
             if($stmt->execute($params)) {
                 //Update users last_view time
                 if(isset($_SESSION['user_id'])) {
-                    $lastviewsql = "UPDATE users SET last_view = NOW() WHERE id = ?";
-                    $this->pdo->prepare($lastviewsql)->execute([$_SESSION['user_id']]);
+                    $currentTimeStamp=date("Y-m-d H:i:s");
+                    $lastviewsql = "UPDATE users SET last_view = ? WHERE id = ?";
+                    $this->pdo->prepare($lastviewsql)->execute([$currentTimeStamp, $_SESSION['user_id']]);
                 }
                 return $stmt;
             } else {

@@ -137,12 +137,12 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                             $activityclass = strtotime($visitor['last_view']) > strtotime('-10 minutes') ? 'useronline' : 'useroffline';
                             $timeprefix = strtotime($visitor['last_view']) > strtotime('-10 minutes') ? 'is visiting' : 'dropped by';
                             ?>
-                                <div class="text-left max-w-sm mt-2 p-1 border rounded <?= $activityclass ?> max-w-48"> 
+                                <div class="text-left w-64 mt-2 p-1 border rounded <?= $activityclass ?>"> 
                                 <?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover"); ?>
-                                    <div class='visitors-content text-left pr-1'>
+                                    <div class='visitors-content text-center pr-1'>
                                         <div>
                                             <b><?= $visitor['first_name'] ?>&nbsp;<?= $visitor['last_name'] ?></b> <?= $timeprefix ?> 
-                                            <?= $web->timeSince($visitor['last_view']); ?>.
+                                            <?= $web->timeSince($visitor['last_view']); ?>. (<?= date("d M Y h:i:s", strtotime($visitor['last_view'])) ?> -> <?= date("d M Y h:i:s", strtotime('-10 minutes')) ?>)
                                         </div>
                                     </div>
                                 </div>
