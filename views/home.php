@@ -4,7 +4,6 @@
 $is_logged_in = isset($_SESSION['user_id']);
 // Set the default "view new" as being the last login time
 $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1 day', strtotime($_SESSION['last_login']))) : date("Y-m-d H:i:s", strtotime('1 week ago'));
-
 ?>
 
 <!-- Hero Section -->
@@ -82,6 +81,9 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
 
                 <div class="tab-content active" id="visitorstab">
                         <div class="flex flex-wrap justify-center">
+                        <?php if(empty($changes['visitors'])): ?>
+                            <div class="text-center text-gray-500">No visitors at the moment.</div>
+                        <?php endif; ?>
                         <?php foreach ($changes['visitors'] as $visitor): ?>
                             <?php
                             // if strtotime($visitor['last_view']) is less then 10 minutes ago, then show the visitor as online
@@ -105,6 +107,9 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
 
                     <div class="tab-content" id="discussionstab">
                         <div class="flex flex-wrap justify-center">
+                        <?php if(empty($changes['discussions'])): ?>
+                            <div class="text-center text-gray-500">No new discussions at the moment.</div>
+                        <?php endif; ?>
                         <?php foreach ($changes['discussions'] as $discussion): ?>
                             <div class='border shadow-xl float-left rounded px-0 pt-0 pb-2 m-2 max-w-48 text-center relative max-w-xs leading-tight bg-gray-800 bg-opacity-10'>
                                 <div class="w-full text-xs pt-0 pt-1 pb-1 ml-0 mr-0 mt-0 bg-brown rounded-t text-white">
@@ -134,6 +139,9 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                     </div>
                     <div class="tab-content active" id="individualstab">
                         <div class="flex flex-wrap justify-center" id="family-tree">
+                        <?php if(empty($changes['individuals'])): ?>
+                            <div class="text-center text-gray-500">No new family members at the moment.</div>
+                        <?php endif; ?>
                         <?php foreach ($changes['individuals'] as $individual): ?>
                             <?php $keyImagePath=$individual['keyimagepath'] ? $individual['keyimagepath'] : "images/default_avatar.webp"; ?>
                             <div width="100px" height="170px" class="m-2">
@@ -158,6 +166,10 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                     <div class="tab-content" id="eventstab">
                         <div class="flex flex-wrap justify-center">
                         <?php $itemlist=array(); //Set up the final item list to show all items according to their type/group ?>
+                        <?php
+                        if(empty($changes['items'])): ?>
+                            <div class="text-center text-gray-500">No new items at the moment.</div>
+                        <?php endif; ?>
                         <?php foreach ($changes['items'] as $key=>$itemgroup) : ?>
                                 <?php 
                                 if($key != "Singleton"):
@@ -225,6 +237,9 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
 
                     <div class="tab-content" id="filestab">
                         <div class="flex flex-wrap justify-center">
+                        <?php if(empty($changes['files'])): ?>
+                            <div class="text-center text-gray-500">No new media files at the moment.</div>
+                        <?php endif; ?>
                         <?php foreach ($changes['files'] as $file): ?>
                             <div class='border rounded p-2 m-2 text-center text-wrap w-48 shadow-xl text-sm'>
                             <?= $file['file_description'] ?>
