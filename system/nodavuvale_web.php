@@ -77,8 +77,10 @@ class Web {
     
     /** time ago */
     public static function timeSince($timestamp) {
-        $created_at = new DateTime($timestamp, new DateTimeZone('Australia/Sydney')); // Set the timezone to Australia/Sydney
-        $now = new DateTime('now', new DateTimeZone('Australia/Sydney')); // this is getting Australian Eastern Standard Time (AEST)
+        //$created_at = new DateTime($timestamp, new DateTimeZone('Australia/Sydney')); // Set the timezone to Australia/Sydney
+        //$now = new DateTime('now', new DateTimeZone('Australia/Sydney')); // this is getting Australian Eastern Standard Time (AEST)
+        $created_at = new DateTIme($timestamp);
+        $now = new DateTime('now');
         $interval = $created_at->diff($now);
         if ($interval->y > 0) {
             $time_ago = $interval->y . ' year' . ($interval->y > 1 ? 's' : '') . ' ago';
