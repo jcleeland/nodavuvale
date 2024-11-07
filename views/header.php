@@ -31,6 +31,17 @@ if(isset($_GET['individual_id'])) {
 
 
 </head>
+
+<?php
+//If user is admin show the SESSION information
+if($auth->getUserRole() == 'admin') {
+    echo "<!-- SESSION INFO: ";
+    print_r($_SESSION);
+    echo " -->";
+}
+?>
+
+
 <body class="bg-cream text-brown font-sans">
 <input type='hidden' id='js_user_id' value='<?= isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '' ?>'>
 
@@ -63,15 +74,15 @@ if(isset($_GET['individual_id'])) {
             </div>
             
             <!-- Navigation Options -->
-            <nav class="hidden md:flex flex-grow justify-end text-right space-x-4">
+            <nav class="hidden sm:flex flex-grow justify-end text-right space-x-4">
                 <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/" class="text-white hover:text-burnt-orange">Family</a>
                 <a href="?to=village/" class="text-white hover:text-burnt-orange">Village</a>
-                <a href="?to=communications/" class="text-white hover:text-burnt-orange">Communications</a>
+                <a href="?to=communications/" class="text-white hover:text-burnt-orange">Chat</a>
             </nav>
             
             <!-- Mobile Navigation Toggle Button -->
-            <div class="flex-grow md:hidden text-right">
+            <div class="flex-grow sm:hidden text-right">
                 <button id="nav-toggle" class="text-white hover:text-burnt-orange focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M8 12h8m-4 6h2m-2"></path>

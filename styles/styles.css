@@ -16,6 +16,10 @@
         --deep-green-red: 47;
         --deep-green-green: 79;
         --deep-green-blue: 79; 
+    --fiji-green: RGB(0, 128, 0);
+        --fiji-green-red: 0;
+        --fiji-green-green: 128;
+        --fiji-green-blue: 0;
     --ocean-blue: RGB(0, 119, 182);
         --ocean-blue-red: 0;
         --ocean-blue-green: 119;
@@ -454,8 +458,7 @@
 *  Family Tree Container
 ***********************************************/
 .familytree {
-    background-color: rgba(var(--brown-red), var(--brown-green), var(--brown-blue), 0.2);
-    border: 1px solid #d1d1ac;
+    padding: 5px;
 }
 
 /* Dropdown menu, initially hidden */
@@ -912,6 +915,18 @@
     color: rgb(230, 227, 227);
     cursor: pointer;
     z-index: 100;
+}
+
+/**********************************************
+* Online or offline classes
+***********************************************/
+.useronline {
+    background-color: rgba(var(--fiji-green-red), var(--fiji-green-green), var(--fiji-green-blue), 0.4)
+
+}
+
+.useroffline {
+    background-color: #f8e9e8;
 }
 
 

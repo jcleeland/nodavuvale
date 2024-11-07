@@ -186,7 +186,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     <h1 class="text-3xl font-bold mb-4">Family Tree</h1>
 
     <form method='post' id='treeSettingsModal' class='hidden' action='?to=family/tree'>
-    <div class="grid grid-cols-5 gap-4 border rounded mb-1 px-2 text-sm">
+    <div class="grid grid-cols-5 gap-4 bg-burnt-orange-800 nv-bg-opacity-10 border rounded mb-1 px-2 pb-1 text-sm overflow-hidden overflow-x-scroll">
         <!--<div class="modal-content w-3/4 min-w-sm h-4/5 max-h-screen my-5">
             <div class="modal-header">
                 <span id="treeSettingsModalClose" class="close-story-btn" onclick="document.getElementById('treeSettingsModal').style.display = 'none';">&times;</span>
@@ -194,8 +194,8 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
             </div>
             <div class="modal-body overflow-y-hidden overflow-y-scroll" style="max-height: 88%">-->
             <!-- A div that allows 5 columns of settings to be displayed -->
-                <div class="mb-4">
-                    <label for="treeRootId" class="block text-gray-700">Root Individual</label>
+                <div class="mt-2 mb-1">
+                    <label for="treeRootId" class="block text-gray-500 text-xs overflow-hidden">Root&nbsp;Individual</label>
                     <select id="treeRootId" name="treeRootId" class="w-full px-4 py-2 border rounded-lg">
                         <?php
                             foreach($individuals as $individual) {
@@ -208,34 +208,39 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                         ?>
                     </select>
                 </div>
-                <div class="mb-4">
-                    <label for="treeNodeSize" class="block text-gray-700">Tree Spacings</label>
+                <div class="mt-2 mb-1">
+                    <label for="treeNodeSize" class="block text-gray-500 text-xs overflow-hidden">Tree&nbsp;Spacings</label>
                     <select id="treeNodeSize" name="treeSize" class="w-full px-4 py-2 border rounded-lg">
                         <option value="1">Normal</option>
                         <option value="0">Compressed</option>
                     </select>
                 </div>
-                <div class="mb-4">
-                    <label for="treeGenerationsShown" class="block text-gray-700">Generations Shown</label>
+                <div class="mt-2 mb-1">
+                    <label for="treeGenerationsShown" class="block text-gray-500 text-xs overflow-hidden">Generations&nbsp;Shown</label>
                     <select id="treeGenerationsShown" name="generationsShown" class="w-full px-4 py-2 border rounded-lg">
                         <option value="all">All</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
                         <option value="4">4</option>
                         <option value="5">5</option>
+                        <option value="6">6</option>
                     </select>
                 </div>
-                <div class="mb-4">
-                    <label for="treeColorScheme" class="block text-gray-700">Colours</label>
+                <div class="mt-2 mb-1">
+                    <label for="treeColorScheme" class="block text-gray-500 text-xs overflow-hidden">Colours&nbsp;Shown<br /></label>
                     <select id="treeColorScheme" name="colorScheme" class="w-full px-4 py-2 border rounded-lg">
                         <option value="gender">Gender</option>
-                        <option value="firstGenLines">1st Gen Lines</option>
+                        <option value="firstGenLines">1st Generation Lines</option>
                     </select>
                 </div>
-                <div class="justify-right text-right">
+                <div class="justify-right text-right whitespace-nowrap mt-2 mb-1">
                     &nbsp;<br />
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2" onclick="document.getElementById('treeSettingsModal').style.display='none';">Hide</button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" name="changeTreeSettings">Apply</button>
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-1" onclick="document.getElementById('treeSettingsModal').style.display='none';">
+                        <i class='fas fa-eye-slash'></i>
+                    </button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" name="changeTreeSettings">
+                        <i class="fas fa-check"></i>
+                    </button>
                 </div>
     </div>
     </form>
@@ -248,7 +253,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     </script>    
     
     <!-- Family Tree Display -->
-    <div id="family-tree" class="familytree"></div>
+    <div id="family-tree" class="familytree bg-burnt-orange-800 nv-bg-opacity-10 border rounded"></div>
 
     <script>
         var tree = <?= $tree_data; ?>;

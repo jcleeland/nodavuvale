@@ -2,7 +2,9 @@
 
 // Check if the user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
+// Set the default "view new" as being the last login time
 $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1 day', strtotime($_SESSION['last_login']))) : date("Y-m-d H:i:s", strtotime('1 week ago'));
+
 ?>
 
 <!-- Hero Section -->
@@ -49,20 +51,20 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
     <!-- Changes and Updates Section -->
     <section class="container mx-auto py-12 px-4 sm:px-3 xs:px-2 lg:px-8 pt-10">
         <h3 class="text-2xl font-bold"><i class="fas fa-bell" title="Changes and updates since <?= date("l, d F Y", strtotime($changes['last_view'])) ?>"></i> Recent changes</h3>
-        <div class="relative pt-6 xs:pt-1">
+        <div id="recentchanges" class="relative pt-6 xs:pt-1">
             <div class="tabs absolute -top-0 text-lg gap-2">
                 <div class="active tab px-4 py-2 h-11" data-tab="discussionstab">
                     <span class="hidden sm:inline">Chats</span>
                     <span class="sm:hidden" title="Chats"><i class="fas fa-comments"></i></span>
                 </div>
+                <div class="tab px-4 py-2 h-11" data-tab="visitorstab">
+                    <span class="hidden sm:inline">Visitors</span>
+                    <span class="sm:hidden" title="Visitors"><i class="fas fa-heart"></i></span>
+                </div>
                 <div class="tab px-4 py-2 h-11" data-tab="individualstab">
-                    <span class="hidden sm:inline">Family</span>
+                    <span class="hidden sm:inline">Tree</span>
                     <span class="sm:hidden" title="Family"><i class="fas fa-users"></i></span>
                 </div>
-                <!--<div class="tab px-4 py-2 h-11" data-tab="relationshipstab">
-                    <span class="hidden sm:inline">Relationships</span>
-                    <span class="sm:hidden" title="Relationships"><i class="fas fa-heart"></i></span>
-                </div>-->
                 <div class="tab px-4 py-2 h-11" data-tab="eventstab">
                     <span class="hidden sm:inline">Events</span>
                     <span class="sm:hidden" title="Events"><i class="fas fa-calendar-alt"></i></span>
@@ -101,13 +103,6 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                                         <p class="text-sm"><?= $web->truncateText($discussion['content'], 10, "Read more", "discussion_".$discussion['discussionId']) ?></p>
                                     </div>
                                 </div>
-
-
-                                <!--<div class="px-1 pt-1 pb-1 max-w-xs leading-none">
-                                    <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "avatar-float-left object-cover"); ?>
-                                    <a href='<?= $url ?>'><?= $discussion['title'] ?></a><br />
-                                    <div class='absolute bottom-1 right-1 text-xxs whitespace-no-wrap bg-white-800 bg-opacity-20'>Added by <?= $discussion['user_first_name'] . " " . $discussion['user_last_name'] ?></div>
-                                </div>-->
                             </div>
                         <?php endforeach; ?>
                         </div>
@@ -131,18 +126,29 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                         <?php endforeach; ?>
                         </div>
                     </div>
-                    <!--<div class="tab-content" id="relationshipstab">
+
+
+
+                    <div class="tab-content" id="visitorstab">
                         <div class="flex flex-wrap justify-center">
-                        <?php //foreach ($changes['relationships'] as $relationship): ?>
-                            <div class='border rounded p-2 m-2 text-center text-sm'>
-                                <a href='?to=family/individual&individual_id=<?=$relationship['object_individualId'] ?>'><?= $relationship['object_first_names'] ?> <?= $relationship['object_last_name'] ?></a><br />
-                                marked as a <?= $relationship['relationship_type'] ?> of<br />
-                                <a href='?to=family/individual&individual_id=<?=$relationship['subject_individualId'] ?>'><?= $relationship['subject_first_names'] ?> <?= $relationship['subject_last_name'] ?></a><br />
-                                <span class="text-xxs">Connection made <?= $relationship['updated'] ?></span>
-                            </div>
-                        <?php //endforeach; ?>
+                        <?php foreach ($changes['visitors'] as $visitor): ?>
+                            <?php
+                            // if strtotime($visitor['last_view']) is less then 10 minutes ago, then show the visitor as online
+                            $activityclass = strtotime($visitor['last_view']) > strtotime('-30 minutes') ? 'useronline' : 'useroffline';
+                            $timeprefix = strtotime($visitor['last_view']) > strtotime('-30 minutes') ? 'is visiting' : 'visited';
+                            ?>
+                                <div class="text-left max-w-sm mt-2 p-1 border rounded <?= $activityclass ?>"> 
+                                <?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover"); ?>
+                                    <div class='visitors-content text-left pr-1'>
+                                        <div>
+                                            <b><?= $visitor['first_name'] ?>&nbsp;<?= $visitor['last_name'] ?></b> <?= $timeprefix ?> 
+                                            <span title="<?= date('F j, Y, g:i a', strtotime($visitor['last_view'])) ?>"><?= $web->timeSince($visitor['last_view']); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                        <?php endforeach; ?>
                         </div>
-                    </div>-->
+                    </div>
 
                     
                     <div class="tab-content" id="eventstab">

@@ -33,6 +33,11 @@ class Database {
         try {
             $stmt = $this->pdo->prepare($sql);
             if($stmt->execute($params)) {
+                //Update users last_view time
+                if(isset($_SESSION['user_id'])) {
+                    $lastviewsql = "UPDATE users SET last_view = NOW() WHERE id = ?";
+                    $this->pdo->prepare($lastviewsql)->execute([$_SESSION['user_id']]);
+                }
                 return $stmt;
             } else {
                 //Log the error details

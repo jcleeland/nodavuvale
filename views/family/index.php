@@ -26,7 +26,7 @@
         <div class="p-6 bg-white shadow-lg rounded-lg">
             <h3 class="text-2xl font-bold">Living History</h3>
             <p class="mt-2">Fijian culture treasures family connections. Explore Soli's living legacy.</p>
-            <a href="?to=family/tree/users" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
+            <a href="?to=family/users" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>
 
         <!-- Family Stories Section -->

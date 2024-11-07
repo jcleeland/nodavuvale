@@ -101,17 +101,17 @@ class Utils {
                     {individualLifeSpan}
                 </span>
             </div>
-            <button class='text-sm md:text-md ft-view-btn float-right' title='Start tree at this individual' onclick='window.location.href=&apos;?to=family/tree&amp;root_id={individualId}&apos;'>
-                ➜
-            </button>
-            <span class='float-left inline'>&nbsp;</span>
-            <button class='text-sm md:text-md ft-edit-btn float-left' title='Edit this individual' onclick='editIndividualFromTreeNode(&apos;{individualId}&apos;)'>
-                📝
-            </button>
-            <span class='inline float-right'>&nbsp;</span>
-            <button class='text-sm md:text-md ft-dropdown-btn ' title='Add a relationship to this individual' onclick='addRelationshipToIndividualFromTreeNode(this)'>
-                🔗
-            </button>";
+            <div class='flex justify-between items-center'>
+                <button class='text-sm md:text-md ft-edit-btn' title='Edit this individual' onclick='editIndividualFromTreeNode(&apos;{individualId}&apos;)'>
+                    <i class='fas fa-edit text-ocean-blue'></i>
+                </button>
+                <button class='text-sm md:text-md ft-dropdown-btn' title='Add a relationship to this individual' onclick='addRelationshipToIndividualFromTreeNode(this)'>
+                    <i class='fas fa-link text-ocean-blue'></i>
+                </button>
+                <button class='text-sm md:text-md ft-view-btn' title='Start tree at this individual' onclick='window.location.href=&apos;?to=family/tree&amp;root_id={individualId}&apos;'>
+                    <i class='fas fa-arrow-right text-ocean-blue'></i>
+                </button>        
+            </div>";
             
             // Replace the template placeholders with actual values
             $nodeBodyText = str_replace(
@@ -881,6 +881,15 @@ class Utils {
         $individuals = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['individuals']=$individuals;
 
+        //Get all visitors to the site for the last 24 hours
+        $sql = "SELECT users.first_name, users.last_name, users.id as user_id, 
+                avatar, MAX(last_view) as last_view
+                FROM users 
+                WHERE last_view > ?
+                GROUP BY users.id
+                ORDER BY last_view DESC";
+        $visitors = $db->fetchAll($sql, [date('Y-m-d H:i:s', strtotime('-3 days'))]);
+        $response['visitors']=$visitors;
 
         // Get all relationships that have been updated since the user was last active
         /* $sql = "SELECT subject_individual.first_names as subject_first_names, subject_individual.last_name as subject_last_name, 
