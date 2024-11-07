@@ -24,13 +24,15 @@ if ($is_admin && isset($_GET['user_id'])) {
 // Fetch the user’s account details to be edited
 $user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
 
+// Check if the form was submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accountUpdate'])) {
     $first_name = trim($_POST['first_name']);
     $last_name = trim($_POST['last_name']);
-    $relative_name = trim($_POST['relative_name']);
-    $relationship = trim($_POST['relationship']);
+    //$relative_name = trim($_POST['relative_name']);
+    //$relationship = trim($_POST['relationship']);
     $email = trim($_POST['email']);
     $individuals_id = trim($_POST['individuals_id']);
+    $show_presence = isset($_POST['show_presence']) ? 1 : 0;
     
     // Admin-only fields
     $approved = isset($_POST['approved']) ? 1 : 0;
@@ -48,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accountUpdate'])) {
     }
 
     // Validate other fields
-    if (!isset($error) && !empty($first_name) && !empty($last_name) && !empty($relative_name) && !empty($relationship) && !empty($email)) {
+    if (!isset($error) && !empty($first_name) && !empty($last_name) && !empty($email)) {
         // Process avatar upload
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $upload_dir = 'uploads/avatars/';
@@ -72,11 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accountUpdate'])) {
         }
 
         // Update the user's details in the database
-        $params = [$first_name, $last_name, $individuals_id, $relative_name, $relationship, $email, $approved, $role];
+        $params = [$first_name, $last_name, $individuals_id, $show_presence, $email, $approved, $role];
         $sql = "UPDATE users 
                 SET first_name = ?, last_name = ?, 
                     individuals_id = ?,
-                    relative_name = ?, relationship = ?, 
+                    show_presence = ?, 
                     email = ?, approved = ?, `role` = ?";
 
         // Add the avatar if uploaded
@@ -178,18 +180,12 @@ $avatar_path = $user['avatar'] ?? 'uploads/avatars/default-avatar.png';
                     </div>
                 </div>
             </div>
-            <!-- Relative Name -->
+            
+            <!-- Show presence to others -->
             <div class="mb-4">
-                <label for="relative_name" class="block text-sm font-medium text-gray-700">Relative Name</label>
-                <input type="text" name="relative_name" id="relative_name" value="<?= htmlspecialchars($user['relative_name']) ?>" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm" required>
+                <label for="show_presence" class="block text-sm font-medium text-gray-700">Show presence on <i><?= $site_name ?></i> to others</label>
+                <input type="checkbox" name="show_presence" id="show_presence" value="1" <?= $user['show_presence'] ? 'checked' : '' ?> class="mt-1">
             </div>
-
-            <!-- Relationship -->
-            <div class="mb-4">
-                <label for="relationship" class="block text-sm font-medium text-gray-700">Relationship</label>
-                <input type="text" name="relationship" id="relationship" value="<?= htmlspecialchars($user['relationship']) ?>" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm" required>
-            </div>
-
             <!-- Email -->
             <div class="mb-4">
                 <label for="email" class="block text-sm font-medium text-gray-700">Email</label>

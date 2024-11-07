@@ -1,1 +1,58 @@
-Hi
+<?php
+    $sql = "SELECT users.id, users.first_name, users.last_name, users.role, 
+    users.email, users.avatar, users.individuals_id
+    FROM users
+    WHERE approved = 1
+    AND role IN ('member', 'admin') 
+    AND role != 'deleted'
+    ORDER BY users.last_name, users.first_name";
+
+    $users = $db->fetchAll($sql);
+?>
+
+<section class="hero bg-deep-green text-white py-20">
+    <div class="container hero-content">
+        <h2 class="text-4xl font-bold">Site Members</h1>
+        <p class="mt-4 text-lg">
+            Learn about your family diaspora using <i><?= $site_name ?></i>
+        </p>
+    </div>
+</section>
+<section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <div id="userlist" class="relative pt-6 xs:pt-1">
+        <div class="p-6 bg-white shadow-lg rounded-lg mt-8 h-64 overflow-y-auto">
+        <?php foreach($users as $user): ?>
+            <div class="flex justify-between items-center border-b border-gray-200 py-2">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mr-4">
+                        <img src="<?= $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp" ?>" alt="<?= $user['first_name'] . ' ' . $user['last_name'] ?>" class="rounded-full object-cover w-12 h-12">
+                    </div>
+                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-4">
+                        <?php if($user['role'] == 'admin'): ?>
+                            <i class="fas fa-user-shield text-md text-gray-600"></i>
+                        <?php else: ?>
+                            <i class="fas fa-user text-md text-gray-600"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-64">
+                        <h3 class="text-lg font-bold"><?= $user['first_name'] . ' ' . $user['last_name'] ?></h3>
+                        <p class="text-sm text-gray-600"><?= $user['email'] ?></p>
+                    </div>
+                </div>
+                <div class="flex items center w-ew">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg">View</button>
+                </div>
+                <?php if($user['individuals_id']): ?>
+                    <div class="flex items center w-32">
+                        <button class="bg-brown text-white px-4 py-2 rounded-lg" onClick="window.location='?to=family/individual&individual_id=<?= $user['individuals_id'] ?>';">On Tree</button>
+                    </div>
+                <?php else: ?>
+                    <div class="flex items center w-32">
+                        
+                    </div>
+                <?php endif ?>
+            </div>
+        <?php endforeach; ?>
+        </div>
+    </div>
+</section>

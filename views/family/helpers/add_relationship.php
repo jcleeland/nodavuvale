@@ -208,15 +208,12 @@ function checkFor2Parents($db, $individual_id) {
                     <input type="hidden" id="root_id" name="root_id" value="<?= $rootId; ?>">
 
                     <div id="add-relationship-choice" class="mb-4 text-sm text-center mt-2">
-                    This relationship will be with an ..
-                    <span class=" rounded">
-                        <input type="radio" id="choice-existing-individual" name="choice-existing-individual" value="existing">
-                        <label for="choice-existing-individual" class="mr-3" title="someone who is already in this tree">existing person</label>
-                    </span> &nbsp;or ..
-                    <span class=" rounded">
-                        <input type="radio" id="choice-new-individual" name="choice-new-individual" value="new">
-                        <label for="choice-new-individual" class="mr-3" title="Someone I'll create and add to this tree">a new person</label>
-                    </span>
+                    This relationship will be with 
+                    <select id="new-individual-type" name="new-individual-type" class="px-4 py-2 border rounded-lg">
+                        <option value="">Please choose..</option>
+                        <option value="existing">someone already in the tree</option>
+                        <option value="new">a new person</option>
+                    </select>
                     </div>
                     <pre><?php //print_r($individuals); ?></pre>
                     <!-- Lookup field to select an existing individual -->
@@ -359,7 +356,7 @@ function checkFor2Parents($db, $individual_id) {
                     </div>
 
                     <div class="text-center">
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        <button type="submit" id="submit_add_relationship_btn" class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                             Submit
                         </button>
                     </div>

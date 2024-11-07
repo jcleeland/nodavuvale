@@ -886,6 +886,7 @@ class Utils {
                 avatar, MAX(last_view) as last_view
                 FROM users 
                 WHERE last_view > ?
+                AND show_presence = 1
                 GROUP BY users.id
                 ORDER BY last_view DESC";
         $visitors = $db->fetchAll($sql, [date('Y-m-d H:i:s', strtotime('-3 days'))]);

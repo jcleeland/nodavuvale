@@ -82,7 +82,7 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                 <div class="tab-content active" id="visitorstab">
                         <div class="flex flex-wrap justify-center">
                         <?php if(empty($changes['visitors'])): ?>
-                            <div class="text-center text-gray-500">No visitors at the moment.</div>
+                            <div class="text-center text-gray-500">No <span title="family">vuvale</span> online at the moment.</div>
                         <?php endif; ?>
                         <?php foreach ($changes['visitors'] as $visitor): ?>
                             <?php
