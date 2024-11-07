@@ -869,6 +869,11 @@
     color: var(--burnt-orange);    
 }
 
+#recentchanges .tabs .active {
+    background-color: white !important;
+    color: var(--burnt-orange);
+}
+
 
 /**********************************************
 * AutoComplete Styles
