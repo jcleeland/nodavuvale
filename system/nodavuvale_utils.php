@@ -81,17 +81,21 @@ class Utils {
             }
 
             $parentLink="";
+            $imagepos="";
             //If there are no parents being displayed in the tree, or it's the first generation, and - in either case - the count of parents is greater than 0
-            if((!$parentsInTree || $generation==1) && isset($parents) && count($parents) > 0) {
+            if(!$parentsInTree && $generation==1 && isset($parents) && count($parents) > 0) {
                 $parentLinkId=$parents[0]['id'];
-                $parentLink = '<div data-parents-in-tree="'.$parentsInTree.'" data-generation="'.$generation.'" data-count-parents="'.count($parents).'" class="parents-link absolute right-0 top-0 mr-1 mt-1 text-burnt-orange text-xs" title="View parents" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
+                $parentLink = '<div class="parents-link bg-transparent w-100 text-right -mr-0.5 mt-0.5 text-burnt-orange text-xs" style="z-index:1000" data-parents-in-tree="'.$parentsInTree.'" data-generation="'.$generation.'" data-count-parents="'.count($parents).'" title="View parents" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
+                //$parentLink = '<i class="fas fa-level-up-alt" style="z-index: 100">a</i>';
+                $imagepos="margin-top:-18px";
             }
 
             $nodeBodyTemplate = "
             <input type='hidden' class='individualid' value='{individualId}'>
             <input type='hidden' class='individualgender' value='{individualGender}'>
-            <div class='nodeBodyText'>
-                {parentLink}
+            {parentLink}
+            <div class='nodeBodyText' style='{imagepos}'>
+                
                 <img src='{individualKeyImage}' class='nodeImage border object-cover cursor-pointer' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                 <span class='bodyName' id='treeindividualsname_{individualId}' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                     {individualPrefName}<br>
@@ -99,24 +103,26 @@ class Utils {
                 </span>
                 <span style='font-size: 0.7rem'>
                     {individualLifeSpan}
-                </span>
+                </span>                                  
             </div>
-            <div class='flex justify-between items-center'>
-                <button class='text-sm md:text-md ft-edit-btn' title='Edit this individual' onclick='editIndividualFromTreeNode(&apos;{individualId}&apos;)'>
+            <div class='w-100' style='width: 100px; margin-left:-5px'>
+                <button class='text-sm md:text-md ft-edit-btn mr-3' title='Edit this individual' onclick='editIndividualFromTreeNode(&apos;{individualId}&apos;)'>
                     <i class='fas fa-edit text-ocean-blue'></i>
                 </button>
-                <button class='text-sm md:text-md ft-dropdown-btn' title='Add a relationship to this individual' onclick='addRelationshipToIndividualFromTreeNode(this)'>
+                <button class='text-sm md:text-md ft-dropdown-btn mr-3' title='Add a relationship to this individual' onclick='addRelationshipToIndividualFromTreeNode(this)'>
                     <i class='fas fa-link text-ocean-blue'></i>
                 </button>
                 <button class='text-sm md:text-md ft-view-btn' title='Start tree at this individual' onclick='window.location.href=&apos;?to=family/tree&amp;root_id={individualId}&apos;'>
                     <i class='fas fa-arrow-right text-ocean-blue'></i>
                 </button>        
-            </div>";
+            </div>            
+          
+            ";
             
             // Replace the template placeholders with actual values
             $nodeBodyText = str_replace(
-                ['{parentLink}', '{individualId}', '{individualGender}', '{individualKeyImage}', '{individualFullName}', '{individualPrefName}', '{individualLastName}', '{individualLifeSpan}'],
-                [$parentLink, $individual['id'], $gender, $keyImage, $fullName, $prefName, $individual['last_name'], $lifeSpan],
+                ['{parentLink}', '{individualId}', '{individualGender}', '{individualKeyImage}', '{individualFullName}', '{individualPrefName}', '{individualLastName}', '{individualLifeSpan}', '{imagepos}'],
+                [$parentLink, $individual['id'], $gender, $keyImage, $fullName, $prefName, $individual['last_name'], $lifeSpan, $imagepos],
                 $nodeBodyTemplate
             );
             if (isset($treesettings['colorScheme']) && $treesettings['colorScheme'] === 'firstGenLines' && $color !== null) {

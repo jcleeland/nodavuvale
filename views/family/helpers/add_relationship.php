@@ -193,6 +193,8 @@ function checkFor2Parents($db, $individual_id) {
     return true;
 }
 
+$parents=Utils::getParents($individual_id);
+
 ?>
 <!-- "Add new relationship" Modal Popup Form -->
 <div id="popupForm" class="modal" style="display: none;">
@@ -215,6 +217,27 @@ function checkFor2Parents($db, $individual_id) {
                         <option value="new">a new person</option>
                     </select>
                     </div>
+
+
+                    <!-- Relationship -->
+                    <div id="relationships" class="mb-4">
+                        <div id="primary-relationship">
+                            <label for="relationship" class="block text-gray-700">Relationship to Selected Individual</label>
+                            <select id="relationship" name="relationship" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Select Relationship...</option>
+                                <option value='parent'>Parent</option>
+                                <option value='child'>Child</option>
+                                <option value='spouse'>Spouse</option>
+                            </select>
+                        </div>
+                        <div id="choose-second-parent" style="display: none">
+                            <label for="second-parent" class="block text-gray-700">Other parent</label>
+                            <select id="second-parent" name="second-parent" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Not known..</option>
+                            </select>
+                        </div>
+                    </div>                    
+
                     <pre><?php //print_r($individuals); ?></pre>
                     <!-- Lookup field to select an existing individual -->
                     <div id="existing-individuals" class="mb-4" style='display: none'>
@@ -224,7 +247,10 @@ function checkFor2Parents($db, $individual_id) {
                     <!-- New Individual Form -->
                     <div id="additional-fields" style='display: none'>
                         <div class="mb-4">
-                            <label for="first_names" class="block text-gray-700 mr-2">First Name(s)</label>
+                            <label for="first_names" class="block text-gray-700 mr-2">
+                                First Name(s)
+                                <i class="hint fas fa-question-circle text-gray-500 ml-2 cursor-pointer" title="Put all the 'official' names of this person, other than their last/family name, into this section - but don't include any nicknames or non-formal ones. Instead, you can add them to the 'AKA' ('Also Known As') section."></i>
+                            </label>
                             <div class="flex items-center">
                                 <input type="text" id="first_names" name="first_names" class="flex-grow px-4 py-2 border rounded-lg" required>
                                 <button type="button" title="Add other names for this person" id="toggle-aka" class="ml-2 px-2 py-1 bg-gray-300 rounded text-xs">AKA</button>
@@ -235,22 +261,19 @@ function checkFor2Parents($db, $individual_id) {
                             <input type="text" id="aka_names" name="aka_names" class="w-full px-4 py-2 border rounded-lg">
                         </div>
                         <div class="mb-4">
-                            <label for="last_name" class="block text-gray-700">Last Name</label>
+                            <label for="last_name" class="block text-gray-700">
+                                Last Name
+                                <i class="hint fas fa-question-circle text-gray-500 ml-2 cursor-pointer" title="Use each individual's last name at birth, rather than a married or otherwise changed name. This ensure consistency across the tree. You can store information about name changes in the Facts/Events section"></i>
+                                <?php foreach($parents as $parent): ?>
+                                    <div title='Use this surname' class='inline text-xs text-gray-500 text-opacity-50 rounded-lg nv-bg-opacity-50 bg-cream-800 px-2 mx-2 pb-1 -mt-1 cursor-pointer' onclick='document.getElementById("last_name").value="<?= $parent['last_name'] ?>"'><?= $parent['last_name'] ?></div>
+                                <?php endforeach ?>
+                            </label>
+
                             <input type="text" id="last_name" name="last_name" class="w-full px-4 py-2 border rounded-lg" required>
                         </div>
 
                         <!-- Birth -->
                         <div class="mb-4 grid grid-cols-4 gap-4">
-                            <div>
-                                <label for="birth_prefix" class="block text-gray-700">Birth</label>
-                                <select id="birth_prefix" name="birth_prefix" class="w-full px-4 py-2 border rounded-lg">
-                                    <option value=""></option>
-                                    <option value="exactly">Exactly</option>
-                                    <option value="about">About</option>
-                                    <option value="after">After</option>
-                                    <option value="before">Before</option>
-                                </select>
-                            </div>
                             <div>
                                 <label for="birth_year" class="block text-gray-700">Year</label>
                                 <input type="text" id="birth_year" name="birth_year" class="w-full px-4 py-2 border rounded-lg">
@@ -277,18 +300,20 @@ function checkFor2Parents($db, $individual_id) {
                                 <label for="birth_date" class="block text-gray-700">Date</label>
                                 <input type="text" id="birth_date" name="birth_date" class="w-full px-4 py-2 border rounded-lg">
                             </div>
-                        </div>
-                        <div class="mb-4 grid grid-cols-4 gap-4">
                             <div>
-                                <label for="death_prefix" class="block text-gray-700">Death</label>
-                                <select id="death_prefix" name="death_prefix" class="w-full px-4 py-2 border rounded-lg">
+                                <label for="birth_prefix" class="block text-gray-700 whitespace-nowrap">
+                                    Birth prefix
+                                    <i class="hint fas fa-question-circle text-gray-500 ml-2 cursor-pointer" title="Only select one of these options if there is some uncertainty about the date you've entered. For example if you have just the year of birth, and you know it's correct, enter the year and leave the rest blank - but don't select an option from this list."></i>
+                                </label>
+                                <select id="birth_prefix" name="birth_prefix" class="w-full px-4 py-2 border rounded-lg">
                                     <option value=""></option>
-                                    <option value="exactly">Exactly</option>
                                     <option value="about">About</option>
                                     <option value="after">After</option>
                                     <option value="before">Before</option>
                                 </select>
-                            </div>
+                            </div>                            
+                        </div>
+                        <div class="mb-4 grid grid-cols-4 gap-4">
                             <div>
                                 <label for="death_year" class="block text-gray-700">Year</label>
                                 <input type="text" id="death_year" name="death_year" class="w-full px-4 py-2 border rounded-lg">
@@ -315,6 +340,19 @@ function checkFor2Parents($db, $individual_id) {
                                 <label for="death_date" class="block text-gray-700">Date</label>
                                 <input type="text" id="death_date" name="death_date" class="w-full px-4 py-2 border rounded-lg">
                             </div>
+                            <div>
+                                <label for="death_prefix" class="block text-gray-700 whitespace-nowrap">
+                                    Death Prefix
+                                    <i class="hint fas fa-question-circle text-gray-500 ml-2 cursor-pointer" title="Only select one of these options if there is some uncertainty about the date you've entered. For example if you have just the year of death, and you know it's correct, enter the year and leave the rest blank - but don't select an option from this list."></i>
+                                </label>
+                                <select id="death_prefix" name="death_prefix" class="w-full px-4 py-2 border rounded-lg">
+                                    <option value=""></option>
+                                    <option value="exactly">Exactly</option>
+                                    <option value="about">About</option>
+                                    <option value="after">After</option>
+                                    <option value="before">Before</option>
+                                </select>
+                            </div>                            
                         </div>
 
                         <!-- Gender -->
@@ -330,29 +368,13 @@ function checkFor2Parents($db, $individual_id) {
 
                         <!-- Deceased -->
                         <div class="mb-4">
-                            <label for="is_deceased" class="block text-gray-700">Deceased</label>
+                            <label for="is_deceased" class="block text-gray-700">
+                                Deceased
+                                <i class="hint fas fa-question-circle text-gray-500 ml-2 cursor-pointer" title="This checkbox is to register when a family member is deceased, even if we don't know the actual date. NodaVuvale (this websystem) uses this information to determine if privacy rules should be applied to an individual or not."></i>
+                            </label>
                             <input type="checkbox" id="is_deceased" name="is_deceased" value="1">
                         </div>
 
-                    </div>
-
-                    <!-- Relationship -->
-                    <div id="relationships" class="mb-4">
-                        <div id="primary-relationship">
-                            <label for="relationship" class="block text-gray-700">Relationship to Selected Individual</label>
-                            <select id="relationship" name="relationship" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="">Select Relationship...</option>
-                                <option value='parent'>Parent</option>
-                                <option value='child'>Child</option>
-                                <option value='spouse'>Spouse</option>
-                            </select>
-                        </div>
-                        <div id="choose-second-parent" style="display: none">
-                            <label for="second-parent" class="block text-gray-700">Other parent</label>
-                            <select id="second-parent" name="second-parent" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="">Not known..</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div class="text-center">
@@ -364,4 +386,12 @@ function checkFor2Parents($db, $individual_id) {
             </div>
         </div>
     </div>
+    <script>
+        //Add a listener to all items with the class "hint" and show the title attribute as a tooltip when clicked
+        document.querySelectorAll('.hint').forEach(item => {
+            item.addEventListener('click', event => {
+                alert(item.getAttribute('title'));
+            })
+        });
+    </script>
 

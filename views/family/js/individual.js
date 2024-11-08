@@ -307,6 +307,35 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });      
 
+    //Add a listener to the "relationship" select so that when it changes we can show/hide the "second-parent" select
+    document.getElementById('relationship').addEventListener('change', function() {
+        var selectedRelationship = this.value;
+        if(selectedRelationship === 'child') {
+            var thisId=document.getElementById('related-individual').value;
+            getSpouses(thisId).then(spouses => {
+                //console.log('Found spouses', spouses);
+                var select = document.getElementById('second-parent');
+                select.innerHTML = '';
+                var option = document.createElement('option');
+                option.value = '';
+                option.text = 'None or not known';
+                select.add(option);
+                spouses.forEach(spouse => {
+                    //console.log('Processing sppouse', spouse);
+                    var option = document.createElement('option');
+                    option.value = spouse.parent_id;
+                    option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
+                    //console.log('Option built:', option);
+                    select.add(option);
+                });
+            });            
+            document.getElementById('choose-second-parent').style.display = 'block';
+        } else {
+            document.getElementById('choose-second-parent').style.display = 'none';
+        }
+    }
+    );    
+
 
 });
 
@@ -871,7 +900,7 @@ function openModal(action, individualId, individualGender) {
     var select = document.getElementById('second-parent');
     select.innerHTML = '';
 
-    document.getElementById('modal-title').innerHTML = 'Add New Relationship to ' + primaryIndividualName;
+    document.getElementById('modal-title').innerHTML = 'Connect ' + primaryIndividualName + ' to another person';
     //document.getElementById('existing-individuals').style.display = 'block';
     document.getElementById('relationships').style.display = 'block';
     document.getElementById('choose-second-parent').style.display = 'none';

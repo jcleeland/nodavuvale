@@ -42,31 +42,64 @@ document.addEventListener("DOMContentLoaded", function() {
 
    
 
-    //When someone selects id='choice-existing-individual', show the id='existing-individuals' div
-    document.getElementById('choice-existing-individual').addEventListener('click', function() {
-        document.getElementById('existing-individuals').style.display = 'block';
-        document.getElementById('relationships').style.display = 'block';
-        document.getElementById('additional-fields').style.display = 'none';
-        document.getElementById('choice-new-individual').checked = false;
+    //Add a listener to the #new-individual-type select so that when it changes we can show/hide the additional fields div
+    document.getElementById('new-individual-type').addEventListener('change', function() {
+        var selectedType = this.value;
+        if(selectedType === 'existing') {
+            document.getElementById('existing-individuals').style.display = 'block';
+            document.getElementById('relationships').style.display = 'block';
+            document.getElementById('additional-fields').style.display = 'none';
+            document.getElementById('submit_add_relationship_btn').style.display='inline';
+    
+            document.getElementById('relationship-form-action').value = 'link_relationship';
+            document.getElementById('first_names').removeAttribute('required');
+            document.getElementById('last_name').removeAttribute('required');
+            document.getElementById('additional-fields').style.display = 'none';   
+        } else if(selectedType === 'new') {
+            document.getElementById('existing-individuals').style.display = 'none';
+            document.getElementById('relationships').style.display = 'block';
+            document.getElementById('additional-fields').style.display = 'block';
+            document.getElementById('submit_add_relationship_btn').style.display='inline';
+    
+            document.getElementById('relationship-form-action').value = 'add_relationship';
+            document.getElementById('first_names').setAttribute('required', '');
+            document.getElementById('last_name').setAttribute('required', '');
+            document.getElementById('additional-fields').style.display = 'block'; 
+        } else {
+            document.getElementById('existing-individuals').style.display = 'none';
+            document.getElementById('additional-fields').style.display = 'none';    
+            document.getElementById('submit_add_relationship_btn').style.display='none';
+        }
+    });     
 
-        document.getElementById('relationship-form-action').value = 'link_relationship';
-        document.getElementById('first_names').removeAttribute('required');
-        document.getElementById('last_name').removeAttribute('required');
-        document.getElementById('additional-fields').style.display = 'none';      
-    });
-
-    //When someone selects id='choice-new-individual', hide the id='existing-individuals' div and show the id='additional-fields' div
-    document.getElementById('choice-new-individual').addEventListener('click', function() {
-        document.getElementById('existing-individuals').style.display = 'none';
-        document.getElementById('relationships').style.display = 'block';
-        document.getElementById('additional-fields').style.display = 'block';
-        document.getElementById('choice-existing-individual').checked = false;
-
-        document.getElementById('relationship-form-action').value = 'add_relationship';
-        document.getElementById('first_names').setAttribute('required', '');
-        document.getElementById('last_name').setAttribute('required', '');
-        document.getElementById('additional-fields').style.display = 'block';              
-    });
+    //Add a listener to the "relationship" select so that when it changes we can show/hide the "second-parent" select
+    document.getElementById('relationship').addEventListener('change', function() {
+        var selectedRelationship = this.value;
+        if(selectedRelationship === 'child') {
+            var thisId=document.getElementById('related-individual').value;
+            getSpouses(thisId).then(spouses => {
+                //console.log('Found spouses', spouses);
+                var select = document.getElementById('second-parent');
+                select.innerHTML = '';
+                var option = document.createElement('option');
+                option.value = '';
+                option.text = 'None or not known';
+                select.add(option);
+                spouses.forEach(spouse => {
+                    //console.log('Processing sppouse', spouse);
+                    var option = document.createElement('option');
+                    option.value = spouse.parent_id;
+                    option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
+                    //console.log('Option built:', option);
+                    select.add(option);
+                });
+            });            
+            document.getElementById('choose-second-parent').style.display = 'block';
+        } else {
+            document.getElementById('choose-second-parent').style.display = 'none';
+        }
+    }
+    );
 
  
 
@@ -198,7 +231,7 @@ function openModal(action, individualId, individualGender) {
     var select = document.getElementById('second-parent');
     select.innerHTML = '';
 
-    document.getElementById('modal-title').innerHTML = 'Add New Relationship to ' + sourcePersonsName;
+    document.getElementById('modal-title').innerHTML = 'Connect ' + sourcePersonsName + ' to another person';
     //document.getElementById('existing-individuals').style.display = 'block';
     document.getElementById('relationships').style.display = 'block';
     document.getElementById('choose-second-parent').style.display = 'none';

@@ -50,6 +50,7 @@
 #family-tree .parents-link {
     cursor: pointer;
     z-index: 100;
+    background-color: transparent !important;
 }
 
 #family-tree .bodyName {
