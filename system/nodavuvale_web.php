@@ -71,7 +71,7 @@ class Web {
         $user_name=$user['first_name']." ".$user['last_name'];
         $user_id=$user['id'];
         $user_avatar=!empty($user['avatar']) ? $user['avatar'] : "images/default_avatar.webp";
-        $basehtml="<img src='".$user_avatar."' alt='".$user_name."' class='avatar-img-".$size." ".$classextra."' title='".$user_name."'>";
+        $basehtml="<img src='".$user_avatar."' alt='".$user_name."' class='cursor-pointer avatar-img-".$size." ".$classextra."' title='".$user_name."' onClick='window.location=\"?to=family/users&user_id=".$user_id."\"'>";
         return $basehtml;
     }
     

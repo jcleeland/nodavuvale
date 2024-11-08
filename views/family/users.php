@@ -48,7 +48,7 @@
                     </div>
                 <?php else: ?>
                     <div class="flex items center">
-                        <span class=" w-20"></span>
+                        <div class="inline px-2 py-1 mx-2 rounded-lg w-20">&nbsp;</div>
                     </div>
                 <?php endif ?>
             </div>
