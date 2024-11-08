@@ -329,6 +329,68 @@ class Utils {
 
     }
 
+    public static function getLineOfDescendancy($topId, $bottomId) {
+        if((!$topId || !$bottomId) || (!is_numeric($topId) || !is_numeric($bottomId))) {
+            return array();
+        }
+        $sql="WITH RECURSIVE lineage_path AS (
+                -- Base case: Start with the given individual and include their immediate parent
+                SELECT 
+                    i.id,
+                    i.first_names,
+                    i.last_name,
+                    r.individual_id_2 AS parent_id,
+                    CONCAT(SUBSTRING_INDEX(i.first_names, ' ', 1), ' ', i.last_name, '*', i.id) AS path
+                FROM 
+                    individuals i
+                LEFT JOIN 
+                    relationships r ON i.id = r.individual_id_2
+                WHERE 
+                    i.id = ? -- Replace with the starting individual's ID
+                
+                UNION ALL
+                
+                -- Recursive step: Find the parents and build the path up the lineage
+                SELECT 
+                    parent.id,
+                    parent.first_names,
+                    parent.last_name,
+                    rel.individual_id_1 AS parent_id,
+                    CONCAT(SUBSTRING_INDEX(parent.first_names, ' ', 1), ' ', parent.last_name, '*', rel.individual_id_1,'|', lp.path)
+                FROM 
+                    relationships rel
+                JOIN 
+                    lineage_path lp ON rel.individual_id_2 = lp.parent_id
+                JOIN 
+                    individuals parent ON rel.individual_id_1 = parent.id
+                WHERE 
+                    rel.relationship_type = 'child'
+            )
+            SELECT path
+            FROM lineage_path
+            WHERE parent_id IS NULL OR id = ?; -- Replace with Soli Nataleira's ID (1)
+
+        ";
+        $params=[ $bottomId, $topId ];
+        //echo $sql."<br />";print_r($params);
+        $db = Database::getInstance();
+        $result = $db->fetchOne($sql, $params);
+        //echo "<pre>Results: ";print_r($result);echo "</pre>";
+        if(isset($result['path'])) {
+            $output=array();
+            $temp=explode("|",$result['path']);
+            foreach($temp as $t) {
+                $temp2=explode("*",$t);
+                //print_r($temp2);
+                $output[]=$temp2;
+            }
+            return $output;
+
+        } else {
+            return array();
+        }
+    }
+
     public static function getParents($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
