@@ -4,6 +4,10 @@
 $is_logged_in = isset($_SESSION['user_id']);
 // Set the default "view new" as being the last login time
 $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1 day', strtotime($_SESSION['last_login']))) : date("Y-m-d H:i:s", strtotime('1 week ago'));
+if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
+    $viewnewsince=$_GET['changessince'];
+}   
+
 ?>
 
 <!-- Hero Section -->
@@ -49,7 +53,46 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
 
     <!-- Changes and Updates Section -->
     <section class="container mx-auto py-12 px-4 sm:px-3 xs:px-2 lg:px-8 pt-10">
-        <h3 class="text-2xl font-bold"><i class="fas fa-bell" title="Changes and updates since <?= date("l, d F Y", strtotime($changes['last_view'])) ?>"></i> Recent changes</h3>
+        <h3 class="text-2xl font-bold">
+            <i class="fas fa-bell" title="Changes and updates since <?= date("l, d F Y", strtotime($changes['last_view'])) ?>" onclick="toggleDateSelect()"></i> 
+            Recent changes
+        </h3>
+        <select id="dateSelect" class="hidden mt-2" onchange="reloadWithDate()" onfocus="storeOriginalValue()" onblur="hideIfSameOption()">
+            <option value="lastlogin">Since your last login</option>
+            <option value="<?= date("Y-m-d", strtotime('-1 week')) ?>">The last week (since <?= date("l, d F Y", strtotime('-1 week')) ?></option>
+            <option value="<?= date("Y-m-d", strtotime('-2 weeks')) ?>">The last fortnight (since <?= date("l, d F Y", strtotime('-2 weeks')) ?></option>
+            <option value="<?= date("Y-m-d", strtotime('-1 month')) ?>">The last month (since <?= date("l, d F Y", strtotime('-1 month')) ?></option>
+        </select>
+        <script>
+            var dateSelect = document.getElementById('dateSelect');
+            var originalValue = dateSelect.value;
+
+            dateSelect.value = "<?= isset($_GET['changessince']) ? $_GET['changessince'] : '' ?>";
+
+            function toggleDateSelect() {
+                if (dateSelect.classList.contains('hidden')) {
+                    dateSelect.classList.remove('hidden');
+                    dateSelect.focus(); // Focus the select element when it is shown
+                } else {
+                    dateSelect.classList.add('hidden');
+                }
+            }
+
+            function reloadWithDate() {
+                var selectedDate = dateSelect.value;
+                window.location.href = window.location.pathname + "?changessince=" + selectedDate;
+            }
+
+            function storeOriginalValue() {
+                originalValue = dateSelect.value;
+            }
+
+            function hideIfSameOption() {
+                if (dateSelect.value === originalValue) {
+                    dateSelect.classList.add('hidden');
+                }
+            }
+        </script>
         <div id="recentchanges" class="relative pt-6 xs:pt-1">
             <div class="tabs absolute -top-0 text-lg gap-2">
                 <div class="active tab px-4 py-2 h-11 border-top" data-tab="visitorstab">
@@ -123,7 +166,7 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                                 ?>
                                 </div>
                                 <div class="text-left max-w-sm mt-2"> 
-                                <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover"); ?>
+                                <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "mt-1 ml-1 mr-2 pt-0 pl-0 avatar-float-left object-cover"); ?>
                                     <div class='discussion-content text-left pr-1'>
                                         <div class="text-xs italic text-gray-500">
                                             Posted by <?= $discussion['user_first_name'] ?>&nbsp;<?= $discussion['user_last_name'] ?>
