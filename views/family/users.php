@@ -16,24 +16,39 @@
         <p class="mt-4 text-lg">
             Discover Soli's Descendents who are using <i>'<?= $site_name ?>'</i>
         </p>
+        <?php if(isset($_GET['user_id'])) {
+            $user_id = $_GET['user_id'];
+            $sql = "SELECT users.id, users.first_name, users.last_name, users.email, 
+                users.avatar, users.individuals_id, users.show_presence
+                FROM users
+                WHERE users.id = $user_id";
+
+            $user = $db->fetchOne($sql);
+            $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
+            
+            $descendancy = [];
+            if($user['individuals_id']) {
+                $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
+            }         
+            ?>
+        <div id="individual-options" class="absolute flex justify-between items-center w-full bottom-0 left-0 rounded-b-lg p-0 m-0">
+            <?php if($user['individuals_id']) { ?>
+            <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=<?= $web->getRootId() ?>'">
+                <i class="fas fa-network-wired" style="transform: rotate(180deg)"></i> <!-- FontAwesome icon -->
+            </button>
+            <?php } ?>
+            <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+            <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?= $user['id'] ?>'">
+                <i class="fas fa-users"></i> <!-- FontAwesome icon -->
+            </button>
+            <?php } ?>
+        </div>
+        <?php } ?>
     </div>
 </section>
 
 <?php
 if(isset($_GET['user_id'])) {
-    $user_id = $_GET['user_id'];
-    $sql = "SELECT users.id, users.first_name, users.last_name, users.email, 
-    users.avatar, users.individuals_id, users.show_presence
-    FROM users
-    WHERE users.id = $user_id";
-
-    $user = $db->fetchOne($sql);
-    $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
-    
-    $descendancy = [];
-    if($user['individuals_id']) {
-        $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
-    }
 ?>
     <?php if($descendancy): ?>
         <section class="container mx-auto pt-6 pb-6 px-4 sm:px-6 lg:px-8">

@@ -136,10 +136,10 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             $timeprefix = $timeprefixOptions[array_rand($timeprefixOptions)];
                             ?>
                                 <div class="text-left w-64 m-2 p-1 border rounded shadow-xl <?= $activityclass ?>"> 
-                                <?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover ".($auth->getUserPresence($visitor['user_id']) ? 'userpresent' : 'userabsent')); ?>
+                                <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover ".($auth->getUserPresence($visitor['user_id']) ? 'userpresent' : 'userabsent')); ?></a>
                                     <div class='visitors-content text-center pr-1'>
                                         <div>
-                                            <b><?= $visitor['first_name'] ?>&nbsp;<?= $visitor['last_name'] ?></b> <?= $timeprefix ?> 
+                                            <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><b><?= $visitor['first_name'] ?>&nbsp;<?= $visitor['last_name'] ?></b></a> <?= $timeprefix ?> 
                                             <?= $web->timeSince($visitor['last_view']); ?>.
                                         </div>
                                     </div>
