@@ -89,7 +89,7 @@ $viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1
                             // if strtotime($visitor['last_view']) is less then 10 minutes ago, then show the visitor as online
                             $activityclass = strtotime($visitor['last_view']) > strtotime('-10 minutes') ? 'useronline' : 'useroffline';
                             $lastViewTime = strtotime($visitor['last_view']);
-                            $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['dropped by', 'popped in for a bit', 'stopped in', 'came around', 'visited us', 'checked in', 'hungout', 'was here', 'made a visit', 'came over'];
+                            $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['a gole mail', 'dropped by', 'popped in for a bit', 'stopped in', 'checked things out', 'visited us', 'a mai sikova', 'hungout', 'was here', 'made a visit', 'came over'];
                             $timeprefix = $timeprefixOptions[array_rand($timeprefixOptions)];
                             ?>
                                 <div class="text-left w-64 m-2 p-1 border rounded shadow-xl <?= $activityclass ?>"> 
