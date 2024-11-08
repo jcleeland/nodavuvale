@@ -72,18 +72,16 @@ class Utils {
             //Check if parents are already in the treeData
             $parentsInTree=false;
             foreach($parents as $parent) {
-                foreach($treeData as $node) {
-                    if($node['id']==$parent['id']) {
-                        $parentsInTree=true;
-                        break 2;
-                    }
+                if(in_array($parent['id'], $processedIds)) {
+                    $parentsInTree=true;
+                    break;
                 }
             }
 
             $parentLink="";
             $imagepos="";
             //If there are no parents being displayed in the tree, or it's the first generation, and - in either case - the count of parents is greater than 0
-            if(!$parentsInTree && $generation==1 && isset($parents) && count($parents) > 0) {
+            if((!$parentsInTree && $generation==1 && isset($parents) && count($parents) > 0) || (!$parentsInTree && isset($parents) && count($parents) > 0)) {
                 $parentLinkId=$parents[0]['id'];
                 $parentLink = '<div class="parents-link bg-transparent w-100 text-right -mr-0.5 mt-0.5 text-burnt-orange text-xs" style="z-index:1000" data-parents-in-tree="'.$parentsInTree.'" data-generation="'.$generation.'" data-count-parents="'.count($parents).'" title="View parents" onClick="window.location.href=\'?to=family/tree&root_id=' . $parentLinkId .'\'"><i class="fas fa-level-up-alt"></i></div>';
                 //$parentLink = '<i class="fas fa-level-up-alt" style="z-index: 100">a</i>';
@@ -93,9 +91,9 @@ class Utils {
             $nodeBodyTemplate = "
             <input type='hidden' class='individualid' value='{individualId}'>
             <input type='hidden' class='individualgender' value='{individualGender}'>
+            <input type='hidden' class='generation' value='{generation}'>
             {parentLink}
             <div class='nodeBodyText' style='{imagepos}'>
-                
                 <img src='{individualKeyImage}' class='nodeImage border object-cover cursor-pointer' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                 <span class='bodyName' id='treeindividualsname_{individualId}' title='See details for {individualFullName}' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id={individualId}&apos;'>
                     {individualPrefName}<br>
@@ -121,8 +119,8 @@ class Utils {
             
             // Replace the template placeholders with actual values
             $nodeBodyText = str_replace(
-                ['{parentLink}', '{individualId}', '{individualGender}', '{individualKeyImage}', '{individualFullName}', '{individualPrefName}', '{individualLastName}', '{individualLifeSpan}', '{imagepos}'],
-                [$parentLink, $individual['id'], $gender, $keyImage, $fullName, $prefName, $individual['last_name'], $lifeSpan, $imagepos],
+                ['{parentLink}', '{individualId}', '{individualGender}', '{individualKeyImage}', '{individualFullName}', '{individualPrefName}', '{individualLastName}', '{individualLifeSpan}', '{imagepos}', '{generation}'],
+                [$parentLink, $individual['id'], $gender, $keyImage, $fullName, $prefName, $individual['last_name'], $lifeSpan, $imagepos, $generation],
                 $nodeBodyTemplate
             );
             if (isset($treesettings['colorScheme']) && $treesettings['colorScheme'] === 'firstGenLines' && $color !== null) {

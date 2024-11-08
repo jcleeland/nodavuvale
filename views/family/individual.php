@@ -145,7 +145,10 @@ if ($individual_id) {
             <p class="mt-2 text-lg"><?= $individual['birth_prefix']; ?> <?= $birthdate ?> - <?= $individual['death_prefix'] ?> <?= $deathdate ?></p>
         </div>
         <div id="individual-options" class="absolute w-full bottom-0 left-0 rounded-b-lg p-0 m-0">
-            <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" title="View <?= $individual['first_name'] ?> on the tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $individual['id'] ?>'">
+            <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" title="View <?= $individual['first_name'] ?> in the default tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $individual['id'] ?>&root_id=<?= $rootId ?>'">
+                <i class="fas fa-network-wired" style="transform: rotate(180deg)"></i> <!-- FontAwesome icon -->
+            </button>
+            <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" title="View <?= $individual['first_name'] ?>'s family tree" onclick="window.location.href='index.php?to=family/tree&root_id=<?= $individual['id'] ?>'">
                 <i class="fas fa-network-wired"></i> <!-- FontAwesome icon -->
             </button>
             <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" data-individual-id="<?= $individual['id'] ?>" title="<?= $individual['first_name'] ?> is me" onclick="triggerAddIndividual()">
