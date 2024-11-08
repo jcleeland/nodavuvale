@@ -235,11 +235,11 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                 </div>
                 <div class="justify-right text-right whitespace-nowrap mt-2 mb-1">
                     &nbsp;<br />
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-1" onclick="document.getElementById('treeSettingsModal').style.display='none';">
-                        <i class='fas fa-eye-slash'></i>
-                    </button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded" name="changeTreeSettings">
+                    <button type="submit" class="bg-blue-500 text-white px-2 sm:px-4 py-2 rounded" name="changeTreeSettings">
                         <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="bg-gray-500 text-white px-1 sm:px-4 py-2 rounded mr-1" onclick="document.getElementById('treeSettingsModal').style.display='none';">
+                        <i class='fas fa-eye-slash'></i>
                     </button>
                 </div>
     </div>
