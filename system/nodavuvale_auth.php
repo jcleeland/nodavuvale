@@ -69,9 +69,21 @@ class Auth {
         return null;  // Return null if not logged in or user not found
     }   
     
+    public function getUserPresence($user_id) {
+        $user = $this->db->fetchOne("SELECT show_presence, last_view FROM users WHERE id = ?", [$user_id]);
+        if($user && !empty($user['last_view'])) {
+            if($user['show_presence'] == 1 && strtotime($user['last_view']) > strtotime("-15 minutes")) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
     public function getAvatarPath() {
         if($this->isLoggedIn()) {
             $user_id = $_SESSION['user_id'];
+            $userstatusclass='useroffline';
             $user = $this->db->fetchOne("SELECT avatar FROM users WHERE id = ?", [$user_id]);
             if($user) {
                 if($user['avatar'] == null) {

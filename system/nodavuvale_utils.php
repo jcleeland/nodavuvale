@@ -263,6 +263,9 @@ class Utils {
             if (!empty($childrenWithSingleParent)) {
 
                 $unknownNode="
+            <input type='hidden' class='individualid' value=''>
+            <input type='hidden' class='individualgender' value='other'>
+            <input type='hidden' class='generation' value=''>
             <div class='nodeBodyText opacity-70'>
                 <img src='images/default_avatar.webp' class='nodeImage border object-cover opacity-50' title='Unknown parent'>
                 <span class='bodyName'>

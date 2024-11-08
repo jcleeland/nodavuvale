@@ -20,6 +20,10 @@
         --fiji-green-red: 0;
         --fiji-green-green: 128;
         --fiji-green-blue: 0;
+    --fiji-red: RGB(220, 20, 60);
+        --fiji-red-red: 220;
+        --fiji-red-green: 20;
+        --fiji-red-blue: 60;
     --ocean-blue: RGB(0, 119, 182);
         --ocean-blue-red: 0;
         --ocean-blue-green: 119;
@@ -672,38 +676,49 @@
 ***********************************************/
 .avatar-float-left {
     float: left;
-    margin-right: 15px;
 }
 .avatar-img-xs {
     width: 15px;
     height: 15px;
     border-radius: 50%;
-    margin-right: 10px;
+}
+.avatar-img-18 {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
 }
 .avatar-img-sm {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    margin-right: 10px;
 }
 .avatar-img-md {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    margin-right: 10px;
 }
 .avatar-img-lg {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    margin-right: 10px;
 }
 .avatar-img-xl {
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    margin-right: 10px;
 }
+
+.avatar-img.userpresent, .avatar-float-left.userpresent {
+    border: 0.2rem solid rgba(var(--fiji-green-red), var(--fiji-green-green), var(--fiji-green-blue), 0.3);
+    position: relative;
+}
+
+.avatar-img.userabsent, .avatar-float-left.userabsent {
+    border: 0.1rem solid rgba(var(--fiji-red-red), var(--fiji-red-green), var(--fiji-red-blue), 0.3);
+    position: relative;
+}
+
+
 
 .comments {
     position: relative;
@@ -931,7 +946,7 @@
 }
 
 .useroffline {
-    background-color: #f8e9e8;
+    background-color: rgba(var(--fiji-red-red), var(--fiji-red-green), var(--fiji-red-blue), 0.2);
 }
 
 

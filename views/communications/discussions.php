@@ -217,7 +217,8 @@ function getCommentsForDiscussion($discussion_id) {
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
         <div class="discussion-content">
             <?php $my_avatar_path=$auth->getAvatarPath() ?>
-            <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left object-cover"); ?>
+            <?php $presenceclass=$auth->getUserPresence($user_id) ? "userpresent" : "userabsent"; ?>
+            <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left mr-2 object-cover {$presenceclass}"); ?>
             <div class='discussion-content'>
                 <form method="POST" class="mt-4">
                     <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
@@ -264,7 +265,7 @@ function getCommentsForDiscussion($discussion_id) {
                 <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
                 <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative" id="discussion_id_<?= $discussion['id'] ?>">
                     <div class="discussion-item"> 
-                        <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                        <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
                         <div class='discussion-content'>
                             <div class="text-sm text-gray-500">
                                 <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b><br />
@@ -288,7 +289,7 @@ function getCommentsForDiscussion($discussion_id) {
                             <?php endif; ?>                                                              
                             </div>
                             <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
-                            <p class="mt-2"><?= htmlspecialchars($discussion['content']) ?></p>
+                            <p class="mt-2"><?= nl2br(htmlspecialchars($discussion['content'])) ?></p>
                             <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                 <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                     <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -326,7 +327,7 @@ function getCommentsForDiscussion($discussion_id) {
                                     <h4 class="font-semibold">Comments:</h4>
                                     <?php foreach ($comments as $comment): ?>
                                         <div class="bg-gray-100 p-4 rounded-lg mt-2">
-                                            <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm avatar-float-left object-cover" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
+                                            <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm mr-1 avatar-float-left <?= $auth->getUserPresence($comment['user_id']) ? "userpresent" : "userabsent"; ?> object-cover" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
                                             <div class="comment-content">
                                                 <div class="text-sm text-gray-500 relative">
                                                     <b><?= htmlspecialchars($comment['first_name']) ?> <?= $comment['last_name'] ?></b><br />
@@ -340,7 +341,7 @@ function getCommentsForDiscussion($discussion_id) {
                                                     </button>
                                                 <?php endif; ?>                                                  
                                                 </div>
-                                                <p><?= htmlspecialchars($comment['comment']) ?></p>
+                                                <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
                                                 <div class="comment-reactions" data-comment-id="<?= $comment['id'] ?>">
                                                     <svg alt="Remove Reaction" class="remove-reaction-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                                         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

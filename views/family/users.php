@@ -14,7 +14,7 @@
     <div class="container hero-content">
         <h2 class="text-4xl font-bold">Site Members</h1>
         <p class="mt-4 text-lg">
-            Learn about your family diaspora using <i><?= $site_name ?></i>
+            Discover your family diaspora using <i><?= $site_name ?></i>
         </p>
     </div>
 </section>
@@ -39,16 +39,16 @@
                         <p class="text-sm text-gray-600"><?= $user['email'] ?></p>
                     </div>
                 </div>
-                <div class="flex items center w-ew">
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg">View</button>
+                <div class="flex items center">
+                    <button class="bg-blue-500 text-white px-2 py-1 mx-2 rounded-lg w-20">View</button>
                 </div>
                 <?php if($user['individuals_id']): ?>
-                    <div class="flex items center w-32">
-                        <button class="bg-brown text-white px-4 py-2 rounded-lg" onClick="window.location='?to=family/individual&individual_id=<?= $user['individuals_id'] ?>';">On Tree</button>
+                    <div class="flex items center">
+                        <button class="bg-brown text-white px-2 py-1 mx-2 rounded-lg w-20" onClick="window.location='?to=family/individual&individual_id=<?= $user['individuals_id'] ?>';"><i class="text-xs -ml-3 mr-2 fas fa-network-wired"></i>Tree</button>
                     </div>
                 <?php else: ?>
-                    <div class="flex items center w-32">
-                        
+                    <div class="flex items center">
+                        <span class=" w-20"></span>
                     </div>
                 <?php endif ?>
             </div>

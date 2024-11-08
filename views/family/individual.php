@@ -41,6 +41,14 @@ if ($individual_id) {
     WHERE individuals.id = ?";
     $individual = $db->fetchOne($sql, [$individual_id]);
 
+    //See if the individual matches a user
+    $user = $db->fetchOne("SELECT id as user_id, email, first_name, last_name, avatar, role, show_presence, last_login, last_view FROM users WHERE individuals_id = ?", [$individual_id]);
+    if($user) {
+        if(empty($user['avatar'])) {
+            $user['avatar']="images/default_avatar.webp";
+        }
+    }
+
     //See if there's a key image
     $sql="SELECT files.file_path as keyimagepath
         FROM files
@@ -144,17 +152,31 @@ if ($individual_id) {
             <h2 class="text-4xl font-bold"><?php echo $individual['first_names'] . ' ' . $individual['last_name']; ?></h2>
             <p class="mt-2 text-lg"><?= $individual['birth_prefix']; ?> <?= $birthdate ?> - <?= $individual['death_prefix'] ?> <?= $deathdate ?></p>
         </div>
-        <div id="individual-options" class="absolute w-full bottom-0 left-0 rounded-b-lg p-0 m-0">
-            <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" title="View <?= $individual['first_name'] ?> in the default tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $individual['id'] ?>&root_id=<?= $rootId ?>'">
+        <div id="individual-options" class="absolute flex justify-between items-center w-full bottom-0 left-0 rounded-b-lg p-0 m-0">
+            <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $individual['first_name'] ?> in the default tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $individual['id'] ?>&root_id=<?= $rootId ?>'">
                 <i class="fas fa-network-wired" style="transform: rotate(180deg)"></i> <!-- FontAwesome icon -->
             </button>
-            <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" title="View <?= $individual['first_name'] ?>'s family tree" onclick="window.location.href='index.php?to=family/tree&root_id=<?= $individual['id'] ?>'">
+            <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $individual['first_name'] ?>'s family tree" onclick="window.location.href='index.php?to=family/tree&root_id=<?= $individual['id'] ?>'">
                 <i class="fas fa-network-wired"></i> <!-- FontAwesome icon -->
             </button>
-            <button class="bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" data-individual-id="<?= $individual['id'] ?>" title="<?= $individual['first_name'] ?> is me" onclick="triggerAddIndividual()">
-                <i class="fas fa-user-circle"></i> <!-- FontAwesome icon -->
-            </button>
-            <button class="edit-btn bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-10" title="Edit <?= $individual['first_name'] ?>" data-individual-id="<?= $individual['id'] ?>" >
+            <?php if($user): ?>
+                <?php 
+                    if($user['show_presence'] == 1) {
+                        $activityclass = strtotime($user['last_view']) > strtotime('-15 minutes') ? 'useronline' : 'useroffline'; 
+                        $activityinfo = $web->timeSince($user['last_view']);
+                    } else {
+                        $activityclass = '';
+                    }
+                ?>
+                <button class="flex-1 <?= $activityclass ?> bg-gray-800 bg-opacity-50 text-white rounded-full py-1 px-4 mx-1" title="Jan" onclick="window.location.href='index.php?to=family/users&user_id=<?= $user['user_id'] ?>'">
+                    <center><img src='<?= $user['avatar'] ?>' alt='<?= $user['first_name'] ?> <?= $user['last_name'] ?>' class='avatar-img-sm object-cover' title='<?= $individual['first_name'] ?> <?= $individual['last_name'] ?> is linked to <?= $user['first_name'] ?> <?= $user['last_name'] ?> who has an account on this site.'></center>
+                </button>
+            <?php else: ?>
+                <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" data-individual-id="<?= $individual['id'] ?>" title="<?= $individual['first_name'] ?> is me" onclick="triggerAddIndividual()">
+                    <i class="fas fa-user-circle"></i> <!-- FontAwesome icon -->
+                </button>
+            <?php endif; ?>
+            <button class="flex-1 edit-btn bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $individual['first_name'] ?>" data-individual-id="<?= $individual['id'] ?>">
                 <i class="fas fa-edit"></i> <!-- FontAwesome icon -->
             </button>
         </div>
