@@ -193,8 +193,10 @@ function checkFor2Parents($db, $individual_id) {
     return true;
 }
 
-$parents=Utils::getParents($individual_id);
-
+$parents=[];
+if(isset($individual_id)) {
+    $parents=Utils::getParents($individual_id);
+}
 ?>
 <!-- "Add new relationship" Modal Popup Form -->
 <div id="popupForm" class="modal" style="display: none;">
