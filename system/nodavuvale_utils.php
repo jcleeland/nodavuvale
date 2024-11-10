@@ -569,8 +569,9 @@ class Utils {
         }
         $query = "
             SELECT items.*, item_groups.item_group_name, files.id as file_id, files.*, 
-            users.first_name, users.last_name,
-            individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId
+                users.first_name, users.last_name,
+                individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId,
+                IFNULL(items.item_identifier, UUID_SHORT()) as item_identifier
             FROM items 
             INNER JOIN item_links ON items.item_id=item_links.item_id
             INNER JOIN individuals ON item_links.individual_id=individuals.id
@@ -588,15 +589,15 @@ class Utils {
         // Group items by item_identifier - if there is none, treat as individual groups
         $groupedItems = [];
         foreach ($items as $item) {
-            $itemIdentifier = !empty($item['item_group_name']) ? $item['item_group_name'] : $item['item_identifier'];
-            if (empty($itemIdentifier)) {
-                $itemIdentifier = "Singleton";
-            }
+            //This has to be the item_identifier number - so that mutliple events of the same type are all displayed
+            $itemIdentifier = $item['item_identifier'];
+            $itemGroupName = $item['item_group_name'] ? $item['item_group_name'] : $item['detail_type'];
             if (!isset($groupedItems[$itemIdentifier])) {
                 $groupedItems[$itemIdentifier] = []; //Create empty array for new item group
+                $groupedItems[$itemIdentifier]['item_group_name'] = $itemGroupName;
             }
             if(!empty($item['detail_value'])) {
-                $groupedItems[$itemIdentifier][] = $item;
+                $groupedItems[$itemIdentifier]['items'][] = $item;
             }
         }
         //echo "<pre>"; print_r($groupedItems); echo "</pre>";

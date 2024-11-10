@@ -234,7 +234,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 ?>
                             <div class='document-item m-2 mb-4 text-center items-center shadow-lg rounded-lg text-sm relative max-w-3xs break-words'>
                                 <div class="item_header p-1 rounded mb-2 bg-brown text-white break-words text-center items-center center">
-                                    <b><?= $groupTitle ?></b> added to<br /> 
+                                    <b><?= $groupTitle ?> Information </b> added to<br /> 
                                     <a href='?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>'>
                                         <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?>
                                     </a>
@@ -300,33 +300,6 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                 </div>
             </div>            
 
-        </div>
-
-    </section>
-
-    <!-- Logged-in Content Sections -->
-    <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Family Section -->
-            <div class="p-6 bg-white shadow-lg rounded-lg">
-                <h3 class="text-2xl font-bold">Our Diaspora</h3>
-                <p class="mt-2">Explore your roots and connect with family members around the world.</p>
-                <a href="?to=family/" class="mt-4 inline-block text-ocean-blue hover:text-burnt-orange">Connect with Family</a>
-            </div>
-
-            <!-- Village Section -->
-            <div class="p-6 bg-white shadow-lg rounded-lg">
-                <h3 class="text-2xl font-bold">Nataleira Life</h3>
-                <p class="mt-2">Learn about the cultural traditions and the history of Nataleira village.</p>
-                <a href="?to=village/" class="mt-4 inline-block text-ocean-blue hover:text-burnt-orange">Discover Village Life</a>
-            </div>
-
-            <!-- Communications Section -->
-            <div class="p-6 bg-white shadow-lg rounded-lg">
-                <h3 class="text-2xl font-bold">Getting Together</h3>
-                <p class="mt-2">Read news, join discussions and stay in touch with the Soli diaspora.</p>
-                <a href="?to=communications/" class="mt-4 inline-block text-ocean-blue hover:text-burnt-orange">Get Involved</a>
-            </div>
         </div>
     </section>
 

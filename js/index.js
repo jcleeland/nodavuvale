@@ -264,12 +264,14 @@ async function getSpouses(id) {
 
 function initialiseTabs(tabSelector, contentSelector, storageKey) {
     const tabs = document.querySelectorAll(tabSelector);
+    console.log('Tabs:');
+    console.log(tabs);
     if (tabs.length === 0) return;
 
     // Retrieve the active tab from localStorage
-    console.log('Storage key');
-    console.log(storageKey);
-    console.log(localStorage.getItem(storageKey));
+    //console.log('Storage key');
+    //console.log(storageKey);
+    //console.log(localStorage.getItem(storageKey));
     const activeTabId = localStorage.getItem(storageKey);
     //Check that the chosen activeTabId is a valid tab
     if (activeTabId) {
@@ -281,7 +283,7 @@ function initialiseTabs(tabSelector, contentSelector, storageKey) {
         tempTabName=activeTabId;
         if(document.querySelector(`${tabSelector}[data-tab="${activeTabId}"]`) === null) {
             console.log('Its null');
-            tempTabName = 'discussionstab';
+            tempTabName = tabs[0].getAttribute('data-tab');
         } 
         document.querySelector(`${tabSelector}[data-tab="${tempTabName}"]`).classList.add('active');
         document.getElementById(tempTabName).classList.add('active');

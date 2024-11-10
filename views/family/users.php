@@ -8,35 +8,50 @@
     ORDER BY users.last_name, users.first_name";
 
     $users = $db->fetchAll($sql);
+
+    if(isset($_GET['user_id'])) {
+        $user_id = $_GET['user_id'];
+        $sql = "SELECT users.id, users.first_name, users.last_name, users.email, 
+            users.avatar, users.individuals_id, users.show_presence
+            FROM users
+            WHERE users.id = $user_id";
+
+        $user = $db->fetchOne($sql);
+        $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
+        
+        if($user['individuals_id']) {
+            ?>
+            <script>
+                window.location = '?to=family/individual&individual_id=<?= $user['individuals_id'] ?>';
+            </script>
+            <?php
+            return;
+        }
+
+        $descendancy = [];
+        if($user['individuals_id']) {
+            $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
+        } 
+
+
+    }    
+    
+
 ?>
 
 <section class="hero bg-deep-green text-white py-20">
     <div class="container hero-content">
         <h2 class="text-4xl font-bold">Site Members</h1>
         <p class="mt-4 text-lg">
-            Discover Soli's Descendents who are using <i>'<?= $site_name ?>'</i>
+            <i>People who are registered to use '<?= $site_name ?>'</i>
         </p>
-        <?php if(isset($_GET['user_id'])) {
-            $user_id = $_GET['user_id'];
-            $sql = "SELECT users.id, users.first_name, users.last_name, users.email, 
-                users.avatar, users.individuals_id, users.show_presence
-                FROM users
-                WHERE users.id = $user_id";
-
-            $user = $db->fetchOne($sql);
-            $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
-            
-            $descendancy = [];
-            if($user['individuals_id']) {
-                $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
-            }         
+        <?php         
             ?>
         <div id="individual-options" class="absolute flex justify-between items-center w-full bottom-0 left-0 rounded-b-lg p-0 m-0">
             <?php if($user['individuals_id']) { ?>
             <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=<?= $web->getRootId() ?>'">
                 <i class="fas fa-network-wired" style="transform: rotate(180deg)"></i> <!-- FontAwesome icon -->
             </button>
-            <?php } ?>
             <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
             <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?= $user['id'] ?>'">
                 <i class="fas fa-users"></i> <!-- FontAwesome icon -->
@@ -52,9 +67,9 @@ if(isset($_GET['user_id'])) {
 ?>
     <?php if($descendancy): ?>
         <section class="container mx-auto pt-6 pb-6 px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-center items-center">
+            <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
                 <?php foreach($descendancy as $index => $descendant): ?>
-                    <div class="bg-burnt-orange-800 nv-bg-opacity-20 text-xs text-center p-2 rounded-lg">
+                    <div class="bg-burnt-orange-800 nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg">
                         <a title='View <?= $descendant[0] ?>&apos;s details' href='?to=family/individual&individual_id=<?= $descendant[1] ?>'><?= $descendant[0] ?></a>
                     </div>
                     <?php if ($index < count($descendancy) - 1): ?>
@@ -74,7 +89,7 @@ if(isset($_GET['user_id'])) {
                     <h3 class="text-2xl font-bold">
                         <?= $user['first_name'] . ' ' . $user['last_name'] ?>
                     </h3>
-                    <span><a href='mailto: <?= $user['email'] ?>'><?= $user['email'] ?></a></span>
+                    <span><?= $user['email'] ?> <a href='mailto: <?= $user['email'] ?>' title="Send an email to <?= $user['first_name'] ?>" ><i class="fas fa-envelope text-xs text-gray-600"></i></a></span>
                 </div>
             </div>
         </div>

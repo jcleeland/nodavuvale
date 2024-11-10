@@ -156,7 +156,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                     //Now make sure it's a number not a string
                     nodeId = parseInt(nodeId);
                     console.log('Found node: ' + nodeId);
-                    tree.zoomToNode(nodeId, 2, 500);
+                    tree.zoomToNode(nodeId, 2, 1500);
                     // Delay the highlighting feature by 500ms to ensure it runs after the zoom is complete
                     setTimeout(function() {
                         // Now make the div's parent element briefly grow and then shrink

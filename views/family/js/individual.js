@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-    console.log('Init tabs');
+    //console.log('Init tabs');
     initialiseTabs('.tab', '.tab-content', 'activeIndividualTabId');
 
     const reactionButtons = document.querySelectorAll('.reaction-btn');

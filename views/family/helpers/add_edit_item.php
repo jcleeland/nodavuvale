@@ -52,38 +52,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
         if(count($values) > 1) {
             $item_identifier = Utils::getNextItemIdentifier($individual_id, $item_type);
         }
+
+        // Identify if this information should be added to another individual
+        $duplicate_individual_id = null;
+        if(isset($_POST['Spouse']) && !empty($_POST['Spouse'])) {
+            $duplicate_individual_id = $_POST['Spouse'];
+        }
+
         foreach($values as $key=>$value) {
-            //echo "Doing $key => $value";
-            //echo " which is a [".$item_styles[$key]."]<br />";
             //For each of the values, add a new item to the "items" table, including the fields "detail_type" which will be the $key, "detail_value" which will be the $value
             // and "item_identifier" which will be the $item_identifier. Also add the user_id in the "user_id" field
             // retrieve the item_id, and add it to an array, which will be used to add the item_id to the item_links table, and also to the item_group table
             // - note that there is no function specifically for generating the SQL, but you can use the $db class for in "nodavuvale_db.php" for processing 
-            if($item_styles[$key]=="file") {
-                //Check to see if a file has actually been uploaded for this:
-                if(isset($_FILES[$key]) && !empty($_FILES[$key]['name'] )) {
-                    //echo "<pre>"; print_r($_FILES[$key]); echo "</pre>";
-                    $value = $_POST['item_type']." ".$key. " file";
-                }
-            }
-            $item_insert_sql = "INSERT INTO items (detail_type, detail_value, item_identifier, user_id) VALUES (?, ?, ?, ?)";
+
+            //echo "Doing $key => $value";
+            //echo " which is a [".$item_styles[$key]."]<br />";
+
 
 
             if(1==1) {
+                $item_insert_sql = "INSERT INTO items (detail_type, detail_value, item_identifier, user_id) VALUES (?, ?, ?, ?)";
+
+                if($item_styles[$key]=="file") {
+                    //Check to see if a file has actually been uploaded for this:
+                    if(isset($_FILES[$key]) && !empty($_FILES[$key]['name'] )) {
+                        //echo "<pre>"; print_r($_FILES[$key]); echo "</pre>";
+                        $value = $item_type." ".$key. " file";
+                    }
+                }
+
                 $db->insert($item_insert_sql, [$key, $value, $item_identifier, $user_id]);
+                //Now that this item has been created, we'll grab the item_id and use that for links
+                // in both the item_links table, and the file_links table (if there's a file)
                 $item_id = $db->lastInsertId();
 
                 $item_link_insert_sql = "INSERT INTO item_links (individual_id, item_id) VALUES (?, ?)";
                 $db->insert($item_link_insert_sql, [$individual_id, $item_id]);
 
-                
+                //If there is a duplicate_individual_id, then we need to link this item to that individual as well
+                if($duplicate_individual_id) {
+                    $item_link_insert_sql = "INSERT INTO item_links (individual_id, item_id) VALUES (?, ?)";
+                    $db->insert($item_link_insert_sql, [$duplicate_individual_id, $item_id]);
+                }
+
                 //Now, if any of the $item_types are files, we'll need to upload the file and add them to the "files" and "file_links" table, and get their file_id for the item_links table
                 // - the $item_types which are files are available in the $item_styles array, where the key is the $item_type, and the value is the style of the item. Any of these
                 //   where the value is "file" are files
                 if($item_styles[$key]=="file" && isset($_FILES[$key]) && !empty($_FILES[$key]['name'] )) {
                     //echo "Doing the whole file thing!<br />";
                     $file=$_FILES[$key];
-                    $file_description = $_POST['item_type']." ".$key;
+                    $file_description = $item_type." ".$key;
 
                     $file_type = $file['type'];
                     $file_type = explode('/', $file_type);
@@ -107,6 +125,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
 
                         $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES (?, ?, ?)";
                         $db->insert($file_link_sql, [$file_id, $individual_id, $item_id]);
+                        //If there is a duplicate_individual_id, then we need to link this file to that individual as well
+                        if($duplicate_individual_id) {
+                            $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES (?, ?, ?)";
+                            $db->insert($file_link_sql, [$file_id, $duplicate_individual_id, $item_id]);
+                        }
                     }                
                 }
                 //Finally, insert an entry into the item_groups table, linking the item_identifier with the group name
@@ -120,7 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
         }
 
 
-
+        ?>
+        // Reload the page to show the new item and stop the form resubmission
+        <script>
+            window.location.href = window.location.href;
+        </script>
+        <?php
 
     } elseif ($_POST['action'] == 'update_item') {
         // Update the item
@@ -134,7 +162,8 @@ if (isset($_GET['item_id'])) {
     $sql = "SELECT * FROM items WHERE id = :id";
 }
 
-?>
+?>  
+    <!-- Modal for adding a new fact or event -->
     <div id="eventModal" class="modal">
         <div class="modal-content">
             <div id="modal-header" class="modal-header">

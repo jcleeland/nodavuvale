@@ -76,9 +76,9 @@ if($auth->getUserRole() == 'admin') {
             <!-- Navigation Options -->
             <nav class="hidden sm:flex flex-grow justify-end text-right space-x-4">
                 <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
-                <a href="?to=family/" class="text-white hover:text-burnt-orange">Family</a>
-                <a href="?to=village/" class="text-white hover:text-burnt-orange">Village</a>
-                <a href="?to=communications/" class="text-white hover:text-burnt-orange">Chat</a>
+                <a href="?to=family/tree" class="text-white hover:text-burnt-orange">Tree</a>
+                <a href="?to=family/users" class="text-white hover:text-burnt-orange">Members</a>
+                <a href="?to=communications/discussions" class="text-white hover:text-burnt-orange">Chat</a>
             </nav>
             
             <!-- Mobile Navigation Toggle Button -->
@@ -93,9 +93,9 @@ if($auth->getUserRole() == 'admin') {
             <!-- Mobile Navigation Menu -->
             <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-brown text-white z-30 text-center">
                 <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
-                <a href="?to=family/" class="block px-4 py-2 text-white hover:text-burnt-orange">Family</a>
-                <a href="?to=village/" class="block px-4 py-2 text-white hover:text-burnt-orange">Village</a>
-                <a href="?to=communications/" class="block px-4 py-2 text-white hover:text-burnt-orange">Communications</a>
+                <a href="?to=family/tree" class="block px-4 py-2 text-white hover:text-burnt-orange">Tree</a>
+                <a href="?to=family/users" class="block px-4 py-2 text-white hover:text-burnt-orange">Members</a>
+                <a href="?to=communications/discussions" class="block px-4 py-2 text-white hover:text-burnt-orange">Chat</a>
             </div>
             
             <!-- User Account/Login -->
@@ -114,9 +114,9 @@ if($auth->getUserRole() == 'admin') {
                             </span>
                         </button>
                         <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden" id="user-menu">
-                            <a href="?to=account" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Account</a>
+                            <a href="?to=account" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Account</a>
                             <?php if ($_SESSION['role'] === 'admin'): ?>
-                                <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin</a>
+                                <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Adminstrator Options</a>
                             <?php endif; ?>
                             <a href="?action=logout" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
                         </div>
