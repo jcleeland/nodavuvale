@@ -214,10 +214,10 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             <div class="text-center text-gray-500">No new items at the moment.</div>
                         <?php endif; ?>
                         <?php foreach ($changes['items'] as $key=>$itemgroup) : ?>
-                                <?php 
-                                if($key != "Singleton"):
+                                <?php
+                                if(count($itemgroup['items']) > 0):
                                     $groupTitle=$key;
-                                    foreach($itemgroup as $item) {
+                                    foreach($itemgroup['items'] as $item) {
                                         $itemlist['group_'.$item['item_identifier']][$item['item_id']]=$item;
                                     }
                                     

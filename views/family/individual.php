@@ -193,13 +193,13 @@ if ($individual_id) {
 
     <div class="tabs absolute -bottom-0 text-sm md:text-lg gap-2">
         <?php if($user): ?>
-            <div class="tab active px-4 py-0" data-tab="membertab">
+            <div class="tab active px-4 py-0" data-tab="membertab" title="This person is registered on this website. Find out more about them...">
                 <img src="<?= $useravatar ?>" alt="<?= $user['first_name'] ?> <?= $user['last_name'] ?>" class="avatar-img-sm object-cover mt-1 p-1 h-1 <?=$activityclass ?>" title="<?= $user['first_name'] ?> <?= $user['last_name'] ?>">
             </div>
         <?php endif; ?>
-        <div class="tab active px-4 py-2" data-tab="generaltab">General</div>
-        <div class="tab px-4 py-2" data-tab="relationshipstab">Relationships</div>
-        <div class="tab px-4 py-2" data-tab="mediatab">Media</div>
+        <div class="tab active px-4 py-2" data-tab="generaltab" title="View (or add-to) facts about this person's life, and read or share stories for ancestors">General</div>
+        <div class="tab px-4 py-2" data-tab="relationshipstab" title="View (or add-to) the family tree relationships for this person">Relationships</div>
+        <div class="tab px-4 py-2" data-tab="mediatab" title="View (or add-to) photos, videos, documents and other digital records about this person">Media</div>
     </div>
 </section>
 
@@ -225,9 +225,14 @@ if ($individual_id) {
 
 
 
-<div class="tab-content active" id="membertab">
+<div class="tab-content" id="membertab">
     <section class="container mx-auto ">
-
+    <?php 
+    if($user): 
+        $user_id = $user['user_id'];
+        include("helpers/user.php");
+    endif; 
+    ?>
     </section>
 </div>
 
