@@ -24,6 +24,23 @@ if(isset($_GET['user_id'])) {
     }
 
 ?>
+    <?php if($user_id) { ?>
+        <script>
+            document.getElementById('individual-options').innerHTML = `
+                <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=<?= $web->getRootId() ?>'">
+                    <i class="fas fa-network-wired" style="transform: rotate(180deg)"></i> 
+                </button>
+                <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+                <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?= $user['id'] ?>'">
+                    <i class="fas fa-users"></i>
+                </button>
+                <?php 
+                }
+            ?>
+        </script>
+    <?php 
+    } 
+    ?>
 
     <section class="container mx-auto pt-12 px-4 sm:px-6 lg:px-8">
         <div class="absolute z-10 p-2 w-max">
