@@ -565,43 +565,84 @@ class Utils {
         if($since=='1900-01-01 00:00:00') {
             $order = "ORDER BY item_identifier ASC, items.updated ASC";
         } else {
-            $order = "ORDER BY items.updated DESC, item_identifier ASC";
+            $order = "ORDER BY item_identifier ASC, items.updated DESC";
         }
+
+        $individualtypes=[];
+        $itemstyles=self::getItemStyles();
+        foreach($itemstyles as $key=>$val) {
+            if($val=='individual') {
+                $individualtypes[]=$key;
+            }
+        }
+        //Build a comma delimited string of individual types
+        $individualtypes="'".implode("','",$individualtypes)."'";
+
+        //echo $individualtypes;
+
         $query = "
-            SELECT items.*, item_groups.item_group_name, files.id as file_id, files.*, 
+            SELECT item_links.id, item_groups.item_group_name, item_links.individual_id as item_links_individual_id, item_links.item_id as item_links_item_id,
+				items.detail_value as items_item_value,
+                others.first_names as other_first_names, others.last_name as other_last_name,
                 users.first_name, users.last_name,
                 individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId,
-                IFNULL(items.item_identifier, UUID_SHORT()) as item_identifier
-            FROM items 
-            INNER JOIN item_links ON items.item_id=item_links.item_id
+                IFNULL(items.item_identifier, UUID_SHORT()) as unique_id,
+                CASE 
+                    WHEN 
+                        items.detail_type IN ('Spouse','Person') AND item_links.individual_id != items.detail_value
+                        THEN CONCAT(others.first_names, ' ', others.last_name)
+                    WHEN
+                        items.detail_type IN ('Spouse','Person') AND item_links.individual_id = items.detail_value
+                        THEN CONCAT(others.first_names, ' ', others.last_name) 
+                    ELSE NULL
+                END AS individual_name,
+                CASE 
+                    WHEN 
+                        items.detail_type IN ('Spouse','Person') AND item_links.individual_id != items.detail_value
+                        THEN items.detail_value
+                    WHEN
+                        items.detail_type IN ('Spouse','Person') AND item_links.individual_id = items.detail_value
+                        THEN others.id 
+                    
+                    ELSE NULL
+                END AS individual_name_id,
+                items.*,  files.id as file_id, files.*
+            FROM item_links 
+            INNER JOIN items ON items.item_id=item_links.item_id
             INNER JOIN individuals ON item_links.individual_id=individuals.id
             LEFT JOIN file_links ON items.item_id = file_links.item_id
             LEFT JOIN files ON file_links.file_id = files.id
             LEFT JOIN item_groups ON items.item_identifier = item_groups.item_identifier
             LEFT JOIN users ON items.user_id = users.id
+            LEFT JOIN item_links AS duplicateItems ON items.item_id = duplicateItems.item_id AND duplicateItems.id != item_links.id
+            LEFT JOIN individuals AS others ON duplicateItems.individual_id = others.id
             WHERE item_links.individual_id like ?
             AND items.updated > ?
             $order 
         ";
+        //echo "<pre>".$query; echo $individual_id; echo $since;
         $items = $db->fetchAll($query, [$individual_id, $since]);
         //echo "<pre>"; print_r($items); echo "</pre>";
 
-        // Group items by item_identifier - if there is none, treat as individual groups
+        // Group items by item_identifier - if there is none, treat as individual groups AND and their linked individual_id
         $groupedItems = [];
         foreach ($items as $item) {
             //This has to be the item_identifier number - so that mutliple events of the same type are all displayed
-            $itemIdentifier = $item['item_identifier'];
+            $itemIdentifier = $item['unique_id'];
+            $key = $itemIdentifier.'_'.$item['item_links_individual_id'];
+            //echo "<pre>"; print_r($item); echo "</pre>";
+            //echo $key."<br />";
             $itemGroupName = $item['item_group_name'] ? $item['item_group_name'] : $item['detail_type'];
-            if (!isset($groupedItems[$itemIdentifier])) {
-                $groupedItems[$itemIdentifier] = []; //Create empty array for new item group
-                $groupedItems[$itemIdentifier]['item_group_name'] = $itemGroupName;
+            if (!isset($groupedItems[$key])) {
+                $groupedItems[$key] = []; //Create empty array for new item group
+                $groupedItems[$key]['item_group_name'] = $itemGroupName;
             }
             if(!empty($item['detail_value'])) {
-                $groupedItems[$itemIdentifier]['items'][] = $item;
+                $groupedItems[$key]['items'][] = $item;
             }
         }
         //echo "<pre>"; print_r($groupedItems); echo "</pre>";
-        
+        //die();
         return $groupedItems;
     }
 
@@ -863,6 +904,15 @@ class Utils {
         $response['Photo']="file";
         $response['File']="file";
         return $response;
+    }
+
+    public static function getItemStyle($type) {
+        $styles=self::getItemStyles();
+        if(isset($styles[$type])) {
+            return $styles[$type];
+        } else {
+            return "text";
+        }
     }
 
     /**

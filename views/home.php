@@ -48,8 +48,13 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
 
     $item_types = Utils::getItemTypes();
     $item_styles= Utils::getItemStyles();
-    
+     //echo "<pre>"; print_r($changes['items']); echo "</pre>";
 ?>
+
+
+
+
+
 
     <!-- Changes and Updates Section -->
     <section class="container mx-auto py-12 px-4 sm:px-3 xs:px-2 lg:px-8 pt-10">
@@ -180,6 +185,9 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                         <?php endforeach; ?>
                         </div>
                     </div>
+
+
+
                     <div class="tab-content active" id="individualstab">
                         <div class="flex flex-wrap justify-center" id="family-tree">
                         <?php if(empty($changes['individuals'])): ?>
@@ -218,18 +226,23 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 if(count($itemgroup['items']) > 0):
                                     $groupTitle=$key;
                                     foreach($itemgroup['items'] as $item) {
-                                        $itemlist['group_'.$item['item_identifier']][$item['item_id']]=$item;
+                                        $itemlist['group_'.$item['unique_id']][$item['item_id']]=$item;
                                     }
                                     
                                 else:
+                                    //$groupTitle=$key;
                                     foreach($itemgroup as $item) {
                                         $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
                                     }
                                 endif; 
                             endforeach;
+                            //echo " <pre>";print_r($itemlist); echo "</pre>";
                             
                             foreach($itemlist as $itemgroup) {
+                                $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/4 mx-auto";
                                 $firstItem=reset($itemgroup);
+                                //echo "<pre>"; print_r($itemgroup); echo "</pre>";
+                                $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
                                 $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
                                 ?>
                             <div class='document-item m-2 mb-4 text-center items-center shadow-lg rounded-lg text-sm relative max-w-3xs break-words'>
@@ -239,37 +252,45 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                         <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?>
                                     </a>
                                 </div>
-                                <?php foreach ($itemgroup as $key=>$itemdetail) : ?>
-                                    <?php if(!empty($itemdetail['file_id'])): ?>
-                                        <?php if ($itemdetail['file_type'] == 'image'): ?>
-                                            <center><img class="w-3/4 h-auto rounded object-cover" src='<?= $itemdetail['file_path'] ?>' alt="<?= $itemdetail['detail_value'] ?>"/></center>
-                                        <?php else: ?>
-                                            <div class="text-xxs text-left px-1 pb-1">
-                                                <b><?= $itemdetail['detail_type'] ?>:</b> <a href='<?= $itemdetail['file_path'] ?>' class='text-blue-500 hover:text-blue-700'><?= $itemdetail['file_description'] ?></a>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <?php if(!empty($itemdetail['detail_value'])): ?>
-                                            <div class="text-xxs text-left px-1 pb-1 leading-tight" title="<?= $itemdetail['item_id'] ?>">
-                                                <b><?= $itemdetail['detail_type'] ?>:</b>
-                                            <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
-                                                <a href='?to=family/individual&individual_id=<?=$itemdetail['detail_value'] ?>'><?= $itemdetail['detail_value'] ?></a>
-                                            <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
-                                                <?php print_r($itemdetail); ?>
-                                                <?php if($itemdetail['detail_type'] == "Photo"): ?>
-                                                    <img class="w-3/4 h-auto rounded object-cover" src='<?= $itemdetail['detail_value'] ?>' alt="<?= $itemdetail['detail_value'] ?>"/>)
-                                                <?php endif; ?>
+                                <div id="eventid_<?= $itemidentifier ?>" class="item_body relative break-words leading-none">
+                                    <?php foreach ($itemgroup as $key=>$itemdetail) : ?>
+                                        <?php if(!empty($itemdetail['file_id'])): ?>
+                                            <?php if ($itemdetail['file_type'] == 'image'): ?>
+                                                <script>
+                                                    var eventElement=document.getElementById('eventid_<?= $itemidentifier ?>');
+                                                    eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['file_path'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>"+eventElement.innerHTML;
+                                                </script>
                                             <?php else: ?>
-                                                <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
+                                                <div class="text-xxs text-left px-1 pb-1">
+                                                    <b><?= $itemdetail['detail_type'] ?>:</b> <a href='<?= $itemdetail['file_path'] ?>' class='text-blue-500 hover:text-blue-700'><?= $itemdetail['file_description'] ?></a>
+                                                </div>
                                             <?php endif; ?>
-                                            </div>
+                                        <?php else: ?>
+                                            <?php if(!empty($itemdetail['detail_value'])): ?>
+                                                <div class="text-xxs text-left px-1 pb-1 leading-tight" title="<?= $itemdetail['item_id'] ?>">
+                                                    <b><?= $itemdetail['detail_type'] ?>:</b>
+                                                <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
+                                                    <a href='?to=family/individual&individual_id=<?=$itemdetail['individual_name_id'] ?>'><?= $itemdetail['individual_name'] ?></a>
+                                                <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
+                                                    <?php if($itemdetail['detail_type'] == "Photo"): ?>
+                                                        <script>
+                                                            var eventElement = document.getElementById('eventid_<?= $itemidentifier ?>');
+                                                            eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['detail_value'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>" + eventElement.innerHTML;
+                                                       </script>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
+                                                <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
                                         <?php endif; ?>
-                                    <?php endif; ?>
 
-                                <?php endforeach; ?>
-                        
-                                <div class="item_body p-1 italic break-words leading-none">
-                                    <span class="text-xxs">By <?= $firstItem['first_name'] . " " . $firstItem['last_name'] ?><br /><?= date("l, d F Y", strtotime($firstItem['updated'])) ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div style='clear: both'></div>
+                                <div style='height: 35px;'></div>
+                                <div class="item_footer absolute bottom-1 w-full p-1 italic break-words leading-none">
+                                    <span class="text-xxs">Change by <?= $firstItem['first_name'] . " " . $firstItem['last_name'] ?><br /><?= date("l, d F Y", strtotime($firstItem['updated'])) ?></span>
                                 </div>                                    
 
                             </div>
