@@ -60,6 +60,14 @@
     --nv-bg-opacity: 0.5 !important;
 }
 
+.bg-white-800, .hover\:bg-white-800:hover {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--white-red), var(--white-green), var(--white-blue), var(--nv-bg-opacity));
+}
+
+.bg-white {
+    background-color: var(--white);
+}
 
 .bg-brown-800, .hover\:bg-brown-800:hover {
     --nv-bg-opacity: 1;
@@ -706,6 +714,10 @@
 .avatar-float-left {
     float: left;
 }
+.avatar-img-0 {
+    border-radius: 50%;
+}
+
 .avatar-img-xs {
     width: 15px;
     height: 15px;
@@ -716,7 +728,7 @@
     height: 25px;
     border-radius: 50%;
 }
-.avatar-img-sm {
+.avatar-img-sm .sm\:.avatar-img-sm {
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -726,7 +738,7 @@
     height: 60px;
     border-radius: 50%;
 }
-.avatar-img-lg {
+.avatar-img-lg .sm\:avatar-img-lg {
     width: 120px;
     height: 120px;
     border-radius: 50%;

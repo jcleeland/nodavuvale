@@ -636,7 +636,7 @@ function doAction(action, individualId, actionId, event) {
         var eventelement = event.target.closest('div');      
         var eventbutton = event.target.closest('button');  
     }
-    console.log('Doing action:', action, 'for individual ID:', individualId, ' and action ID:', actionId);
+    console.log('Doing action:', action, 'for individual ID:', individualId, ' and action ID:', actionId, ' for event:', event);
     switch(action) {
         case 'delete_item':
             if (confirm('Are you sure you want to delete this item?')) {

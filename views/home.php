@@ -140,7 +140,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['a gole mail', 'dropped by', 'popped in for a bit', 'stopped in', 'checked things out', 'visited us', 'a mai sikova', 'hungout', 'was here', 'made a visit', 'came over'];
                             $timeprefix = $timeprefixOptions[array_rand($timeprefixOptions)];
                             ?>
-                                <div class="text-left w-64 m-2 p-1 border rounded shadow-xl <?= $activityclass ?>"> 
+                                <div class="text-left w-64 m-2 p-1 border rounded-full shadow-xl <?= $activityclass ?>"> 
                                 <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover ".($auth->getUserPresence($visitor['user_id']) ? 'userpresent' : 'userabsent')); ?></a>
                                     <div class='visitors-content text-center pr-1'>
                                         <div>
@@ -239,13 +239,13 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             //echo " <pre>";print_r($itemlist); echo "</pre>";
                             
                             foreach($itemlist as $itemgroup) {
-                                $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/4 mx-auto";
+                                $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/5 mx-auto";
                                 $firstItem=reset($itemgroup);
                                 //echo "<pre>"; print_r($itemgroup); echo "</pre>";
                                 $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
                                 $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
                                 ?>
-                            <div class='document-item m-2 mb-4 text-center items-center shadow-lg rounded-lg text-sm relative max-w-3xs break-words'>
+                            <div class='document-item m-2 mb-4 text-center items-center shadow-lg rounded-lg text-xs sm:text-sm relative max-w-3xs break-words'>
                                 <div class="item_header p-1 rounded mb-2 bg-brown text-white break-words text-center items-center center">
                                     <b><?= $groupTitle ?> Information </b> added to<br /> 
                                     <a href='?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>'>
