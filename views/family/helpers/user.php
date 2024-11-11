@@ -49,7 +49,7 @@ if(isset($_GET['user_id'])) {
             <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
                 <?php if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') { ?>
                 <div class="pb-6"> 
-                    <center><h3 class="text-2xl font-bold text-ocean-blue">Welcome to your page, <?= $user['first_name'] ?>!</h3></center>
+                    <center><h3 class="text-2xl font-bold text-ocean-blue"><?= $user['first_name'] ?>'s Home</h3></center>
                     <div id="tasks">
                         <div class="flex justify-center items-center border-gray-200 py-2 w-full">
                             <div class="flex items-center my-8">
@@ -62,7 +62,7 @@ if(isset($_GET['user_id'])) {
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1 text-sm sm:text-xs">
+                        <div class="grid grid-cols-1 justify-center items-center sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1 text-sm sm:text-xs">
                             <?php if(!$user['individuals_id']) { ?>
                             <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer onclick="window.location.href='index.php?to=family/individual&individual_id=<?= $user['individuals_id'] ?>'">
                                 <button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-5 my-4 mx-1" title="Connect to our tree" onclick="window.location.href='index.php?to=family/individual&individual_id=<?= $user['individuals_id'] ?>'"><i class="fas fa-user-friends"></i></button>

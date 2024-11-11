@@ -324,6 +324,18 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         </div>
     </section>
 
+    <!-- show the users home page -->
+    <?php
+    $sql = "SELECT users.id, users.id as user_id, users.first_name, users.last_name, users.email, 
+        users.avatar, users.individuals_id, users.show_presence
+        FROM users
+        WHERE users.id = ?";
+
+    $user = $db->fetchOne($sql, [$user_id]);
+    $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
+    include("family/helpers/user.php");
+    ?>
+
 <?php else: ?>
 
     <!-- Public Information for Visitors -->
