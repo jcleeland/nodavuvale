@@ -477,11 +477,7 @@ function triggerEditFileDescription(id) {
 async function openStoryModal(individualId) {
     const storyModal = document.getElementById('storyModal');
     const storyIndividualIdInput = document.getElementById('story-individual_id');
-    var closeButton = document.querySelector('.close-story-btn');
-    // Close the "Add" modal when the user clicks the close button
-    closeButton.addEventListener('click', function() {
-        storyModal.style.display = 'none';
-    });    
+   
     try {
         // Fetch individual data
         const individualData = await getIndividualDataById(individualId);  // Wait for the data
@@ -1000,64 +996,48 @@ function openModal(action, individualId, individualGender) {
 }
 
 function deleteDiscussion(discussionId) {
-    if (confirm('Are you sure you want to delete this entire discussion?')) {
-        // Perform the deletion via AJAX or redirect to a URL with the necessary parameters
-        // Example using AJAX:
-        fetch('delete_discussion.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'discussion_id': discussionId,
-                'delete_discussion': true
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Handle successful deletion (e.g., remove the discussion from the DOM)
-                document.getElementById(`discussion-${discussionId}`).remove();
-            } else {
-                // Handle error
-                alert('Failed to delete discussion.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the discussion.');
-        });
+    if (confirm('Are you sure you want to delete this story? Doing so will also delete all the comments')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.search;
+    
+        var deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_discussion';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+    
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'discussionId';
+        idInput.value = discussionId; // Make sure $discussionId is defined and accessible
+        form.appendChild(idInput);
+    
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
 function deleteComment(commentId) {
     if (confirm('Are you sure you want to delete this comment?')) {
-        // Perform the deletion via AJAX or redirect to a URL with the necessary parameters
-        // Example using AJAX:
-        fetch('delete_comment.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'comment_id': commentId,
-                'delete_comment': true
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Handle successful deletion (e.g., remove the comment from the DOM)
-                document.getElementById(`comment-${commentId}`).remove();
-            } else {
-                // Handle error
-                alert('Failed to delete comment.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the comment.');
-        });
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=family/individual&individual_id=' + individualId;
+
+        var deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_comment';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'commentId';
+        idInput.value = commentId; // Make sure $commentId is defined and accessible
+        form.appendChild(idInput);
+
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 

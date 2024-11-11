@@ -391,6 +391,17 @@ class Utils {
         }
     }
 
+    /**
+     * Fetches a simple list of individuals from the database.
+     * 
+     */
+    public static function getIndividualsList() {
+        $db = Database::getInstance();
+        $query = "SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names";
+        $individuals = $db->fetchAll($query);
+        return $individuals;
+    }
+
     public static function getParents($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
@@ -694,8 +705,9 @@ class Utils {
         //Iterate through the discussions, and find comments
         foreach($discussions as $key=>$discussion) {
             $commentquery = "
-                SELECT *
+                SELECT discussion_comments.*, users.first_name, users.last_name, users.avatar
                 FROM discussion_comments 
+                JOIN users ON discussion_comments.user_id = users.id
                 WHERE discussion_id = ?
                 ORDER BY created_at ASC
             ";

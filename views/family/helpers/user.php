@@ -33,7 +33,7 @@ if($user_id) {
         <?php 
         } 
         if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-        document.getElementById('individual-options').innerHTML = `    <button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
+        document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
         <?php 
         } 
         ?>
@@ -93,13 +93,13 @@ if($user_id) {
                         </div>
                         <?php } ?>
                         <?php if($user['avatar'] == 'images/default_avatar.webp') { ?>
-                        <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-burnt-orange-800 hover:nv-bg-opacity-10 cursor-pointer ">
-                            <button class="bg-burnt-orange-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-6 my-4 mx-1" title="Add a profile picture" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'"><i class="fas fa-portrait"></i></button>
+                        <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-burnt-orange-800 hover:nv-bg-opacity-10 cursor-pointer " onclick="triggerKeyPhotoUpload();">
+                            <button class="bg-burnt-orange-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-6 my-4 mx-1" title="Add a profile picture" onclick="triggerKeyPhotoUpload()"><i class="fas fa-portrait"></i></button>
                             <p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>Add a Profile Picture</b><br />You don't have a profile picture yet. Add one so we can see your lovely face!</p>
                         </div>
                         <?php } ?>
-                        <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-deep-green-800 hover:nv-bg-opacity-10 cursor-pointer ">
-                            <button class="bg-deep-green-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-6 my-4 mx-1" title="Edit your account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'"><i class="fas fa-user"></i></button>
+                        <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-deep-green-800 hover:nv-bg-opacity-10 cursor-pointer " onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'">
+                            <button class="bg-deep-green-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-6 my-4 mx-1" title="Edit your account"><i class="fas fa-user"></i></button>
                             <p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>Edit your account</b><br />Add a profile picture, set your privacy level and more</p>
                         </div>
                         <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer ">

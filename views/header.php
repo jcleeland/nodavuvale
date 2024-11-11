@@ -66,7 +66,7 @@ if($auth->getUserRole() == 'admin') {
     </div>
 
     <!-- Header -->
-    <header class="bg-brown text-white p-4">
+    <header class="bg-deep-green text-white p-4">
         <div class="container mx-auto flex items-center justify-between">
             <!-- Sitename -->
             <div class="text-left whitespace-nowrap">

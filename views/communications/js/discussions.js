@@ -158,7 +158,7 @@ function editComment($commentId) {
 
 }
 
-function deleteDiscussion($discussionId) {
+function deleteDiscussion(discussionId) {
     if (confirm('Are you sure you want to delete this story? Doing so will also delete all the comments and reactions.')) {
         var form = document.createElement('form');
         form.method = 'POST';
@@ -173,7 +173,7 @@ function deleteDiscussion($discussionId) {
         var idInput = document.createElement('input');
         idInput.type = 'hidden';
         idInput.name = 'discussionId';
-        idInput.value = $discussionId; // Make sure $discussionId is defined and accessible
+        idInput.value = discussionId; // Make sure $discussionId is defined and accessible
         form.appendChild(idInput);
     
         document.body.appendChild(form);
@@ -181,7 +181,7 @@ function deleteDiscussion($discussionId) {
     }
 }
 
-function deleteComment($commentId) {
+function deleteComment(commentId) {
     if (confirm('Are you sure you want to delete this comment? Doing so will also delete all the reactions.')) {
         var form = document.createElement('form');
         form.method = 'POST';
@@ -196,7 +196,7 @@ function deleteComment($commentId) {
         var idInput = document.createElement('input');
         idInput.type = 'hidden';
         idInput.name = 'commentId';
-        idInput.value = $commentId; // Make sure $commentId is defined and accessible
+        idInput.value = commentId; // Make sure $commentId is defined and accessible
         form.appendChild(idInput);
     
         document.body.appendChild(form);

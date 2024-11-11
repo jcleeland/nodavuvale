@@ -24,6 +24,9 @@ if ($is_admin && isset($_GET['user_id'])) {
 // Fetch the user’s account details to be edited
 $user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$user_id]);
 
+//Fetch the list of family tree individuals for the select dropdown
+$individuals = Utils::getIndividualsList();
+
 // Check if the form was submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accountUpdate'])) {
     $first_name = trim($_POST['first_name']);
@@ -163,7 +166,12 @@ $avatar_path = $user['avatar'] ?? 'uploads/avatars/default-avatar.png';
             <!-- Family Tree Individual ID -->
             <div class="mb-4">
                 <label for="individuals_id" class="block text-sm font-medium text-gray-700">Family Tree Connection</label>
-                <input type="text" placeholder="This is your link to your information in the family tree!" name="individuals_id" id="individuals_id" value="<?= $user['individuals_id'] ?>" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm" required>
+                <select name="individuals_id" id="individuals_id" class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm">
+                    <option value="">Select an individual</option>
+                    <?php foreach ($individuals as $individual): ?>
+                        <option value="<?= $individual['id'] ?>" <?= $user['individuals_id'] == $individual['id'] ? 'selected' : '' ?>><?= htmlspecialchars($individual['first_names'].' '.$individual['last_name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <!-- Avatar Upload -->

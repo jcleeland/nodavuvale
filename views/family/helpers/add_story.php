@@ -1,23 +1,81 @@
 <?php
-//Process the form
+//Process adding a story
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_story'])) {
     $title = $_POST['title'];
     $content = $_POST['content'];
     $individual_id = $_POST['individual_id'];
     $user_id = $_POST['user_id'];
-    $sql = "INSERT INTO discussions (title, content, individual_id, user_id) VALUES (?, ?, ?, ?)";
-    $db->insert($sql, [$title, $content, $individual_id, $user_id]);
-    
+    try{
+        $sql = "INSERT INTO discussions (title, content, individual_id, user_id) VALUES (?, ?, ?, ?)";
+        $db->insert($sql, [$title, $content, $individual_id, $user_id]);
+
+        // Redirect to the same page to avoid form resubmission
+        ?>
+        <script>
+            window.location = '?to=family/individual&individual_id=<?= $individual_id ?>';
+        </script>
+        <?php
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+    }
 }
+//Deleting a story
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion'])) {
+    $discussionId= $_POST['discussionId'];
+    //Only allow a delete by user who posted, or an admin
+    // Get the user id of the current uuser
+    $currentUserId = $_SESSION['user_id'];
+   try{
+        //IF this person is not an admin, make sure that the user_id of the discussion matches the current user
+        if($auth->getUserRole() !== 'admin') {
+            $sql = "DELETE FROM discussions WHERE id = ? AND user_id = ?";
+            $params= [$discussionId, $currentUserId];
+        } else {
+            $sql = "DELETE FROM discussions WHERE id = ?";
+            $params= [$discussionId];
+        }
+        $db->delete($sql, $params);
+
+        // Redirect to the same page to avoid form resubmission
+        ?>
+        <script>
+            window.location = '?to=family/individual&individual_id=<?= $individual_id ?>';
+        </script>
+        <?php
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+    }
+}
+
+//Posting a comment
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_comment'])) {
+    $content = $_POST['comment'];
+    $discussion_id = $_POST['discussion_id'];
+    $user_id = $_POST['user_id'];
+    try{
+        $sql = "INSERT INTO discussion_comments (comment, discussion_id, user_id) VALUES (?, ?, ?)";
+        $db->insert($sql, [$content, $discussion_id, $user_id]);
+
+        // Redirect to the same page to avoid form resubmission
+        ?>
+        <script>
+            window.location = '?to=family/individual&individual_id=<?= $individual_id ?>';
+        </script>
+        <?php
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+    }
+}
+
 ?>
     <div id="storyModal" class="modal">
         <div class="modal-content">
             <div id="modal-header" class="modal-header">
-                <span class="close-story-btn">&times;</span>
+                <span class="close-story-btn" onClick='document.getElementById("storyModal").style.display="none";'>&times;</span>
                 <h2 id="modal-title">Add A Story<span id='adding_relationship_to'></span></h2>
             </div>
             <div class="modal-body">
-                <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left object-cover"); ?>
+                <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left object-cover mr-1"); ?>
                 <div class='discussion-content'>
                     <form method="POST" class="mt-4">
                         <input type="hidden" name="individual_id" value="<?= $individual_id ?>" id="story-individual_id">

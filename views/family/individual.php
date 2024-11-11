@@ -10,6 +10,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     include("helpers/update_individual.php");
 }
 
+//Handle form submission for updating discussions
+
+
 if(!isset($rootId)) {
     $rootId = Web::getRootId();
 }
@@ -259,13 +262,21 @@ if ($individual_id) {
             <div class="p-6 bg-white shadow-lg rounded-lg text-left">
                 <div class="grid grid-cols-1 gap-8">
                     <?php foreach($discussions as $discussion): ?>
-                        <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
-                        <div class="discussion-item"> 
-                            <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                        <?php 
+                            $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; 
+                        ?>
+                        <div class="discussion-item">
+                            <a href='<?= "?to=family/users&user_id=".$discussion['user_id'] ?>'>
+                                <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover mr-1 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                            </a>
                             <div class='discussion-content'>
                                 <div class="text-sm text-gray-500 relative">
-                                    <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b><br />
-                                    <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
+                                    Posted by <b>
+                                        <a href='<?= "?to=family/users&user_id=".$discussion['user_id'] ?>'><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></a>
+                                    </b><br />
+                                    <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>">
+                                        <?= $web->timeSince($discussion['created_at']); ?>
+                                    </span>
                                     <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
                                         <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
                                             <i class="fas fa-edit"></i>
@@ -310,14 +321,18 @@ if ($individual_id) {
 
                                 <div class="comments mt-4">
                                     <!-- Fetch and display comments -->
-                                    <?php if (!empty($discusson['comments'])): ?>
+                                    <?php
+                                    if ($discussion['comments']): 
+                                    ?>
                                         <h4 class="font-semibold">Comments:</h4>
                                         <?php foreach ($discussion['comments'] as $comment): ?>
                                             <div class="bg-gray-100 p-4 rounded-lg mt-2">
-                                                <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm avatar-float-left object-cover" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
+                                                <a href='<?= "?to=family/users&user_id=".$comment['user_id'] ?>'>
+                                                    <img src="<?= isset($comment['avatar']) ? $comment['avatar'] : 'images/default_avatar.webp' ?>" alt="User Avatar" class="avatar-img-sm avatar-float-left object-cover mr-1 <?php echo $auth->getUserPresence($comment['user_id']) ? 'userpresent' : 'userabsent'; ?>" title="<?= $comment['first_name'] ?> <?= $comment['last_name'] ?>">
+                                                </a>
                                                 <div class="comment-content">
                                                     <div class="text-sm text-gray-500 relative">
-                                                        <b><?= htmlspecialchars($comment['first_name']) ?> <?= $comment['last_name'] ?></b><br />
+                                                        Added by <b><?= htmlspecialchars($comment['first_name']) ?> <?= $comment['last_name'] ?></b><br />
                                                         <span title="<?= date('F j, Y, g:i a', strtotime($comment['created_at'])) ?>"><?= $web->timeSince($comment['created_at']); ?></span>
                                                         <?php if ($is_admin || $_SESSION['user_id'] == $comment['user_id']): ?>
                                                             <button type="button" title="Delete this story" onClick="deleteStoryComment(<?= $comment['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
@@ -366,7 +381,7 @@ if ($individual_id) {
                                     <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
                                     <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
                                     
-                                    <button type="submit" title="Post comment" class="submit-button mt-2 bg-deep-green text-white py-1 px-2 rounded-lg hover:bg-burnt-orange">
+                                    <button type="submit" name="new_comment" title="Post comment" class="submit-button mt-2 bg-deep-green text-white py-1 px-2 rounded-lg hover:bg-burnt-orange">
                                         <i class="fa fa-paper-plane"></i>
                                     </button>
                                 </form>

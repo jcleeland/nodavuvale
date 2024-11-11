@@ -718,27 +718,27 @@
     border-radius: 50%;
 }
 
-.avatar-img-xs {
+.avatar-img-xs, .sm\:.avatar-img-xs {
     width: 15px;
     height: 15px;
     border-radius: 50%;
 }
-.avatar-img-18 {
+.avatar-img-18, sm\:.avatar-img-18 {
     width: 25px;
     height: 25px;
     border-radius: 50%;
 }
-.avatar-img-sm .sm\:.avatar-img-sm {
+.avatar-img-sm, .sm\:.avatar-img-sm {
     width: 30px;
     height: 30px;
     border-radius: 50%;
 }
-.avatar-img-md {
+.avatar-img-md, .sm\:.avatar-img-md {
     width: 60px;
     height: 60px;
     border-radius: 50%;
 }
-.avatar-img-lg .sm\:avatar-img-lg {
+.avatar-img-lg, .sm\:avatar-img-lg {
     width: 120px;
     height: 120px;
     border-radius: 50%;
