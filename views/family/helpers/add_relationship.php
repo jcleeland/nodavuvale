@@ -274,11 +274,22 @@ if(isset($individual_id)) {
                             <input type="text" id="last_name" name="last_name" class="w-full px-4 py-2 border rounded-lg" required>
                         </div>
 
+                        <!-- Gender -->
+                        <div class="mb-4">
+                            <label for="gender" class="block text-gray-700">Gender</label>
+                            <select id="gender" name="gender" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Select gender...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>                        
+
                         <!-- Birth -->
                         <div class="mb-4 grid grid-cols-4 gap-4">
                             <div>
-                                <label for="birth_year" class="block text-gray-700">Year</label>
-                                <input type="text" id="birth_year" name="birth_year" class="w-full px-4 py-2 border rounded-lg">
+                                <label for="birth_date" class="block text-gray-700">Date</label>
+                                <input type="number" min="1" max="31" id="birth_date" name="birth_date" class="w-full px-4 py-2 border rounded-lg">
                             </div>
                             <div>
                                 <label for="birth_month" class="block text-gray-700">Month</label>
@@ -299,8 +310,8 @@ if(isset($individual_id)) {
                                 </select>
                             </div>
                             <div>
-                                <label for="birth_date" class="block text-gray-700">Date</label>
-                                <input type="text" id="birth_date" name="birth_date" class="w-full px-4 py-2 border rounded-lg">
+                                <label for="birth_year" class="block text-gray-700">Year</label>
+                                <input type="number" min="1000" max="<?= date("Y") ?>" id="birth_year" name="birth_year" class="w-full px-4 py-2 border rounded-lg">
                             </div>
                             <div>
                                 <label for="birth_prefix" class="block text-gray-700 whitespace-nowrap">
@@ -317,8 +328,8 @@ if(isset($individual_id)) {
                         </div>
                         <div class="mb-4 grid grid-cols-4 gap-4">
                             <div>
-                                <label for="death_year" class="block text-gray-700">Year</label>
-                                <input type="text" id="death_year" name="death_year" class="w-full px-4 py-2 border rounded-lg">
+                                <label for="death_date" class="block text-gray-700">Date</label>
+                                <input type="number" min="1" max="31" id="death_date" name="death_date" class="w-full px-4 py-2 border rounded-lg">
                             </div>
                             <div>
                                 <label for="death_month" class="block text-gray-700">Month</label>
@@ -339,8 +350,8 @@ if(isset($individual_id)) {
                                 </select>
                             </div>
                             <div>
-                                <label for="death_date" class="block text-gray-700">Date</label>
-                                <input type="text" id="death_date" name="death_date" class="w-full px-4 py-2 border rounded-lg">
+                                <label for="death_year" class="block text-gray-700">Year</label>
+                                <input type="number" min="1000" max="<?= date("Y") ?>" id="death_year" name="death_year" class="w-full px-4 py-2 border rounded-lg">
                             </div>
                             <div>
                                 <label for="death_prefix" class="block text-gray-700 whitespace-nowrap">
@@ -355,17 +366,6 @@ if(isset($individual_id)) {
                                     <option value="before">Before</option>
                                 </select>
                             </div>                            
-                        </div>
-
-                        <!-- Gender -->
-                        <div class="mb-4">
-                            <label for="gender" class="block text-gray-700">Gender</label>
-                            <select id="gender" name="gender" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="">Select gender...</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
                         </div>
 
                         <!-- Deceased -->
