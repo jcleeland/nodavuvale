@@ -197,6 +197,10 @@ $parents=[];
 if(isset($individual_id)) {
     $parents=Utils::getParents($individual_id);
 }
+$spouses=[];
+if(isset($individual_id)) {
+    $spouses=Utils::getSpouses($individual_id);
+}
 ?>
 <!-- "Add new relationship" Modal Popup Form -->
 <div id="popupForm" class="modal" style="display: none;">
@@ -268,6 +272,9 @@ if(isset($individual_id)) {
                                 <i class="hint fas fa-question-circle text-gray-500 ml-2 cursor-pointer" title="Use each individual's last name at birth, rather than a married or otherwise changed name. This ensure consistency across the tree. You can store information about name changes in the Facts/Events section"></i>
                                 <?php foreach($parents as $parent): ?>
                                     <div title='Use this surname' class='inline text-xs text-gray-500 text-opacity-50 rounded-lg nv-bg-opacity-50 bg-cream-800 px-2 mx-2 pb-1 -mt-1 cursor-pointer' onclick='document.getElementById("last_name").value="<?= $parent['last_name'] ?>"'><?= $parent['last_name'] ?></div>
+                                <?php endforeach ?>
+                                <?php foreach($spouses as $spouse): ?>
+                                    <div title='Use this surname' class='inline text-xs text-gray-500 text-opacity-50 rounded-lg nv-bg-opacity-50 bg-cream-800 px-2 mx-2 pb-1 -mt-1 cursor-pointer' onclick='document.getElementById("last_name").value="<?= $spouse['last_name'] ?>"'><?= $spouse['last_name'] ?></div>
                                 <?php endforeach ?>
                             </label>
 
