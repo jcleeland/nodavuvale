@@ -48,7 +48,7 @@
     background-color: var(--cream);
 }
 
-.nv-bg-opacity-10 {
+.nv-bg-opacity-10, .hover\:nv-bg-opacity-10:hover {
     --nv-bg-opacity: 0.1 !important;
 }
 
@@ -60,12 +60,26 @@
     --nv-bg-opacity: 0.5 !important;
 }
 
-.bg-cream-800 {
+
+.bg-brown-800, .hover\:bg-brown-800:hover {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--brown-red), var(--brown-green), var(--brown-blue), var(--nv-bg-opacity));
+}
+
+.bg-brown {
+    background-color: var(--brown);
+}
+
+.bg-cream-800, .hover\:bg-cream-800:hover {
     --nv-bg-opacity: 1;
     background-color: rgba(var(--cream-red), var(--cream-green), var(--cream-blue), var(--nv-bg-opacity));
 }
 
-.bg-burnt-orange-800 {
+.bg-cream {
+    background-color: var(--cream);
+}
+
+.bg-burnt-orange-800, .hover\:bg-burnt-orange-800:hover {
     --nv-bg-opacity: 1;
     background-color: rgba(var(--burnt-orange-red), var(--burnt-orange-green), var(--burnt-orange-blue), var(--nv-bg-opacity));
 }
@@ -74,12 +88,27 @@
     background-color: var(--burnt-orange);
 }
 
+.bg-deep-green-800, .hover\:bg-deep-green-800:hover {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), var(--nv-bg-opacity));
+}
+
 .bg-deep-green {
     background-color: var(--deep-green);
 }
 
+.bg-ocean-blue-800, .hover\:bg-ocean-blue-800:hover {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--ocean-blue-red), var(--ocean-blue-green), var(--ocean-blue-blue), var(--nv-bg-opacity));
+}
+
 .bg-ocean-blue {
     background-color: var(--ocean-blue);
+}
+
+.bg-warm-red-800, .hover\:bg-warm-red-800:hover {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--warm-red-red), var(--warm-red-green), var(--warm-red-blue), var(--nv-bg-opacity));
 }
 
 .bg-warm-red {
