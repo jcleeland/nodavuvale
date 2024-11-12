@@ -91,7 +91,45 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                 <h2 id="findOnTreeTitle" class="text-xl font-bold mb-4 text-center">Find someone on the tree</h2>
             </div>
             <div class="modal-body">
-                <?= Web::showFindIndividualLookAhead($quicklist, 'lookup', 'findOnTree', 'Find someone on the tree') ?>
+                <label for='lookuptree_display'>Find someone</label><input type='text' placeholder='Find someone on the tree' id='lookuptree_name' name='lookuptree_name' class='w-full border rounded-lg p-2 mb-2' oninput='showSuggestions(this.value)'><div id='lookuptree_suggestions' class='autocomplete-suggestions'></div></div>
+                <script type='text/javascript'>
+                    const individuals = [
+                        <?php
+                            foreach($individuals as $individual) {
+                                echo "{id: ".$individual['id'].", name: '".$individual['first_names']." ".$individual['last_name']."'},";
+                            }
+                        ?>
+                    ];
+
+                    function showSuggestions(value) {
+                        const suggestionsContainer = document.getElementById('lookuptree_suggestions');
+                        suggestionsContainer.innerHTML = '';
+                        if (value.length === 0) {
+                            return;
+                        }
+
+                        const filteredIndividuals = individuals.filter(ind => ind.name.toLowerCase().includes(value.toLowerCase()));
+                        filteredIndividuals.forEach(ind => {
+                            const suggestion = document.createElement('div');
+                            suggestion.className = 'autocomplete-suggestion';
+                            suggestion.textContent = ind.name;
+                            suggestion.onclick = () => selectSuggestion(ind);
+                            suggestionsContainer.appendChild(suggestion);
+                        });
+                    }
+
+                    function selectSuggestion(individual) {
+                        const input = document.getElementById('lookuptree_name');
+                        input.value = individual.name;
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'lookuptree';
+                        hiddenInput.value = individual.id;
+                        input.parentNode.appendChild(hiddenInput);
+                        document.getElementById('lookuptree_suggestions').innerHTML = '';
+                        window.location.href = '?to=family/tree&zoom=' + individual.id;
+                    }
+                    </script>
                 <br />&nbsp;<br />
             </div>
         </div>

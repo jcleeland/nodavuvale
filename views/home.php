@@ -202,7 +202,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                         <?= explode(" ", $individual['tree_first_name'])[0] ?> <?= $individual['tree_last_name'] ?>
                                     </b>
                                     <div class="absolute w-64 pr-5 bottom-0 p-1 italic break-words leading-none text-right">
-                                        <span class="text-xxs">Added: <?= $individual['user_first_name'] . " " . $individual['user_last_name'] ?> <?= date("D, d M h:i a", strtotime($individual['updated']) ) ?></span>
+                                        <span class="text-xxs"><?= $individual['user_first_name'] . " " . $individual['user_last_name'] ?> <?= date("D, d M h:i a", strtotime($individual['updated']) ) ?></span>
                                     </div>
                                 </div>
                             </div>
