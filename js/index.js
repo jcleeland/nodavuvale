@@ -241,6 +241,12 @@ function showStory(title, textId) {
     });
 }
 
+function expandStory(textId) {
+    console.log(textId);
+    document.getElementById(textId).classList.toggle('hidden');
+    document.getElementById('full'+textId).classList.toggle('hidden');
+}
+
 // Placeholder for fetching individual data (replace with actual data fetching logic)
 async function getIndividualDataById(id) {
     try {

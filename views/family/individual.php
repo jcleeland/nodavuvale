@@ -287,7 +287,9 @@ if ($individual_id) {
                                     <?php endif; ?>  
                                 </div>
                                 <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
-                                <p class="mt-2"><?= htmlspecialchars($discussion['content']) ?></p>
+                                <?php $content = $web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand"); ?>
+                                <p class="mt-2" id="individualstory_<?= $discussion['id'] ?>"><?= stripslashes($content) ?></p>
+                                <p class="mt-2 hidden" id="fullindividualstory_<?= $discussion['id'] ?>"><?= nl2br($discussion['content']) ?></p>
                                 <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                     <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -340,7 +342,7 @@ if ($individual_id) {
                                                             </button>
                                                         <?php endif; ?>                                                        
                                                     </div>
-                                                    <p><?= htmlspecialchars($comment['comment']) ?></p>
+                                                    <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
                                                     <div class="comment-reactions" data-comment-id="<?= $comment['id'] ?>">
                                                         <svg alt="Remove Reaction" class="remove-reaction-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                                             <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

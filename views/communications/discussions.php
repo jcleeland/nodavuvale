@@ -265,10 +265,10 @@ function getCommentsForDiscussion($discussion_id) {
                 <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
                 <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative" id="discussion_id_<?= $discussion['id'] ?>">
                     <div class="discussion-item"> 
-                        <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                        <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>"></a>
                         <div class='discussion-content'>
                             <div class="text-sm text-gray-500">
-                                <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b><br />
+                            <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b></a><br />
                                 <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
                                 <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
                                     <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-20 top-2 font-normal text-xs">
@@ -289,7 +289,9 @@ function getCommentsForDiscussion($discussion_id) {
                             <?php endif; ?>                                                              
                             </div>
                             <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
-                            <p class="mt-2"><?= nl2br(htmlspecialchars($discussion['content'])) ?></p>
+                            <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
+                            <p id="individualstory_<?= $discussion['id'] ?>" class="mt-2"><?= $content ?></p>
+                            <p id="fullindividualstory_<?= $discussion['id'] ?>" class="hidden mt-2"><?= stripslashes(nl2br($discussion['content'])) ?></p>
                             <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                 <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                     <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

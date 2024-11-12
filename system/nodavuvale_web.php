@@ -98,12 +98,29 @@ class Web {
         return $time_ago;
     }
 
-    public function truncateText($text, $wordLimit = 100, $readMoreMessage='Read more', $textDivId = 'truncatedTextDiv') {
-        $text=htmlspecialchars($text);
+    /**
+     * Truncate text
+     * 
+     * @param string $text
+     * @param int $wordLimit
+     * @param string $readMoreMessage
+     * @param string $textDivId
+     * @return string
+     * 
+     */
+    public function truncateText($text, $wordLimit = 100, $readMoreMessage='Read more', $textDivId = 'truncatedTextDiv', $method='popup') {
+        //$text=htmlspecialchars($text);
         $words = explode(' ', $text);
         $text=addslashes($text);
         if (count($words) > $wordLimit) {
-            return implode(' ', array_slice($words, 0, $wordLimit)) . '<span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer" onClick="showStory(\'Story\', \''.$textDivId.'\')"> &hellip; </span>';
+            $newWords = array_slice($words, 0, $wordLimit);
+            $output = implode(' ', $newWords);
+            if($method=="popup") {
+                $output .= '<span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer text-blue" onClick="showStory(\'Story\', \''.$textDivId.'\')"> &hellip; </span>';
+            } elseif ($method=="expand") {
+                $output .= ' <span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="expandStory(\''.$textDivId.'\')">more &hellip; </span>';
+            }
+            return $output;
         }
         return $text;
     }
