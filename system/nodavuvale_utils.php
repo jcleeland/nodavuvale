@@ -569,14 +569,19 @@ class Utils {
         return $siblings;
     }
 
-    public static function getItems($individual_id, $since='1900-01-01 00:00:00') {
+    /**
+     * Get the items for an individual.
+     * 
+     * @param int $individual_id The ID of the individual.
+     * @param string $since The date from which to fetch items.
+     * @param string $order The order in which to fetch items. eg: "items.item_identifier ASC, items.updated ASC"
+     */
+    public static function getItems($individual_id, $since='1900-01-01 00:00:00', $order='item_identifier ASC, items.updated ASC') {
         // Get the database instance
         $db = Database::getInstance();
         // Fetch items using the updated query
-        if($since=='1900-01-01 00:00:00') {
-            $order = "ORDER BY item_identifier ASC, items.updated ASC";
-        } else {
-            $order = "ORDER BY item_identifier ASC, items.updated DESC";
+        if($order) {
+            $order = "ORDER BY ".$order;
         }
 
         $individualtypes=[];
@@ -593,10 +598,12 @@ class Utils {
 
         $query = "
             SELECT item_links.id, item_groups.item_group_name, item_links.individual_id as item_links_individual_id, item_links.item_id as item_links_item_id,
-				items.detail_value as items_item_value,
+				items.detail_value as items_item_value, items.updated as item_updated,
                 others.first_names as other_first_names, others.last_name as other_last_name,
                 users.first_name, users.last_name,
                 individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId,
+                CONCAT(individuals.birth_year,'-',individuals.birth_month,'-',individuals.birth_date) as tree_birth_date,
+                CONCAT(individuals.death_year,'-',individuals.death_month,'-',individuals.death_date) as tree_death_date,
                 IFNULL(items.item_identifier, UUID_SHORT()) as unique_id,
                 CASE 
                     WHEN 
@@ -631,7 +638,7 @@ class Utils {
             AND items.updated > ?
             $order 
         ";
-        //echo "<pre>".$query; echo $individual_id; echo $since;
+        //echo "<pre>".$query; echo $individual_id; echo $since; echo "</pre>";
         $items = $db->fetchAll($query, [$individual_id, $since]);
         //echo "<pre>"; print_r($items); echo "</pre>";
 
@@ -652,8 +659,83 @@ class Utils {
                 $groupedItems[$key]['items'][] = $item;
             }
         }
-        //echo "<pre>"; print_r($groupedItems); echo "</pre>";
-        //die();
+
+        //If this is for a specific individualId, then iterate through the $groupedItems array 
+        // and find any which have date values, then sort the top level of the array 
+        // by that date with earliest first
+        // Note that if the item_group_name is "Birth" or "Death" we should also use 
+        // the "tree_birth_date" and "tree_death_date" values
+        // Put any other top level items at the end of the array
+
+        //Get the items.detail_type values which are dates from the $itemstyles array
+        $dateTypes=[];
+        foreach($itemstyles as $key=>$val) {
+            if($val=='date') {
+                //echo "Adding $key";
+                $dateTypes[]=$key;
+            }
+        }
+         
+        if($individual_id) {
+            $sortedItems=[];
+            foreach($groupedItems as $key=>$group) {
+                $sortDate=date('Y-m-d');
+                $groupType=$group['item_group_name'];
+                //Iterate through the items looking for dates, and set the sortDate.
+                // If there are two dates, use the one with the $item['detail_type'] = "Started"
+                foreach($group['items'] as $item) {
+                    if(in_array($item['detail_type'], $dateTypes) && $item['detail_type'] != 'Ended') {
+                        $sortDate=$item['items_item_value'];
+                        break;
+                    }
+                }
+
+
+
+                if($groupType=='Birth') {
+                    $sortDate=date("Y-m-d", strtotime($item['tree_birth_date']));
+                    //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the birth date
+                    $groupedItems[$key]['items'][]=array(
+                        'id'=>null,
+                        'item_group_name'=>'Birth',
+                        'item_links_individual_id'=>$individual_id,
+                        'item_links_item_id'=>null,
+                        'item_updated'=>null,
+                        'individualId'=>$individual_id,
+                        'item_id'=>null,
+                        'detail_type'=>'Date',
+                        'detail_value'=>$sortDate,
+                        'items_item_value'=>'Birth Date',
+                        'item_identifier'=>$groupedItems[$key]['items'][0]['item_identifier'],
+                        'unique_id'=>$groupedItems[$key]['items'][0]['unique_id'],
+                    );
+
+                }
+                if($groupType=='Death') {
+                    $sortDate=date("Y-m-d", strtotime($item['tree_death_date']));
+                    //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the death date
+                    $groupedItems[$key]['items'][]=array(
+                        'id'=>null,
+                        'item_group_name'=>'Death',
+                        'item_links_individual_id'=>$individual_id,
+                        'item_links_item_id'=>null,
+                        'item_updated'=>null,
+                        'individualId'=>$individual_id,
+                        'item_id'=>null,
+                        'detail_type'=>'Date',
+                        'detail_value'=>$sortDate,
+                        'items_item_value'=>'Death Date',
+                        'item_identifier'=>$groupedItems[$key]['items'][0]['item_identifier'],
+                        'unique_id'=>$groupedItems[$key]['items'][0]['unique_id'],
+                    );
+                }
+                //Create a new sortdate variable and default it to today (put everything at the end)
+                $groupedItems[$key]['sortDate']=$sortDate;
+                $sortedItems[$key]=$sortDate;
+            }
+            array_multisort($sortedItems, SORT_ASC, $groupedItems);
+        }
+
         return $groupedItems;
     }
 
@@ -932,6 +1014,9 @@ class Utils {
      * 
      * This includes new discussions, new comments in the communications section
      * as well as changes to individuals in the family section - such as new individuals, new relationships, new items, new files, etc.
+     *
+     * @param int $user_id The ID of the user.
+     * @param string $show_since The date to show changes since.
      */
     public static function getNewStuff($user_id, $show_since=null) {
         $response=array(
@@ -947,7 +1032,7 @@ class Utils {
             $last_active['last_view']=date('Y-m-d H:i:s', strtotime($show_since));
         } else {
             // Get the last time the user was active
-            $sql = "SELECT last_view FROM users WHERE id = ?";
+            $sql = "SELECT COALESCE(last_view, last_login, registration_date) as last_view FROM users WHERE id = ?";
             $last_active = $db->fetchOne($sql, [$user_id]);
         }
         //If there is no last active time, set it to last week
@@ -1009,7 +1094,7 @@ class Utils {
                 FROM individuals
                 LEFT JOIN users ON created_by = users.id
                 WHERE created > ?
-                ORDER BY created DESC";
+                ORDER BY updated DESC, created DESC";
         $individuals = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['individuals']=$individuals;
 
@@ -1021,7 +1106,7 @@ class Utils {
                 AND show_presence = 1
                 GROUP BY users.id
                 ORDER BY last_view DESC";
-        $visitors = $db->fetchAll($sql, [date('Y-m-d H:i:s', strtotime('-3 days'))]);
+        $visitors = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['visitors']=$visitors;
 
         // Get all relationships that have been updated since the user was last active
@@ -1039,24 +1124,6 @@ class Utils {
 
         // Get all items that have been updated since the user was last active
         $items=Utils::getItems('%', $last_active['last_view']);
-        /* $sql = "SELECT items.*, 
-                item_groups.item_group_name, files.id as file_id, files.*, 
-                individuals.id as individualId,
-                individuals.first_names as tree_first_name, 
-                individuals.last_name as tree_last_name, 
-                users.first_name as user_first_name, users.last_name as user_last_name,
-                IFNULL(items.item_identifier, FLOOR(RAND() * 1000000)) AS effective_item_identifier
-                FROM items 
-                INNER JOIN item_links ON items.item_id=item_links.item_id
-                LEFT JOIN individuals ON item_links.individual_id=individuals.id
-                LEFT JOIN file_links ON items.item_id = file_links.item_id
-                LEFT JOIN files ON file_links.file_id = files.id
-                LEFT JOIN item_groups ON items.item_identifier = item_groups.item_identifier
-                LEFT JOIN users ON items.user_id = users.id
-                WHERE items.updated > ?
-                GROUP BY effective_item_identifier
-                ORDER BY effective_item_identifier ASC, items.updated DESC";
-        $items = $db->fetchAll($sql, [$last_active['last_view']]); */
         $response['items']=$items;
 
 

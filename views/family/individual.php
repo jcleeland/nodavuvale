@@ -412,12 +412,17 @@ if ($individual_id) {
                 <?php 
                 foreach ($items as $key=>$itemgroup):
                     $is_group = count($itemgroup['items']) > 1 ? true : false; 
+                    //echo "<pre>"; print_r($itemgroup['sortDate']); echo "</pre>";
                 ?>
                     
                     <?php 
                     if($is_group) {
                         //Order the items in the itemgroup according to the item_styles
                         $reference=$item_types[$itemgroup['item_group_name']];
+                        if($itemgroup['item_group_name'] == "Birth" || $itemgroup['item_group_name'] == "Death") {
+                            //insert "Date" at the beginning of the array
+                            array_unshift($reference, "Date");
+                        }
                         $groupTitle=$itemgroup['item_group_name'];
                     ?>
                             <div id="item_group_id_<?= $key ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
