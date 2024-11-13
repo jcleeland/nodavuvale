@@ -47,25 +47,42 @@ if($user_id) {
     <div class="absolute z-10 p-2 w-max">
         <div class="flex justify-full items-top">
             <div>
-                <img class="mt-4 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
+                <img class="mt-6 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
             </div>
 
         </div>
     </div>
+
+    <!-- User's Page -->
     <div id="userDetails" class="pt-10">
         <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
-            <?php 
-            if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') { 
-            ?>
+
+
+        <?php 
+        if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') {
+            if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
+        ?>
+            <div class="pb-6">
+                <div class="relative -mt-4 -ml-4 -mr-4 -mb-4 flex justify-center items-center text-center border-t-2 bg-gradient-to-b from-gray-200 to-white">
+                    <div class='w-1 -mb-2'></div>
+                    <div class='flex-grow text-sm italic -mb-2'>
+                        This is the user's personal page, only visible to the user (and you because you're an admin).
+                    </div>
+                    <div class='w-1 -mb-2'></div>
+                </div>
+            </div>
+            <?php } ?>
+
+            <!-- User's Personal Page (only visible to the user) -->
             <div class="pb-6"> 
-                <div class="relative grid grid-cols-3 justify-center items-center text-center">
-                    <div></div>
-                    <div style="z-index: 100000">
-                        <h3 class="text-2xl whitespace-nowrap font-bold text-ocean-blue p-1 rounded bg-white-800 nv-bg-opacity-50" style="z-index: 100000" >
-                            <?php echo $user['first_name'] ?>'s Home
+                <div class="relative flex justify-center items-center text-center">
+                    <div class='w-1'></div>
+                    <div class="flex-grow" style="z-index: 100000">
+                        <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 100000" >
+                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50"><?php echo $user['first_name'] ?>'s Home</span>
                         </h3>
                     </div>
-                    <div></div>
+                    <div class='w-1'></div>
                 </div>
                 <div id="tasks">
                     <div class="flex justify-center items-center border-gray-200 py-2 w-full">
@@ -75,7 +92,7 @@ if($user_id) {
                             </div>
                             <div class="w-full">
                                 <h3 class="text-lg font-bold">To-do List</h3>
-                                <p class="text-gray-600">Things you might want to do to get more connected to your Fijian family</p>
+                                <p class="text-gray-600">Things you might want to do to get more connected to our family diaspora..</p>
                             </div>
                         </div>
                     </div>
@@ -107,6 +124,13 @@ if($user_id) {
         <?php 
         } 
         ?>
+            <!-- User's Public Information (for other members) -->
+            <div class="pb-6">
+                <div class="relative grid grid-cols-3 justify-center items-center text-center border-t-2 bg-gradient-to-b from-gray-200 to-white">
+        
+                </div>
+            </div>
+
         </div>
     </div>
 </section>
