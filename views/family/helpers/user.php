@@ -43,19 +43,13 @@ if($user_id) {
 } 
 ?>
 
-<section class="container mx-auto pt-8 pb-4 px-4 sm:px-6 lg:px-8">
+<section class="container mx-auto px-4 sm:px-3 xs:px-2 lg:px-8 pt-1 pb-12">
     <div class="absolute z-10 p-2 w-max">
         <div class="flex justify-full items-top">
             <div>
                 <img class="mt-4 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
             </div>
-            <div>
-                <h3 class="text-2xl font-bold">
-                    <?php echo $user['first_name'] . ' ' . $user['last_name'] ?>
-                </h3>
-                <span class="cursor-pointer text-xl mr-2" title="Send mail to <?php echo $user['first_name'] ?>"><a href='mailto: <?php echo $user['email'] ?>'><i class="text-xl fas fa-envelope text-xs text-gray-600"></i></a></span>
-                <span class="cursor-pointer text-xl mr-2" title="Visit your own family tree entry" onclick="window.location.href='index.php?to=family/individual&individual_id=<?php echo $user['individuals_id'] ?>'"><i class="text-xl fas fa-network-wired text-xs text-gray-600"></i></span>
-            </div>
+
         </div>
     </div>
     <div id="userDetails" class="pt-10">

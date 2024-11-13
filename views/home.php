@@ -51,8 +51,40 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
      //echo "<pre>"; print_r($changes['items']); echo "</pre>";
 ?>
 
+    <!-- Show the users descendancy line -->
+    <?php 
+    $sql = "SELECT users.id, users.id as user_id, users.first_name, users.last_name, users.email, 
+    users.avatar, users.individuals_id, users.show_presence
+    FROM users
+    WHERE users.id = ?";
 
+    $user = $db->fetchOne($sql, [$user_id]);
+    $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";    
 
+    // Fetch the line of descendancy
+    if($user['individuals_id']) {
+        $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
+    }
+    ?>
+    <?php if($descendancy): ?>
+        <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
+                <?php foreach($descendancy as $index => $descendant): ?>
+                    <div class="bg-burnt-orange-800 nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg">
+                        <a href='?to=family/individual&individual_id=<?= $descendant[1] ?>'><?= $descendant[0] ?></a>
+                    </div>
+                    <?php if ($index < count($descendancy) - 1): ?>
+                        <i class="fas fa-arrow-right mx-2"></i> <!-- FontAwesome arrow icon -->
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>    
+
+    <!-- show the users home page -->
+    <?php
+    include("family/helpers/user.php");
+    ?>
 
 
 
@@ -322,17 +354,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         </div>
     </section>
 
-    <!-- show the users home page -->
-    <?php
-    $sql = "SELECT users.id, users.id as user_id, users.first_name, users.last_name, users.email, 
-        users.avatar, users.individuals_id, users.show_presence
-        FROM users
-        WHERE users.id = ?";
 
-    $user = $db->fetchOne($sql, [$user_id]);
-    $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
-    include("family/helpers/user.php");
-    ?>
 
 <?php else: ?>
 

@@ -426,7 +426,7 @@ if ($individual_id) {
                         $groupTitle=$itemgroup['item_group_name'];
                     ?>
                             <div id="item_group_id_<?= $key ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
-                            <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete this group of items" onclick="doAction('delete_item_group', '<?= $individual['id'] ?>', '<?= $itemgroup['items'][0]['item_identifier'] ?>');">
+                            <button class="absolute text-burnt-orange nv-text-opacity-20 bg-gray-800 bg-opacity-10 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete <?= $groupTitle ?>" onclick="doAction('delete_item_group', '<?= $individual['id'] ?>', '<?= $itemgroup['items'][0]['item_identifier'] ?>');">
                                 <i class="fas fa-trash"></i>
                             </button>
                     <?php                                 
@@ -436,7 +436,7 @@ if ($individual_id) {
                         $groupTitle=$itemgroup['item_group_name'];
                         ?>
                             <div id="item_id_<?= $itemgroup['items'][0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
-                            <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete this item" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $itemgroup['items'][0]['item_id'] ?>');">
+                            <button class="absolute text-burnt-orange nv-text-opacity-20 bg-gray-800 bg-opacity-10 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete <?= $groupTitle ?>" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $itemgroup['items'][0]['item_id'] ?>');">
                                 <i class="fas fa-trash"></i>
                             </button>
                         <?php                        
@@ -518,7 +518,7 @@ if ($individual_id) {
                                     <?php endif; ?>
                                     <?php if($is_group) : ?>
 
-                                        <button data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$itemname] ?>" data-group-id="<?= $item['item_identifier'] ?>" class="absolute text-burnt-orange nv-text-opacity-50 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>', event);">
+                                        <button data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$itemname] ?>" data-group-id="<?= $item['item_identifier'] ?>" class="absolute text-burnt-orange nv-text-opacity-20 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete <?= $itemname ?>" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>', event);">
                                             <i class="fas fa-trash"></i>
                                         </button>
 
@@ -537,7 +537,7 @@ if ($individual_id) {
                         ?>
                                     <div class="h-10"></div>
                         <?php if(count($incompleteItems) > 0) : ?>
-                            <div class='flex justify-end items-end absolute right-1 bottom-1 w-full' id='item_buttons_group_<?= $itemgroup['items'][0]['item_identifier'] ?>'>
+                            <div class='flex justify-end items-end absolute right-1 bottom-1 w-full p-0' id='item_buttons_group_<?= $itemgroup['items'][0]['item_identifier'] ?>'>
                             <?php foreach($incompleteItems as $incompleteItem) : ?>
                                 <div class="cursor-pointer text-xxs border rounded bg-cream text-brown p-0.5 m-1 relative" data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$incompleteItem] ?>" data-group-id="<?= $itemgroup['items'][0]['item_identifier'] ?>" onclick="doAction('add_sub_item', '<?= $individual['id'] ?>', '<?= $incompleteItem ?>', event);">
                                     <button class="absolute text-burnt-orange nv-text-opacity-50 text-bold rounded-full py-0 px-1 m-0 -right-2 -top-2 text-xxxs" title="Add <?= $incompleteItem ?>" >

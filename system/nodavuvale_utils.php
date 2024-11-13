@@ -871,13 +871,11 @@ class Utils {
         $response['Divorce'] = [
             'Spouse',
             'Date',
-            'Location',
             'Reference',
             'Photo',
-            'Story'
         ];
 
-        // Birth
+        // Birth - note that this entry automatically inserts the date from the individuals record
         $response['Birth'] = [
             'Location',
             'Reference',
@@ -894,7 +892,7 @@ class Utils {
             'Story'
         ];        
 
-        // Death
+        // Death - note that this entry automatically inserts the date from the individuals record
         $response['Death'] = [
             'Location',
             'Reference',
@@ -950,6 +948,18 @@ class Utils {
             'Story'
         ];
 
+        // migration
+        $response['Migration'] = [
+            'Departure',
+            'Origin',
+            'Arrival',
+            'Destination',
+            'Source',
+            'Photo',
+            'Story'
+        ];
+
+
         /*$response['Key Image'] = [
             'Key Image'
         ];*/
@@ -997,6 +1007,10 @@ class Utils {
         $response['Key_Image']="file";
         $response['Photo']="file";
         $response['File']="file";
+        $response['Departure']="date";
+        $response['Origin']="text";
+        $response['Arrival']="date";
+        $response['Destination']="text";
         return $response;
     }
 
