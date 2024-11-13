@@ -106,6 +106,12 @@ if ($individual_id) {
     // Fetch the line of descendancy
     $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $individual_id);  
 
+    if($_SESSION['individuals_id']) {
+        $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
+    } else {
+        $commonAncestor=[];
+    }
+    
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
     $items = Utils::getItems($individual_id);
@@ -214,7 +220,16 @@ if ($individual_id) {
     <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
             <?php foreach($descendancy as $index => $descendant): ?>
-                <div class="bg-burnt-orange-800 nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg">
+                <?php 
+                    if($commonAncestor && ($descendant[1]==$commonAncestor['common_ancestor_id'])) {
+                        $commonancestorclass="border-b-4 border-t-2 border-deep-green nv-border-opacity-20 bg-burnt-orange-800";
+                        $commonancestortitle="$descendant[0] is you common ancestor.\r\n\r\n $firstname is your ".$commonAncestor['relationship_description'].".";
+                    } else {
+                        $commonancestorclass="bg-burnt-orange-800";
+                        $commonancestortitle="";
+                    } 
+                ?>
+                <div class="<?= $commonancestorclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
                     <a href='?to=family/individual&individual_id=<?= $descendant[1] ?>'><?= $descendant[0] ?></a>
                 </div>
                 <?php if ($index < count($descendancy) - 1): ?>
@@ -224,9 +239,6 @@ if ($individual_id) {
         </div>
     </section>
 <?php endif; ?>
-
-
-
 
 <div class="tab-content" id="membertab">
     <section class="container mx-auto ">

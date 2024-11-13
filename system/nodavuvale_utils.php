@@ -391,6 +391,156 @@ class Utils {
         }
     }
 
+
+    public static function getCommonAncestor($primaryId, $secondaryId) {
+        if ((!$primaryId || !$secondaryId) || (!is_numeric($primaryId) || !is_numeric($secondaryId))) {
+            return array();
+        }
+        
+        $sql = "WITH RECURSIVE ancestors_1 AS (
+                    -- Start with the first individual and set generation to 0
+                    SELECT 
+                        i.id,
+                        i.first_names,
+                        i.last_name,
+                        r.individual_id_1 AS parent_id,
+                        0 AS generation
+                    FROM 
+                        individuals i
+                    LEFT JOIN 
+                        relationships r ON i.id = r.individual_id_2
+                    WHERE 
+                        i.id = ? -- Replace with the first individual’s ID
+                    
+                    UNION ALL
+                    
+                    -- Recursive step: Find each ancestor's parent and increment generation
+                    SELECT 
+                        parent.id,
+                        parent.first_names,
+                        parent.last_name,
+                        rel.individual_id_1 AS parent_id,
+                        a1.generation + 1 AS generation
+                    FROM 
+                        relationships rel
+                    JOIN 
+                        ancestors_1 a1 ON rel.individual_id_2 = a1.parent_id
+                    JOIN 
+                        individuals parent ON rel.individual_id_1 = parent.id
+                    WHERE 
+                        rel.relationship_type = 'child'
+                ),
+    
+                ancestors_2 AS (
+                    -- Start with the second individual and set generation to 0
+                    SELECT 
+                        i.id,
+                        i.first_names,
+                        i.last_name,
+                        r.individual_id_1 AS parent_id,
+                        0 AS generation
+                    FROM 
+                        individuals i
+                    LEFT JOIN 
+                        relationships r ON i.id = r.individual_id_2
+                    WHERE 
+                        i.id = ? -- Replace with the second individual’s ID
+                    
+                    UNION ALL
+                    
+                    -- Recursive step: Find each ancestor's parent and increment generation
+                    SELECT 
+                        parent.id,
+                        parent.first_names,
+                        parent.last_name,
+                        rel.individual_id_1 AS parent_id,
+                        a2.generation + 1 AS generation
+                    FROM 
+                        relationships rel
+                    JOIN 
+                        ancestors_2 a2 ON rel.individual_id_2 = a2.parent_id
+                    JOIN 
+                        individuals parent ON rel.individual_id_1 = parent.id
+                    WHERE 
+                        rel.relationship_type = 'child'
+                )
+    
+                -- Select the earliest common ancestor and the generation distance for each individual
+                SELECT 
+                    a1.id AS common_ancestor_id, 
+                    a1.first_names AS common_ancestor_first_names, 
+                    a1.last_name AS common_ancestor_last_name,
+                    a1.generation AS individual_1_generations_from_ancestor, 
+                    a2.generation AS individual_2_generations_from_ancestor
+                FROM ancestors_1 a1
+                JOIN ancestors_2 a2 ON a1.id = a2.id
+                ORDER BY a1.generation ASC -- Sort by generation to get the earliest common ancestor
+                LIMIT 1;
+        ";
+        
+        $params = [$primaryId, $secondaryId];
+        $db = Database::getInstance();
+        $result = $db->fetchOne($sql, $params);
+    
+        // If no common ancestor is found, return empty
+        if (!$result) {
+            return array();
+        }
+    
+        // Calculate the relationship description
+        $gen1 = $result['individual_1_generations_from_ancestor'];
+        $gen2 = $result['individual_2_generations_from_ancestor'];
+        
+        if ($gen1 == $gen2) {
+            // Both individuals are the same number of generations removed from the common ancestor
+            $cousin_level = $gen1 - 1;
+            $relationship_description = ($cousin_level > 0) ? "{$cousin_level}th cousin" : "Sibling";
+        } else {
+            // Individuals are removed by different numbers of generations
+            $min_gen = min($gen1, $gen2);
+            $removed = abs($gen1 - $gen2);
+            
+            if ($min_gen - 1 > 0) {
+                $suffix="th";
+                switch($min_gen){
+                    case 1:
+                        $suffix = "st";
+                        break;
+                    case 2:
+                        $suffix = "nd";
+                        break;
+                    case 3:
+                        $suffix = "rd";
+                        break;
+                }
+                $removedtext = "{$removed} times removed";
+                switch($removed) {
+                    case 1:
+                        $removedtext = "once removed";
+                        break;
+                    case 2:
+                        $removedtext = "twice removed";
+                        break;
+                    case 3:
+                        $removedtext = "thrice removed";
+                        break;
+                }
+                $relationship_description = "{$min_gen}{$suffix} cousin {$removedtext}";
+            } else {
+                // Direct ancestor-descendant relationship
+                $relationship_description = ($gen1 > $gen2) 
+                    ? "Ancestor {$removed} generations back" 
+                    : "Descendant {$removed} generations forward";
+            }
+        }
+    
+        // Add relationship_description to the result array
+        $result['relationship_description'] = $relationship_description;
+    
+        return $result;
+    }
+    
+
     /**
      * Fetches a simple list of individuals from the database.
      * 

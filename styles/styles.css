@@ -183,6 +183,22 @@
     white-space: nowrap; /* Prevent text from wrapping */
 }
 
+/* Border Colours */
+.nv-border-opacity-10 {
+    --nv-border-opacity: 0.1 !important;
+}
+.nv-border-opacity-20 {
+    --nv-border-opacity: 0.2 !important;
+}
+.nv-border-opacity-50 {
+    --nv-border-opacity: 0.5 !important;
+}
+
+.border-deep-green {
+    --nv-border-opacity: 1;
+    border-color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), var(--nv-bg-opacity));
+}
+
 /* Button Styling */
 .custom-button {
     background-color: var(--warm-red);
