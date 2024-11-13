@@ -393,88 +393,89 @@ class Utils {
 
 
     public static function getCommonAncestor($primaryId, $secondaryId) {
+        //Pretty good -only fails with parents.
         if ((!$primaryId || !$secondaryId) || (!is_numeric($primaryId) || !is_numeric($secondaryId))) {
             return array();
         }
         
-        $sql = "WITH RECURSIVE ancestors_1 AS (
-                    -- Start with the first individual and set generation to 0
-                    SELECT 
-                        i.id,
-                        i.first_names,
-                        i.last_name,
-                        r.individual_id_1 AS parent_id,
-                        0 AS generation
-                    FROM 
-                        individuals i
-                    LEFT JOIN 
-                        relationships r ON i.id = r.individual_id_2
-                    WHERE 
-                        i.id = ? -- Replace with the first individual’s ID
-                    
-                    UNION ALL
-                    
-                    -- Recursive step: Find each ancestor's parent and increment generation
+        $sql = "WITH RECURSIVE lineage_1 AS (
                     SELECT 
                         parent.id,
                         parent.first_names,
                         parent.last_name,
+                        r.individual_id_1 AS parent_id,
+                        1 AS generation
+                    FROM 
+                        individuals i
+                    JOIN 
+                        relationships r ON i.id = r.individual_id_2
+                    JOIN 
+                        individuals parent ON r.individual_id_1 = parent.id
+                    WHERE 
+                        i.id = ?
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        ancestor.id,
+                        ancestor.first_names,
+                        ancestor.last_name,
                         rel.individual_id_1 AS parent_id,
-                        a1.generation + 1 AS generation
+                        lineage_1.generation + 1 AS generation
                     FROM 
                         relationships rel
                     JOIN 
-                        ancestors_1 a1 ON rel.individual_id_2 = a1.parent_id
+                        lineage_1 ON rel.individual_id_2 = lineage_1.parent_id
                     JOIN 
-                        individuals parent ON rel.individual_id_1 = parent.id
+                        individuals ancestor ON rel.individual_id_1 = ancestor.id
                     WHERE 
                         rel.relationship_type = 'child'
                 ),
     
-                ancestors_2 AS (
-                    -- Start with the second individual and set generation to 0
-                    SELECT 
-                        i.id,
-                        i.first_names,
-                        i.last_name,
-                        r.individual_id_1 AS parent_id,
-                        0 AS generation
-                    FROM 
-                        individuals i
-                    LEFT JOIN 
-                        relationships r ON i.id = r.individual_id_2
-                    WHERE 
-                        i.id = ? -- Replace with the second individual’s ID
-                    
-                    UNION ALL
-                    
-                    -- Recursive step: Find each ancestor's parent and increment generation
+                lineage_2 AS (
                     SELECT 
                         parent.id,
                         parent.first_names,
                         parent.last_name,
+                        r.individual_id_1 AS parent_id,
+                        1 AS generation
+                    FROM 
+                        individuals i
+                    JOIN 
+                        relationships r ON i.id = r.individual_id_2
+                    JOIN 
+                        individuals parent ON r.individual_id_1 = parent.id
+                    WHERE 
+                        i.id = ?
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        ancestor.id,
+                        ancestor.first_names,
+                        ancestor.last_name,
                         rel.individual_id_1 AS parent_id,
-                        a2.generation + 1 AS generation
+                        lineage_2.generation + 1 AS generation
                     FROM 
                         relationships rel
                     JOIN 
-                        ancestors_2 a2 ON rel.individual_id_2 = a2.parent_id
+                        lineage_2 ON rel.individual_id_2 = lineage_2.parent_id
                     JOIN 
-                        individuals parent ON rel.individual_id_1 = parent.id
+                        individuals ancestor ON rel.individual_id_1 = ancestor.id
                     WHERE 
                         rel.relationship_type = 'child'
                 )
     
-                -- Select the earliest common ancestor and the generation distance for each individual
+                -- Select the closest common ancestor by summing generation distances
                 SELECT 
-                    a1.id AS common_ancestor_id, 
-                    a1.first_names AS common_ancestor_first_names, 
-                    a1.last_name AS common_ancestor_last_name,
-                    a1.generation AS individual_1_generations_from_ancestor, 
-                    a2.generation AS individual_2_generations_from_ancestor
-                FROM ancestors_1 a1
-                JOIN ancestors_2 a2 ON a1.id = a2.id
-                ORDER BY a1.generation ASC -- Sort by generation to get the earliest common ancestor
+                    lineage_1.id AS common_ancestor_id, 
+                    lineage_1.first_names AS common_ancestor_first_names, 
+                    lineage_1.last_name AS common_ancestor_last_name,
+                    lineage_1.generation AS individual_1_generations_from_ancestor, 
+                    lineage_2.generation AS individual_2_generations_from_ancestor
+                FROM lineage_1
+                JOIN lineage_2 ON lineage_1.id = lineage_2.id
+                ORDER BY (lineage_1.generation + lineage_2.generation) ASC
                 LIMIT 1;
         ";
         
@@ -482,61 +483,67 @@ class Utils {
         $db = Database::getInstance();
         $result = $db->fetchOne($sql, $params);
     
-        // If no common ancestor is found, return empty
         if (!$result) {
             return array();
         }
     
-        // Calculate the relationship description
+        // Retrieve generation counts
         $gen1 = $result['individual_1_generations_from_ancestor'];
         $gen2 = $result['individual_2_generations_from_ancestor'];
-        
-        if ($gen1 == $gen2) {
-            // Both individuals are the same number of generations removed from the common ancestor
-            $cousin_level = $gen1 - 1;
-            $relationship_description = ($cousin_level > 0) ? "{$cousin_level}th cousin" : "Sibling";
+        $gen_diff = abs($gen1 - $gen2);
+    
+        // Calculate relationship description based on generational difference
+        if ($gen1 == 0 && $gen2 == 1) {
+            // Primary individual is a child of the common ancestor
+            $relationship_description = "Parent";
+        } elseif ($gen1 == 1 && $gen2 == 0) {
+            // Secondary individual is a child of the common ancestor
+            $relationship_description = "Child";
+        } elseif ($gen1 == 1 && $gen2 == 1) {
+            // Both share a direct parent, so they are siblings
+            $relationship_description = "Sibling";
+        } elseif ($gen_diff == 1) {
+            // Check if it's an aunt/uncle or niece/nephew relationship
+            if ($gen1 > $gen2) {
+                $relationship_description = "Aunt/Uncle";
+            } else {
+                $relationship_description = "Niece/Nephew";
+            }
+        } elseif ($gen_diff > 1) {
+            // Great Aunt/Uncle or Great Niece/Nephew
+            $great_count = $gen_diff - 1;
+            $great_prefix = str_repeat("Great-", $great_count);
+    
+            if ($gen1 > $gen2) {
+                $relationship_description = "{$great_prefix}Aunt/Uncle";
+            } else {
+                $relationship_description = "{$great_prefix}Niece/Nephew";
+            }
+        } elseif ($gen1 == $gen2) {
+            // Both are the same number of generations away from the ancestor, so they are "n-th cousins"
+            $cousin_level = $gen1 - 1;  // Grandparent = 1st cousin, great-grandparent = 2nd cousin, etc.
+            $suffix = ($cousin_level == 1) ? "st" : (($cousin_level == 2) ? "nd" : (($cousin_level == 3) ? "rd" : "th"));
+            $relationship_description = "{$cousin_level}{$suffix} cousin";
         } else {
-            // Individuals are removed by different numbers of generations
+            // Different generations away from the common ancestor (cousin relationship with removed)
             $min_gen = min($gen1, $gen2);
             $removed = abs($gen1 - $gen2);
+    
+            $suffix = ($min_gen == 1) ? "st" : (($min_gen == 2) ? "nd" : (($min_gen == 3) ? "rd" : "th"));
             
-            if ($min_gen - 1 > 0) {
-                $suffix="th";
-                switch($min_gen){
-                    case 1:
-                        $suffix = "st";
-                        break;
-                    case 2:
-                        $suffix = "nd";
-                        break;
-                    case 3:
-                        $suffix = "rd";
-                        break;
-                }
-                $removedtext = "{$removed} times removed";
-                switch($removed) {
-                    case 1:
-                        $removedtext = "once removed";
-                        break;
-                    case 2:
-                        $removedtext = "twice removed";
-                        break;
-                    case 3:
-                        $removedtext = "thrice removed";
-                        break;
-                }
-                $relationship_description = "{$min_gen}{$suffix} cousin {$removedtext}";
-            } else {
-                // Direct ancestor-descendant relationship
-                $relationship_description = ($gen1 > $gen2) 
-                    ? "Ancestor {$removed} generations back" 
-                    : "Descendant {$removed} generations forward";
-            }
+            // Text for "removed" cases
+            $removed_text = match($removed) {
+                1 => "once removed",
+                2 => "twice removed",
+                3 => "thrice removed",
+                default => "{$removed} times removed"
+            };
+            
+            $relationship_description = "{$min_gen}{$suffix} cousin {$removed_text}";
         }
     
-        // Add relationship_description to the result array
         $result['relationship_description'] = $relationship_description;
-    
+        //echo "<pre>"; print_r($result); echo "</pre>";
         return $result;
     }
     
