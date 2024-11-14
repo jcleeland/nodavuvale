@@ -227,14 +227,14 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                         <?php endif; ?>
                         <?php foreach ($changes['individuals'] as $individual): ?>
                         <?php $keyImagePath=$individual['keyimagepath'] ? $individual['keyimagepath'] : "images/default_avatar.webp"; ?>
-                            <div class="relative text-left w-64 h-20 m-2 p-1 border rounded-xl shadow-xl leading-none treegender_<?= $individual['gender'] ?> rounded">
+                            <div class="relative text-left w-64 h-12 m-2 p-1 border rounded-xl shadow-xl leading-none treegender_<?= $individual['gender'] ?> rounded">
                                 <div class='cursor-pointer text-lg w-full text-left' title='See details for <?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id=<?= $individual['individualId'] ?>&apos;'>    
-                                    <img src='<?= $keyImagePath ?>' class='avatar-img-md avatar-float-left border object-cover mt-0.5 ml-0 pt-0 pl-0 mr-2' title='<?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>'>
+                                    <img src='<?= $keyImagePath ?>' class='avatar-img-sm avatar-float-left border object-cover mt-0.5 ml-0 pt-0 pl-0 mr-2' title='<?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>'>
                                     <b>
                                         <?= explode(" ", $individual['tree_first_name'])[0] ?> <?= $individual['tree_last_name'] ?>
                                     </b>
-                                    <div class="absolute w-64 pr-5 bottom-0 p-1 italic break-words leading-none text-right">
-                                        <span class="text-xxs"><?= $individual['user_first_name'] . " " . $individual['user_last_name'] ?> <?= date("D, d M h:i a", strtotime($individual['updated']) ) ?></span>
+                                    <div class="absolute w-64 pr-5 bottom-0 p-1 ml-8 italic break-words leading-none text-left">
+                                        <span class="text-xxs">Added by <?= $individual['user_first_name'] ?> - <?= date("D, d M  g:ia", strtotime($individual['updated']) ) ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -276,13 +276,13 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
                                 $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
                                 ?>
-                            <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>"'>
-                                <div class="item_header p-1 h-12 rounded mb-2 bg-deep-green text-white break-words text-center items-center center text-sm">
+                            <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>&tab=generaltab"'>
+                                <div class="item_header p-1 h-12 rounded mb-1 bg-deep-green text-white break-words text-center items-center center text-sm">
                                     <b>
                                         <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?></b>
                                      <?= str_replace("Key Image", "Pic", $groupTitle) ?> 
                                 </div>
-                                <div id="eventid_<?= $itemidentifier ?>" class="item_body relative break-words leading-none">
+                                <div id="eventid_<?= $itemidentifier ?>" class="item_body relative break-words text-gray leading-none bg-cream m-0.5 h-12 overflow-y-scroll overflow-y-hidden">
                                     <?php foreach ($itemgroup as $key=>$itemdetail) : ?>
                                         <?php if(!empty($itemdetail['file_id'])): ?>
                                             <?php if ($itemdetail['file_type'] == 'image'): ?>
@@ -318,9 +318,9 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                     <?php endforeach; ?>
                                 </div>
                                 <div style='clear: both'></div>
-                                <div style='height: 35px;'></div>
-                                <div class="item_footer absolute bottom-1 w-full p-1 italic break-words leading-none text-ocean-blue">
-                                    <span class="text-xxs"><?= $firstItem['first_name'] . " " . $firstItem['last_name'] ?> <?= date("d M G a", strtotime($firstItem['updated'])) ?></span>
+                                <div style='height: 15px;'></div>
+                                <div class="item_footer absolute bottom-1 w-full p-0 italic break-words leading-none text-ocean-blue">
+                                    <span class="text-xxs">By <?= $firstItem['first_name'] ?> - <?= date("D d M g:ia", strtotime($firstItem['updated'])) ?></span>
                                 </div>                                    
 
                             </div>
