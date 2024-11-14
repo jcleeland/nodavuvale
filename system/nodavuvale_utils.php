@@ -391,162 +391,111 @@ class Utils {
         }
     }
 
+    public static function getAscendancyPath($individualId) {
+        if (!$individualId || !is_numeric($individualId)) {
+            return array();
+        }
+    
+        $sql = "WITH RECURSIVE lineage AS (
+                    -- Start with the individual as the base of the lineage (generation 0)
+                    SELECT 
+                        p.id AS ancestor_id,
+                        p.first_names AS ancestor_first_names,
+                        p.last_name AS ancestor_last_name,
+                        p.id AS parent_id,
+                        1 AS generation
+                    FROM 
+                        individuals i
+                    LEFT JOIN 
+                        relationships r ON i.id = r.individual_id_2 AND r.relationship_type = 'child'
+                    INNER JOIN 
+                        individuals p ON r.individual_id_1 = p.id
+                        
+                    WHERE 
+                        i.id = ?
+    
+                    UNION ALL
+    
+                    -- Recursive step: Move up through each parent-child relationship
+                    SELECT 
+                        parent.id AS ancestor_id,
+                        parent.first_names AS ancestor_first_names,
+                        parent.last_name AS ancestor_last_name,
+                        rel.individual_id_1 AS parent_id,
+                        lineage.generation + 1 AS generation
+                    FROM 
+                        relationships rel
+                    JOIN 
+                        lineage ON rel.individual_id_2 = lineage.parent_id
+                    JOIN 
+                        individuals parent ON rel.individual_id_1 = parent.id
+                    WHERE 
+                        rel.relationship_type = 'child' 
+                        AND lineage.ancestor_id != rel.individual_id_1 -- Avoid re-selecting ancestors
 
-    public static function getCommonAncestor($primaryId, $secondaryId) {
-        //Pretty good -only fails with parents.
-        if ((!$primaryId || !$secondaryId) || (!is_numeric($primaryId) || !is_numeric($secondaryId))) {
-            return array();
-        }
-        
-        $sql = "WITH RECURSIVE lineage_1 AS (
-                    SELECT 
-                        parent.id,
-                        parent.first_names,
-                        parent.last_name,
-                        r.individual_id_1 AS parent_id,
-                        1 AS generation
-                    FROM 
-                        individuals i
-                    JOIN 
-                        relationships r ON i.id = r.individual_id_2
-                    JOIN 
-                        individuals parent ON r.individual_id_1 = parent.id
-                    WHERE 
-                        i.id = ?
-                    
-                    UNION ALL
-                    
-                    SELECT 
-                        ancestor.id,
-                        ancestor.first_names,
-                        ancestor.last_name,
-                        rel.individual_id_1 AS parent_id,
-                        lineage_1.generation + 1 AS generation
-                    FROM 
-                        relationships rel
-                    JOIN 
-                        lineage_1 ON rel.individual_id_2 = lineage_1.parent_id
-                    JOIN 
-                        individuals ancestor ON rel.individual_id_1 = ancestor.id
-                    WHERE 
-                        rel.relationship_type = 'child'
-                ),
-    
-                lineage_2 AS (
-                    SELECT 
-                        parent.id,
-                        parent.first_names,
-                        parent.last_name,
-                        r.individual_id_1 AS parent_id,
-                        1 AS generation
-                    FROM 
-                        individuals i
-                    JOIN 
-                        relationships r ON i.id = r.individual_id_2
-                    JOIN 
-                        individuals parent ON r.individual_id_1 = parent.id
-                    WHERE 
-                        i.id = ?
-                    
-                    UNION ALL
-                    
-                    SELECT 
-                        ancestor.id,
-                        ancestor.first_names,
-                        ancestor.last_name,
-                        rel.individual_id_1 AS parent_id,
-                        lineage_2.generation + 1 AS generation
-                    FROM 
-                        relationships rel
-                    JOIN 
-                        lineage_2 ON rel.individual_id_2 = lineage_2.parent_id
-                    JOIN 
-                        individuals ancestor ON rel.individual_id_1 = ancestor.id
-                    WHERE 
-                        rel.relationship_type = 'child'
                 )
-    
-                -- Select the closest common ancestor by summing generation distances
                 SELECT 
-                    lineage_1.id AS common_ancestor_id, 
-                    lineage_1.first_names AS common_ancestor_first_names, 
-                    lineage_1.last_name AS common_ancestor_last_name,
-                    lineage_1.generation AS individual_1_generations_from_ancestor, 
-                    lineage_2.generation AS individual_2_generations_from_ancestor
-                FROM lineage_1
-                JOIN lineage_2 ON lineage_1.id = lineage_2.id
-                ORDER BY (lineage_1.generation + lineage_2.generation) ASC
-                LIMIT 1;
+                    ancestor_id,
+                    ancestor_first_names,
+                    ancestor_last_name,
+                    generation
+                FROM lineage
+                ORDER BY generation ASC;
         ";
-        
-        $params = [$primaryId, $secondaryId];
+
+        $params = [$individualId];
         $db = Database::getInstance();
-        $result = $db->fetchOne($sql, $params);
-    
-        if (!$result) {
-            return array();
-        }
-    
-        // Retrieve generation counts
-        $gen1 = $result['individual_1_generations_from_ancestor'];
-        $gen2 = $result['individual_2_generations_from_ancestor'];
-        $gen_diff = abs($gen1 - $gen2);
-    
-        // Calculate relationship description based on generational difference
-        if ($gen1 == 0 && $gen2 == 1) {
-            // Primary individual is a child of the common ancestor
-            $relationship_description = "Parent";
-        } elseif ($gen1 == 1 && $gen2 == 0) {
-            // Secondary individual is a child of the common ancestor
-            $relationship_description = "Child";
-        } elseif ($gen1 == 1 && $gen2 == 1) {
-            // Both share a direct parent, so they are siblings
-            $relationship_description = "Sibling";
-        } elseif ($gen_diff == 1) {
-            // Check if it's an aunt/uncle or niece/nephew relationship
-            if ($gen1 > $gen2) {
-                $relationship_description = "Aunt/Uncle";
-            } else {
-                $relationship_description = "Niece/Nephew";
-            }
-        } elseif ($gen_diff > 1) {
-            // Great Aunt/Uncle or Great Niece/Nephew
-            $great_count = $gen_diff - 1;
-            $great_prefix = str_repeat("Great-", $great_count);
-    
-            if ($gen1 > $gen2) {
-                $relationship_description = "{$great_prefix}Aunt/Uncle";
-            } else {
-                $relationship_description = "{$great_prefix}Niece/Nephew";
-            }
-        } elseif ($gen1 == $gen2) {
-            // Both are the same number of generations away from the ancestor, so they are "n-th cousins"
-            $cousin_level = $gen1 - 1;  // Grandparent = 1st cousin, great-grandparent = 2nd cousin, etc.
-            $suffix = ($cousin_level == 1) ? "st" : (($cousin_level == 2) ? "nd" : (($cousin_level == 3) ? "rd" : "th"));
-            $relationship_description = "{$cousin_level}{$suffix} cousin";
-        } else {
-            // Different generations away from the common ancestor (cousin relationship with removed)
-            $min_gen = min($gen1, $gen2);
-            $removed = abs($gen1 - $gen2);
-    
-            $suffix = ($min_gen == 1) ? "st" : (($min_gen == 2) ? "nd" : (($min_gen == 3) ? "rd" : "th"));
-            
-            // Text for "removed" cases
-            $removed_text = match($removed) {
-                1 => "once removed",
-                2 => "twice removed",
-                3 => "thrice removed",
-                default => "{$removed} times removed"
-            };
-            
-            $relationship_description = "{$min_gen}{$suffix} cousin {$removed_text}";
-        }
-    
-        $result['relationship_description'] = $relationship_description;
-        //echo "<pre>"; print_r($result); echo "</pre>";
+        $result = $db->fetchAll($sql, $params);
+
+        //Add the individual to the start of the array
+        $sql = "SELECT id as ancestor_id, first_names as ancestor_first_names, last_name as ancestor_last_name, 0 as generation FROM individuals WHERE id = ?";
+        $params = [$individualId];
+        $individual = $db->fetchOne($sql, $params);
+        array_unshift($result, $individual);
+
+
         return $result;
     }
     
+    
+    
+
+    public static function getCommonAncestor($primaryId, $secondaryId) {
+        // Get ascendancy paths for both individuals
+        $primaryPath = self::getAscendancyPath($primaryId);
+        $secondaryPath = self::getAscendancyPath($secondaryId);
+
+        //echo "<pre>"; print_r($primaryPath); echo "</pre>";
+        //echo "<pre>"; print_r($secondaryPath); echo "</pre>";
+    
+        // Convert the secondary path to a map for quick lookup
+        $secondaryAncestors = [];
+        foreach ($secondaryPath as $ancestor) {
+            $secondaryAncestors[$ancestor['ancestor_id']] = $ancestor;
+        }
+    
+        // Find the first common ancestor by iterating through the primary path
+        foreach ($primaryPath as $ancestor) {
+            if (isset($secondaryAncestors[$ancestor['ancestor_id']])) {
+                // Return the first common ancestor found
+                $commonAncestor = [
+                    'common_ancestor_id' => $ancestor['ancestor_id'],
+                    'common_ancestor_first_names' => $ancestor['ancestor_first_names'],
+                    'common_ancestor_last_name' => $ancestor['ancestor_last_name'],
+                    'individual_1_generations_from_ancestor' => $ancestor['generation'],
+                    'individual_2_generations_from_ancestor' => $secondaryAncestors[$ancestor['ancestor_id']]['generation']
+                ];
+                return $commonAncestor;
+            }
+        }
+    
+        // If no common ancestor is found, return an empty array
+        return array();
+    }
+    
+    
+    
+            
 
     /**
      * Fetches a simple list of individuals from the database.

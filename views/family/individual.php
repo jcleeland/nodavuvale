@@ -111,6 +111,7 @@ if ($individual_id) {
     } else {
         $commonAncestor=[];
     }
+    echo "<pre>"; print_r($commonAncestor); echo "</pre>";
     
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
@@ -223,7 +224,8 @@ if ($individual_id) {
                 <?php 
                     if($commonAncestor && ($descendant[1]==$commonAncestor['common_ancestor_id'])) {
                         $commonancestorclass="border-b-4 border-t-2 border-deep-green nv-border-opacity-20 bg-burnt-orange-800";
-                        $commonancestortitle="$descendant[0] is you common ancestor.\r\n\r\n $firstname is your ".$commonAncestor['relationship_description'].".";
+                        $commonancestortitle="";
+                        //$commonancestortitle="$descendant[0] is your common ancestor.\r\n\r\n $firstname is your ".$commonAncestor['relationship_description'].".";
                     } else {
                         $commonancestorclass="bg-burnt-orange-800";
                         $commonancestortitle="";
