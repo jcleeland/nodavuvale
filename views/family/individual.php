@@ -108,8 +108,10 @@ if ($individual_id) {
 
     if($_SESSION['individuals_id']) {
         $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
+        $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
     } else {
         $commonAncestor=[];
+        $relationshipLabel="";
     }
     //echo "<pre>"; print_r($commonAncestor); echo "</pre>";
     
@@ -180,6 +182,7 @@ if ($individual_id) {
         </div>    
         <div class="hero-text text-center mx-auto">
             <h2 class="text-4xl font-bold"><?php echo $firstnames. ' ' . $lastname; ?></h2>
+            <p class="mt-0"><span class="mt-2 text-xs text-cream italic rounded-lg px-1 mt-0"><?= $relationshipLabel ?></span></p>
             <p class="mt-2 text-lg"><?= $individual['birth_prefix']; ?> <?= $birthdate ?> - <?= $individual['death_prefix'] ?> <?= $deathdate ?></p>
         </div>
         <div id="individual-options" class="absolute flex justify-between items-center w-full bottom-0 left-0 rounded-b-lg p-0 m-0">
@@ -220,16 +223,27 @@ if ($individual_id) {
 <?php if($descendancy): ?>
     <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
+            <?php
+                $commonancestorclass="bg-burnt-orange-800";
+                $commonancestortitle="";
+
+                $ancestorInCommon=true; //We start assuming a common ancestor
+            ?>            
             <?php foreach($descendancy as $index => $descendant): ?>
-                <?php 
-                    if($commonAncestor && ($descendant[1]==$commonAncestor['common_ancestor_id'])) {
-                        $commonancestorclass="border-b-4 border-t-2 border-deep-green nv-border-opacity-20 bg-burnt-orange-800";
-                        $commonancestortitle="";
-                        //$commonancestortitle="$descendant[0] is your common ancestor.\r\n\r\n $firstname is your ".$commonAncestor['relationship_description'].".";
-                    } else {
-                        $commonancestorclass="bg-burnt-orange-800";
-                        $commonancestortitle="";
-                    } 
+                <?php
+                    if($commonAncestor) {
+                        if($ancestorInCommon) {
+                            $commonancestorclass="border-b-2 border-burnt-orange-800 nv-border-opacity-50 bg-burnt-orange-800";
+                            $commonancestortitle="Common Ancestor";
+                        } else {
+                            $commonancestorclass="bg-burnt-orange-800";
+                            $commonancestortitle="";
+                        }
+                        if($descendant[1]==$commonAncestor['common_ancestor_id']) {
+                            $ancestorInCommon=false; //Now that we've found the common ancestor, we can stop highlighting
+                        }
+
+                    }
                 ?>
                 <div class="<?= $commonancestorclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
                     <a href='?to=family/individual&individual_id=<?= $descendant[1] ?>'><?= $descendant[0] ?></a>

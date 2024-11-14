@@ -402,6 +402,7 @@ class Utils {
                         p.id AS ancestor_id,
                         p.first_names AS ancestor_first_names,
                         p.last_name AS ancestor_last_name,
+                        p.gender AS ancestor_gender,
                         p.id AS parent_id,
                         1 AS generation
                     FROM 
@@ -421,6 +422,7 @@ class Utils {
                         parent.id AS ancestor_id,
                         parent.first_names AS ancestor_first_names,
                         parent.last_name AS ancestor_last_name,
+                        parent.gender AS ancestor_gender,
                         rel.individual_id_1 AS parent_id,
                         lineage.generation + 1 AS generation
                     FROM 
@@ -438,6 +440,7 @@ class Utils {
                     ancestor_id,
                     ancestor_first_names,
                     ancestor_last_name,
+                    ancestor_gender,
                     generation
                 FROM lineage
                 ORDER BY generation ASC;
@@ -448,7 +451,9 @@ class Utils {
         $result = $db->fetchAll($sql, $params);
 
         //Add the individual to the start of the array
-        $sql = "SELECT id as ancestor_id, first_names as ancestor_first_names, last_name as ancestor_last_name, 0 as generation FROM individuals WHERE id = ?";
+        $sql = "SELECT id as ancestor_id, first_names as ancestor_first_names, last_name as ancestor_last_name, 0 as generation 
+                FROM individuals 
+                WHERE id = ?";
         $params = [$individualId];
         $individual = $db->fetchOne($sql, $params);
         array_unshift($result, $individual);
@@ -456,8 +461,6 @@ class Utils {
 
         return $result;
     }
-    
-    
     
 
     public static function getCommonAncestor($primaryId, $secondaryId) {
@@ -482,6 +485,7 @@ class Utils {
                     'common_ancestor_id' => $ancestor['ancestor_id'],
                     'common_ancestor_first_names' => $ancestor['ancestor_first_names'],
                     'common_ancestor_last_name' => $ancestor['ancestor_last_name'],
+                    'common_ancestor_gender' => $ancestor['ancestor_gender'],
                     'individual_1_generations_from_ancestor' => $ancestor['generation'],
                     'individual_2_generations_from_ancestor' => $secondaryAncestors[$ancestor['ancestor_id']]['generation']
                 ];
@@ -492,6 +496,156 @@ class Utils {
         // If no common ancestor is found, return an empty array
         return array();
     }
+
+    public static function getRelationshipLabel($primaryId, $secondaryId) {
+        // Get ascendancy paths for both individuals
+        $primaryPath = self::getAscendancyPath($primaryId);
+        $secondaryPath = self::getAscendancyPath($secondaryId);
+        
+        $sql = "SELECT gender FROM individuals WHERE id = ?";
+        $db = Database::getInstance();
+        $primaryGender = $db->fetchOne($sql, [$primaryId])['gender'];
+        $secondaryGender = $db->fetchOne($sql, [$secondaryId])['gender'];
+
+        // Convert the secondary path to a map for quick lookup
+        $secondaryAncestors = [];
+        foreach ($secondaryPath as $ancestor) {
+            $secondaryAncestors[$ancestor['ancestor_id']] = $ancestor;
+        }
+    
+        // Find the first common ancestor by iterating through the primary path
+        foreach ($primaryPath as $ancestor) {
+            if (isset($secondaryAncestors[$ancestor['ancestor_id']])) {
+                // Return the first common ancestor found
+                $commonAncestor = [
+                    'common_ancestor_id' => $ancestor['ancestor_id'],
+                    'common_ancestor_first_names' => $ancestor['ancestor_first_names'],
+                    'common_ancestor_last_name' => $ancestor['ancestor_last_name'],
+                    'common_ancestor_gender' => $ancestor['ancestor_gender'],
+                    'individual_1_generations_from_ancestor' => $ancestor['generation'],
+                    'individual_2_generations_from_ancestor' => $secondaryAncestors[$ancestor['ancestor_id']]['generation'],
+                ];
+                break;
+            }
+        }
+    
+        // If no common ancestor is found, return an empty string
+        if (!isset($commonAncestor)) {
+            return '';
+        }
+    
+        // Generations removed from the common ancestor for each individual
+        $gen1 = $commonAncestor['individual_1_generations_from_ancestor'];
+        $gen2 = $commonAncestor['individual_2_generations_from_ancestor'];
+    
+        // Direct descendant relationships (Child, Grandchild, Great-grandchild, etc.)
+        if ($commonAncestor['common_ancestor_id'] == $primaryId) {
+            $relativeLabel = 'child';
+            $generationsApart = $gen2 - $gen1;
+            if ($generationsApart == 2) {
+                $relativeLabel = 'grand' . $relativeLabel;
+            } elseif ($generationsApart > 2) {
+                $relativeLabel = str_repeat('great ', $generationsApart - 2) . 'grandchild';
+            }
+            return ucfirst($relativeLabel);
+        } elseif ($commonAncestor['common_ancestor_id'] == $secondaryId) {
+            $relativeLabel = 'parent';
+            if ($commonAncestor['common_ancestor_gender'] == "female") {
+                $relativeLabel = 'mother';
+            } elseif ($commonAncestor['common_ancestor_gender'] == "male") {
+                $relativeLabel = 'father';
+            }
+            $generationsApart = $gen1 - $gen2;
+            if ($generationsApart == 2) {
+                $relativeLabel = 'grand' . $relativeLabel;
+            } elseif ($generationsApart > 2) {
+                $relativeLabel = str_repeat('great ', $generationsApart - 2) . 'grand' . $relativeLabel;
+            }
+            return ucfirst($relativeLabel);
+        }
+    
+        // Sibling relationship (same generation, common parent)
+        if ($gen1 == 1 && $gen2 == 1) {
+            $relativeLabel = 'sibling';
+            if($commonAncestor['common_ancestor_gender'] == "female") {
+                $relativeLabel = 'sister';
+            } elseif($commonAncestor['common_ancestor_gender'] == "male") {
+                $relativeLabel = 'brother';
+            }
+            return ucfirst($relativeLabel);
+        }
+
+
+
+
+
+    
+        // Uncle/Aunt and Great-Uncle/Great-Aunt relationship
+        if ($gen1 == 2 && $gen2 == 1) {
+            $relativeLabel = "pibling (aunt/uncle)";
+            if($secondaryGender=="female") {
+                $relativeLabel = "aunt";
+            } elseif($secondaryGender=="male") {
+                $relativeLabel = "uncle";
+            }
+            return ucfirst($relativeLabel);
+        }
+        if ($gen1 == 1 && $gen2 == 2) {
+            $relativeLabel = "nibling (niece/nephew)";
+            if($secondaryGender=="female") {
+                $relativeLabel = "niece";
+            } elseif($secondaryGender=="male") {
+                $relativeLabel = "nephew";
+            }
+            return ucfirst($relativeLabel);
+        }
+
+
+        
+
+    
+        // Cousin relationship
+        if ($gen1 == $gen2) {
+            $cousinLevel = $gen1 - 1;
+            $suffix = match ($cousinLevel) {
+                1 => 'st',
+                2 => 'nd',
+                3 => 'rd',
+                default => 'th'
+            };
+            return ucfirst("{$cousinLevel}{$suffix} cousin");
+        }     
+    
+        // "Removed" cousins
+        $minGen = min($gen1, $gen2);
+        $removed = abs($gen1 - $gen2);
+        $cousinLevel = $minGen - 1;
+        $suffix = match ($cousinLevel) {
+            1 => 'st',
+            2 => 'nd',
+            3 => 'rd',
+            default => 'th'
+        };
+        $removedText = match ($removed) {
+            1 => 'once removed',
+            2 => 'twice removed',
+            default => "{$removed} times removed"
+        };
+        if($cousinLevel==0) {
+            $relativeLabel = "pibling (aunt/uncle)";
+            if($secondaryGender=="female") {
+                $relativeLabel = "aunt";
+            } elseif($secondaryGender=="male") {
+                $relativeLabel = "uncle";
+            }
+            $generationsApart = $gen1 - $gen2;
+            $relativeLabel = str_repeat('great ', $generationsApart - 1) . $relativeLabel;
+            return ucfirst($relativeLabel);
+        }
+        return ucfirst("{$cousinLevel}{$suffix} cousin {$removedText}");
+    }
+    
+    
     
     
     

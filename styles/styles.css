@@ -196,7 +196,21 @@
 
 .border-deep-green {
     --nv-border-opacity: 1;
-    border-color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), var(--nv-bg-opacity));
+    border-color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), var(--nv-border-opacity));
+}
+
+.border-ocean-blue {
+    --nv-border-opacity: 1;
+    border-color: rgba(var(--ocean-blue-red), var(--ocean-blue-green), var(--ocean-blue-blue), var(--nv-border-opacity));
+}
+
+.border-burnt-orange-800 {
+    --nv-border-opacity: 1;
+    border-color: rgba(var(--burnt-orange-red), var(--burnt-orange-green), var(--burnt-orange-blue), var(--nv-border-opacity));
+}
+
+.border-burnt-orange {
+    border-color: var(--burnt-orange);
 }
 
 /* Button Styling */
