@@ -111,7 +111,7 @@ if ($individual_id) {
     } else {
         $commonAncestor=[];
     }
-    echo "<pre>"; print_r($commonAncestor); echo "</pre>";
+    //echo "<pre>"; print_r($commonAncestor); echo "</pre>";
     
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
