@@ -451,7 +451,7 @@ class Utils {
         $result = $db->fetchAll($sql, $params);
 
         //Add the individual to the start of the array
-        $sql = "SELECT id as ancestor_id, first_names as ancestor_first_names, last_name as ancestor_last_name, 0 as generation 
+        $sql = "SELECT id as ancestor_id, first_names as ancestor_first_names, last_name as ancestor_last_name, gender as ancestor_gender, 0 as generation 
                 FROM individuals 
                 WHERE id = ?";
         $params = [$individualId];
@@ -462,7 +462,6 @@ class Utils {
         return $result;
     }
     
-
     public static function getCommonAncestor($primaryId, $secondaryId) {
         // Get ascendancy paths for both individuals
         $primaryPath = self::getAscendancyPath($primaryId);
@@ -499,6 +498,10 @@ class Utils {
 
     public static function getRelationshipLabel($primaryId, $secondaryId) {
         // Get ascendancy paths for both individuals
+        if($primaryId==$secondaryId) {
+            return "";
+        }
+        
         $primaryPath = self::getAscendancyPath($primaryId);
         $secondaryPath = self::getAscendancyPath($secondaryId);
         
@@ -645,11 +648,14 @@ class Utils {
         return ucfirst("{$cousinLevel}{$suffix} cousin {$removedText}");
     }
     
-    
-    
-    
-    
             
+
+    public static function getIndividual($individualId) {
+        $db = Database::getInstance();
+        $query = "SELECT * FROM individuals WHERE id = ?";
+        $individual = $db->fetchOne($query, [$individualId]);
+        return $individual;
+    }
 
     /**
      * Fetches a simple list of individuals from the database.
@@ -936,7 +942,7 @@ class Utils {
             }
         }
          
-        if($individual_id) {
+        if($individual_id && $individual_id != "%") {
             $sortedItems=[];
             foreach($groupedItems as $key=>$group) {
                 $sortDate=date('Y-m-d');
@@ -1397,7 +1403,7 @@ class Utils {
 
 
         // Get all items that have been updated since the user was last active
-        $items=Utils::getItems('%', $last_active['last_view'], "items.updated ASC");
+        $items=Utils::getItems('%', $last_active['last_view'], "items.updated DESC");
         $response['items']=$items;
 
 
@@ -1415,5 +1421,78 @@ class Utils {
 
         return $response;
         
+    }
+
+    public static function getMissingIndividualData($individual_id, $type="self") {
+        $suggestions=[];
+        //Get a list of missing information for an individual.
+        $info=Utils::getIndividual($individual_id);
+        $missingcoredata=[];
+
+        foreach($info as $key=>$val) {
+            if($val==null && $val !== 0) {
+                if($key != "birth_prefix" && $key != "death_prefix" && $key != "aka_names") {
+                    if($type=="self") {
+                        if(substr($key, 0, 5) != "death") {
+                            $missingcoredata[]=$key;
+                        }
+                    } elseif($type=="parents") {
+                            //If the parent is marked as deceased and we don't have any death info:
+                            if(substr($key, 0, 5) != "death") {
+                                echo "Adding $key to $individual_id<br />";
+                                $missingcoredata[]=$key;
+                            } else {
+                                if($info['is_deceased'] == 1) {
+                                    $missingcoredata[]=$key;
+                                }
+                            }
+                    } else {
+                        $missingcoredata[]=$key;
+                    }
+                }
+            }
+        }
+
+        $suggestions['missingcoredata']=$missingcoredata;
+
+        $items=Utils::getItems($individual_id);
+        $missingitems=[];
+        foreach($items as $item) {
+            $completeditems[]=$item['item_group_name'];
+        }
+        $itemlist=["Marriage", "Divorce", "Birth", "Baptism", "Education", "Military", "Occupation", "Key Image"];
+        foreach($itemlist as $val) {
+            if(!in_array($val, $completeditems)) {
+                $missingitems[]=$val;
+            }
+        }
+
+        $suggestions['missingitems']=$missingitems;
+
+        return $suggestions;
+    }
+
+    public static function getMissingDataForUser($individual_id) {
+        $missingdata=[];
+        $missingdata['primary'][$individual_id]=Utils::getMissingIndividualData($individual_id, "self");
+
+        //Get parents
+        $parents=Utils::getParents($individual_id);
+
+        foreach($parents as $parent) {
+            $relationship=Utils::getRelationshipLabel($individual_id, $parent['id']);
+            $missingdata['parents'][$relationship][$parent['id']]=Utils::getMissingIndividualData($parent['id'], "parents");
+        }
+
+        //Get grandparents
+        foreach($parents as $parent) {
+            $grandparents=Utils::getParents($parent['id']);
+            foreach($grandparents as $grandparent) {
+                $relationship=Utils::getRelationshipLabel($individual_id, $grandparent['id']);
+                $missingdata['grandparents'][$relationship][$grandparent['id']]=Utils::getMissingIndividualData($grandparent['id'], "grandparents");
+            }
+        }
+
+        //echo "<pre>"; print_r($missingdata); echo "</pre>";
     }
 }

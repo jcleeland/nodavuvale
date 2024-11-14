@@ -71,7 +71,12 @@ if($user_id) {
                     <div class='w-1 -mb-2'></div>
                 </div>
             </div>
-            <?php } ?>
+            <?php 
+            } 
+            if($user['individuals_id']) {
+                $missinginfo=Utils::getMissingDataForUser($user['individuals_id']);
+            }
+            ?>
 
             <!-- User's Personal Page (only visible to the user) -->
             <div class="pb-6"> 
