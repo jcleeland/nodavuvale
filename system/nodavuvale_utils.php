@@ -1397,7 +1397,7 @@ class Utils {
 
 
         // Get all items that have been updated since the user was last active
-        $items=Utils::getItems('%', $last_active['last_view']);
+        $items=Utils::getItems('%', $last_active['last_view'], "items.updated ASC");
         $response['items']=$items;
 
 
