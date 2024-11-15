@@ -1221,7 +1221,10 @@ class Utils {
 
         // Occupation
         $response['Occupation'] = [
+            'Started',
+            'Ended',
             'Title',
+            'Employer',
             'Source',
             'Photo',
             'Story'
@@ -1284,6 +1287,7 @@ class Utils {
         $response['Started']="date";
         $response['Ended']="date";
         $response['Title']="text";
+        $response['Employer']="text";
         $response['Location']="text";
         $response['Source']="text";
         $response['Position']="text";
