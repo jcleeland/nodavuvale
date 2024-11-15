@@ -33,7 +33,7 @@ if($user_id) {
         <?php 
         } 
         if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-        document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
+        document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
         <?php 
         } 
         ?>
@@ -65,7 +65,7 @@ if($user_id) {
             <div class="pb-6">
                 <div class="relative -mt-4 -ml-4 -mr-4 -mb-4 flex justify-center items-center text-center border-t-2 bg-gradient-to-b from-gray-200 to-white">
                     <div class='w-1 -mb-2'></div>
-                    <div class='flex-grow text-sm italic -mb-2'>
+                    <div class='flex-grow text-sm italic -mb-2' style='z-index: 100000'>
                         This is the user's personal page, only visible to the user (and you because you're an admin).
                     </div>
                     <div class='w-1 -mb-2'></div>
@@ -75,6 +75,55 @@ if($user_id) {
             } 
             if($user['individuals_id']) {
                 $missinginfo=Utils::getMissingDataForUser($user['individuals_id']);
+                //echo "<pre>ALl the info"; print_r($missinginfo); echo "</pre>";
+                if($missinginfo) {
+                    //select a random missing info group
+                    $missingitem = $missinginfo[array_rand($missinginfo)];
+                    //echo "<pre>Selected Item: "; print_r($missingitem); echo "</pre>";
+                    //Select a random person from the group
+                    $missingpersongroup = $missingitem[array_rand($missingitem)];
+                    //echo "<pre>Selected person group"; print_r($missingpersongroup); echo "</pre>";
+                    $missingperson = $missingpersongroup[array_rand($missingpersongroup)];
+                    //echo "<pre>Selected person"; print_r($missingperson); echo "</pre>";
+
+
+                    if(!empty($missingperson['missingcoredata'])) {
+                        //Select a random item from $missingperson['missingcoredata']
+                        $missingdataoption = $missingperson['missingcoredata'][array_rand($missingperson['missingcoredata'])];
+                    } elseif(!empty($missingperson['missingitems'])) {
+                        //Select a random item from $missingperson['missingitems']
+                        $missingdataoption = $missingperson['missingitems'][array_rand($missingperson['missingitems'])];
+                    }
+                    if(empty($missingperson['details'])) {
+                        //echo "<pre>"; print_r($missingpersongroup); echo "</pre>";
+                    }
+                    $missingpersontitle="";
+                    $missingpersonmessage="";
+                    if($missingperson['details']['relationshiplabel']=="Self") {
+                        $missingpersontitle="yourself";
+                    } else {
+                        $missingpersontitle="your ".$missingperson['details']['relationshiplabel'];
+                    }
+                    $missingpersonmessage="Do you know anything about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ".str_replace("_", " ",$missingdataoption)."?";
+                    
+                    $keyimage=Utils::getKeyImage($missingperson['details']['individual_id']);
+                    
+                    $helpwiththis = '<div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer "';
+                    $helpwiththis .= ' onclick="window.location.href=\'?to=family/individual&individual_id='.$missingperson['details']['individual_id'].'\'"';
+                    $helpwiththis .= '>';
+                    $helpwiththis .= '<button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white rounded-full h-16 w-16 min-w-16 max-w-16 py-1 text-xl px-1 my-4 mx-1" title="Help us with this thing" ';
+                    $helpwiththis .= '>';
+                    $helpwiththis .= '<img src="'.$keyimage.'" class="rounded-full text-xl object-cover" style="width: 95% !important;" title="'. $missingperson['details']['first_names'] .' '. $missingperson['details']['last_name'] .'">';
+                    $helpwiththis .= '</button>';
+                    $helpwiththis .= '<p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>';
+                    $helpwiththis .= 'Can you help us with info about ';
+                    $helpwiththis .= $missingpersontitle;
+                    $helpwiththis .= '?</b><br />';
+                    $helpwiththis .= $missingpersonmessage;
+                    $helpwiththis .= '</p>';
+                    $helpwiththis .= '</div>';
+
+                }
             }
             ?>
 
@@ -118,6 +167,9 @@ if($user_id) {
                             <button class="bg-deep-green-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-6 my-4 mx-1" title="Edit your account"><i class="fas fa-user"></i></button>
                             <p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>Edit your account</b><br />Add a profile picture, set your privacy level and more</p>
                         </div>
+                        <?php if (isset($helpwiththis)) {
+                            echo $helpwiththis;
+                        } ?>
                         <div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer ">
                             <button class="bg-brown-800 nv-bg-opacity-50 text-white rounded-full h-16 py-2 text-xl px-5 my-4 mx-1" title="View your family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?php echo $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>
                             <p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>Help fill out the tree</b><br />This is a site for collaboration and sharing - so why not find an ancestor you know, or know about, and tell us some stories?</p>

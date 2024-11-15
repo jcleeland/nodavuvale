@@ -544,6 +544,11 @@ class Utils {
         // Direct descendant relationships (Child, Grandchild, Great-grandchild, etc.)
         if ($commonAncestor['common_ancestor_id'] == $primaryId) {
             $relativeLabel = 'child';
+            if($secondaryGender == "female") {
+                $relativeLabel = 'daughter';
+            } elseif($secondaryGender == "male") {
+                $relativeLabel = 'son';
+            }
             $generationsApart = $gen2 - $gen1;
             if ($generationsApart == 2) {
                 $relativeLabel = 'grand' . $relativeLabel;
@@ -570,9 +575,9 @@ class Utils {
         // Sibling relationship (same generation, common parent)
         if ($gen1 == 1 && $gen2 == 1) {
             $relativeLabel = 'sibling';
-            if($commonAncestor['common_ancestor_gender'] == "female") {
+            if($secondaryGender == "female") {
                 $relativeLabel = 'sister';
-            } elseif($commonAncestor['common_ancestor_gender'] == "male") {
+            } elseif($secondaryGender == "male") {
                 $relativeLabel = 'brother';
             }
             return ucfirst($relativeLabel);
@@ -833,6 +838,23 @@ class Utils {
         }
         
         return $siblings;
+    }
+
+    public static function getKeyImage($individual_id) {
+        $db = Database::getInstance();
+        $query = "SELECT files.file_path 
+                    FROM file_links 
+                    JOIN files ON file_links.file_id = files.id 
+                    JOIN items ON items.item_id = file_links.item_id 
+                    WHERE file_links.individual_id = ? 
+                    AND items.detail_type = 'Key Image'
+                    LIMIT 1";
+        $keyimage = $db->fetchOne($query, [$individual_id]);
+        if(!$keyimage) {
+            return "images/default_avatar.webp";
+        } else {
+            return $keyimage['file_path'];
+        }
     }
 
     /**
@@ -1423,11 +1445,19 @@ class Utils {
         
     }
 
-    public static function getMissingIndividualData($individual_id, $type="self") {
+    public static function getMissingIndividualData($individual_id, $type="self", $relationshiplabel="") {
         $suggestions=[];
         //Get a list of missing information for an individual.
         $info=Utils::getIndividual($individual_id);
         $missingcoredata=[];
+        
+        $suggestions['details']=[
+            'individual_id'=>$individual_id,
+            'first_names'=>$info['first_names'],
+            'last_name'=>$info['last_name'],
+            'is_deceased'=>$info['is_deceased'],
+            'relationshiplabel'=>$relationshiplabel
+        ];
 
         foreach($info as $key=>$val) {
             if($val==null && $val !== 0) {
@@ -1439,7 +1469,6 @@ class Utils {
                     } elseif($type=="parents") {
                             //If the parent is marked as deceased and we don't have any death info:
                             if(substr($key, 0, 5) != "death") {
-                                echo "Adding $key to $individual_id<br />";
                                 $missingcoredata[]=$key;
                             } else {
                                 if($info['is_deceased'] == 1) {
@@ -1454,13 +1483,13 @@ class Utils {
         }
 
         $suggestions['missingcoredata']=$missingcoredata;
-
+        $completeditems=[];
         $items=Utils::getItems($individual_id);
         $missingitems=[];
         foreach($items as $item) {
             $completeditems[]=$item['item_group_name'];
         }
-        $itemlist=["Marriage", "Divorce", "Birth", "Baptism", "Education", "Military", "Occupation", "Key Image"];
+        $itemlist=["Key Image", "Birth", "Education", "Marriage", "Occupation", "Residence"];
         foreach($itemlist as $val) {
             if(!in_array($val, $completeditems)) {
                 $missingitems[]=$val;
@@ -1474,14 +1503,14 @@ class Utils {
 
     public static function getMissingDataForUser($individual_id) {
         $missingdata=[];
-        $missingdata['primary'][$individual_id]=Utils::getMissingIndividualData($individual_id, "self");
+        $missingdata['primary']['self'][$individual_id]=Utils::getMissingIndividualData($individual_id, "self", "Self");
 
         //Get parents
         $parents=Utils::getParents($individual_id);
 
         foreach($parents as $parent) {
             $relationship=Utils::getRelationshipLabel($individual_id, $parent['id']);
-            $missingdata['parents'][$relationship][$parent['id']]=Utils::getMissingIndividualData($parent['id'], "parents");
+            $missingdata['parents'][$relationship][$parent['id']]=Utils::getMissingIndividualData($parent['id'], "parents", $relationship);
         }
 
         //Get grandparents
@@ -1489,10 +1518,18 @@ class Utils {
             $grandparents=Utils::getParents($parent['id']);
             foreach($grandparents as $grandparent) {
                 $relationship=Utils::getRelationshipLabel($individual_id, $grandparent['id']);
-                $missingdata['grandparents'][$relationship][$grandparent['id']]=Utils::getMissingIndividualData($grandparent['id'], "grandparents");
+                $missingdata['grandparents'][$relationship][$grandparent['id']]=Utils::getMissingIndividualData($grandparent['id'], "grandparents", $relationship);
             }
         }
 
+        //Get siblings
+        $siblings=Utils::getSiblings($individual_id);
+        foreach($siblings as $sibling) {
+            $relationship=Utils::getRelationshipLabel($individual_id, $sibling['id']);
+            $missingdata['siblings'][$relationship][$sibling['id']]=Utils::getMissingIndividualData($sibling['id'], "self", $relationship);
+        }
+
         //echo "<pre>"; print_r($missingdata); echo "</pre>";
+        return($missingdata);
     }
 }
