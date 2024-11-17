@@ -66,7 +66,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
     }
     ?>
-    <?php if($descendancy): ?>
+    <?php if(isset($descendancy) && $descendancy): ?>
         <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
             <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
                 <?php foreach($descendancy as $index => $descendant): ?>
@@ -169,7 +169,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             // if strtotime($visitor['last_view']) is less then 10 minutes ago, then show the visitor as online
                             $activityclass = strtotime($visitor['last_view']) > strtotime('-10 minutes') ? 'useronline' : 'useroffline';
                             $lastViewTime = strtotime($visitor['last_view']);
-                            $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['a gole mail', 'dropped by', 'popped in for a bit', 'stopped in', 'checked things out', 'visited us', 'a mai sikova', 'hungout', 'was here', 'made a visit', 'came over'];
+                            $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['a gole mail', 'dropped by', 'popped in for a bit', 'stopped in', 'checked things out', 'visited us', 'a mai sikova', 'hungout', 'was here', 'made a visit', 'looked around'];
                             $timeprefix = $timeprefixOptions[array_rand($timeprefixOptions)];
                             ?>
                                 <div class="text-left w-64 m-2 p-1 border rounded-xl shadow-xl <?= $activityclass ?>"> 
@@ -257,6 +257,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 if(count($itemgroup['items']) > 0):
                                     $groupTitle=$key;
                                     foreach($itemgroup['items'] as $item) {
+                                        //echo "<pre>"; print_r($item); echo "</pre>";
                                         $itemlist['group_'.$item['unique_id']][$item['item_id']]=$item;
                                     }
                                     

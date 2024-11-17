@@ -873,6 +873,18 @@ class Utils {
         }
 
         $individualtypes=[];
+
+        //Get the individual's privacy settings
+        /*$privacy_settings=self::getPrivacySettings(null, $individual_id);
+        $visibility=[];
+        foreach($privacy_settings as $key=>$value) {
+            if(substr($key, 0, 6)=='items_') {
+                $setting=substr($key, 6);
+                $visibility[$setting]=$value;
+            }
+        }        */
+
+        
         $itemstyles=self::getItemStyles();
         foreach($itemstyles as $key=>$val) {
             if($val=='individual') {
@@ -890,6 +902,7 @@ class Utils {
                 others.first_names as other_first_names, others.last_name as other_last_name,
                 users.first_name, users.last_name,
                 individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId,
+                individuals.is_deceased,
                 CONCAT(individuals.birth_year,'-',individuals.birth_month,'-',individuals.birth_date) as tree_birth_date,
                 CONCAT(individuals.death_year,'-',individuals.death_month,'-',individuals.death_date) as tree_death_date,
                 IFNULL(items.item_identifier, UUID_SHORT()) as unique_id,
@@ -932,19 +945,63 @@ class Utils {
 
         // Group items by item_identifier - if there is none, treat as individual groups AND and their linked individual_id
         $groupedItems = [];
+        // Check if the user is an admin
+        $isAdmin = false;
+        if($_SESSION['role']=='admin') {
+            $isAdmin = true;
+        }
+        
         foreach ($items as $item) {
-            //This has to be the item_identifier number - so that mutliple events of the same type are all displayed
+            //echo "<pre>"; print_r($item); echo "</pre>";
+            //This has to be the item_identifier number - so that multiple events of the same type are all displayed
             $itemIdentifier = $item['unique_id'];
             $key = $itemIdentifier.'_'.$item['item_links_individual_id'];
             //echo "<pre>"; print_r($item); echo "</pre>";
             //echo $key."<br />";
             $itemGroupName = $item['item_group_name'] ? $item['item_group_name'] : $item['detail_type'];
-            if (!isset($groupedItems[$key])) {
-                $groupedItems[$key] = []; //Create empty array for new item group
-                $groupedItems[$key]['item_group_name'] = $itemGroupName;
+            $thisispublic = false; //Assume everything is private
+            $userprivacy = false;
+            if($item['is_deceased'] ==1) {
+                $thisispublic=true; //If the person is deceased, then everything is visible
+                $userprivacy=true; 
+            } elseif ($_SESSION['individuals_id'] == $individual_id || $isAdmin) {
+                $thisispublic=true; //If the person is the user, then everything is visible
+            } else {
+                //Check if the individuals private settings are public
+                if(isset($visibility[$itemGroupName]) && $visibility[$itemGroupName] == 1) {
+                    $thisispublic=true;
+                    $userprivacy=true; 
+                }
             }
-            if(!empty($item['detail_value'])) {
-                $groupedItems[$key]['items'][] = $item;
+            if($thisispublic) {
+                if (!isset($groupedItems[$key])) {
+                    $groupedItems[$key] = []; //Create empty array for new item group
+                    $groupedItems[$key]['item_group_name'] = $itemGroupName;
+                    $groupedItems[$key]['privacy'] = $userprivacy ? "public" : "private";
+                }
+                if(!empty($item['detail_value'])) {
+                    $groupedItems[$key]['items'][] = $item;
+                }
+            } else {
+                if(!isset($groupedItems[$key])) {
+                    $groupedItems[$key] = []; //Create empty array for new item group
+                    $groupedItems[$key]['item_group_name'] = "Private";
+                }
+                if(!empty($item['detail_value'])) {
+                    $groupedItems[$key]['items'][] = array(
+                        'id'=>null,
+                        'item_group_name'=>'Private',
+                        'detail_type'=>'Private',
+                        'unique_id'=>$item['unique_id'],
+                        'item_id'=>$item['item_id'],
+                        'first_name'=>$item['first_name'],
+                        'last_name'=>$item['last_name'],
+                        'updated'=>$item['updated'],
+                        'tree_first_names'=>$item['tree_first_names'],
+                        'tree_last_name'=>$item['tree_last_name'],
+                        'individualId'=>$item['individualId'],
+                    );
+                }
             }
         }
 
@@ -966,15 +1023,18 @@ class Utils {
          
         if($individual_id && $individual_id != "%") {
             $sortedItems=[];
+            //echo "<pre>"; print_r($groupedItems); echo "</pre>";
             foreach($groupedItems as $key=>$group) {
                 $sortDate=date('Y-m-d');
                 $groupType=$group['item_group_name'];
                 //Iterate through the items looking for dates, and set the sortDate.
                 // If there are two dates, use the one with the $item['detail_type'] = "Started"
-                foreach($group['items'] as $item) {
-                    if(in_array($item['detail_type'], $dateTypes) && $item['detail_type'] != 'Ended') {
-                        $sortDate=$item['items_item_value'];
-                        break;
+                if($group) {
+                    foreach($group['items'] as $item) {
+                        if(in_array($item['detail_type'], $dateTypes) && $item['detail_type'] != 'Ended') {
+                            $sortDate=$item['items_item_value'];
+                            break;
+                        }
                     }
                 }
 
@@ -1535,5 +1595,55 @@ class Utils {
 
         //echo "<pre>"; print_r($missingdata); echo "</pre>";
         return($missingdata);
+    }
+
+    public static function getPrivacySettings($user_id=null, $individual_id=null) {
+
+        //If there is an individual_id and no user_id, then get the user_id from the individual_id
+        if($individual_id && !$user_id) {
+            $sql="SELECT id FROM users WHERE individuals_id = ?";
+            //echo $sql." ".$individual_id;
+            $db = Database::getInstance();
+            $result = $db->fetchOne($sql, [$individual_id]);
+            if(isset($result['id'])) {
+            	$user_id = $result['id'];
+            }
+        }
+
+        //If there is a user_id and no individual_id, then get the individual_id from the user_id
+        if($user_id && !$individual_id) {
+            $sql="SELECT individuals_id FROM users WHERE id = ?";
+            $db = Database::getInstance();
+            $result = $db->fetchOne($sql, [$user_id]);
+            $individual_id = $result['individuals_id'];
+        }
+
+
+        $item_types=Utils::getItemTypes();
+        $item_groups=array_keys($item_types);
+        
+        $privacy_settings = [
+            'users_show_presence'=>1,                   //Default is to show presence
+            'individuals_birthdate'=>1,                 //Default is to show full birthdate
+            'users_email'=>1,                           //Default is to show users email
+            'individuals_first_names'=>1,               //Default is to show first names
+            'individuals_last_name'=>1,                 //Default is to show last name
+            'discussions_others_to_write_stories'=>0,   //Default is NOT to allow others to write stories
+        ];        
+        foreach($item_groups as $ig) {
+            $privacy_settings['items_'.$ig]=0;          //Default is for all item groups to be private
+        }
+
+        //Get the users privacy settings from the individuals_privacy
+        $db = Database::getInstance();
+        $sql = "SELECT privacy_label, public FROM individuals_privacy WHERE individual_id = ? OR user_id = ?";
+        $privacy = $db->fetchAll($sql, [$individual_id, $user_id]);
+        foreach($privacy as $p) {
+            $privacy_settings[$p['privacy_label']]=$p['public'];
+        }
+        
+        return $privacy_settings;
+
+        
     }
 }

@@ -34,6 +34,11 @@ include("helpers/add_story.php");
 
 include("helpers/add_edit_item.php");
 
+//Add the "privacy" class to the $item_types array
+//Extract the array_keys from $item_styles
+$item_types['Private']=array('Private');
+$item_styles['Private']='private';
+
 
 
 if ($individual_id) {
@@ -439,6 +444,27 @@ if ($individual_id) {
             <div class="document-list grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
                 <?php 
                 foreach ($items as $key=>$itemgroup):
+                    if($itemgroup['item_group_name'] == "Private") {
+                        //Show a "private" div
+                        ?>
+                        <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                            <div class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left relative text-brown nv-text-opacity-50">
+                                <div class='text-center'>
+                                    <b class="text-xs mb-2 ">Private</b>
+                                </div>
+                                <div class="text-center text-burnt-orange nv-text-opacity-50 italic text-xxs p-3">
+                                    This information is protected until the owner agrees to share it.
+                                </div>
+                            </div>
+                        </div>
+                        <?php
+                        continue;
+                    }
+                    $privacystamp="";
+                    if ($itemgroup['privacy']=='private') {
+                        //Add the tailwind class for the cursor to show the information icon
+                        $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
+                    }
                     $is_group = count($itemgroup['items']) > 1 ? true : false; 
                     //echo "<pre>"; print_r($itemgroup['sortDate']); echo "</pre>";
                 ?>
@@ -459,7 +485,7 @@ if ($individual_id) {
                             </button>
                     <?php                                 
                     } else {
-                        //echo "<pre>"; print_r($item_types); echo "</pre>";
+                        //echo "<pre>"; print_r($itemgroup); echo "</pre>";
                         $reference=(isset($item_types[$itemgroup['items'][0]['detail_type']])) ? $item_types[$itemgroup['items'][0]['detail_type']] : [$itemgroup['items'][0]['detail_type']];    
                         $groupTitle=$itemgroup['item_group_name'];
                         ?>
@@ -476,9 +502,12 @@ if ($individual_id) {
                     $incompleteItems=[];
                     ?>
                         <div class="item_header p-1 rounded mb-2 bg-brown text-white"><b><?= $groupTitle ?></b></div>
+                        <?= $privacystamp ?>
+
                         <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0 Z-2">
                             <i class="fas fa-info-circle" title="Added by <?= $itemgroup['items'][0]['first_name'] ?> <?= $itemgroup['items'][0]['last_name'] ?> on <?= date("d M Y", strtotime($itemgroup['items'][0]['updated'])); ?>"></i>
-                        </button>                        
+                        </button>   
+
                         <?php 
                         //Iterate through all the items for this item group & show them
                         foreach ($reference as $itemname) {

@@ -137,7 +137,7 @@ class Web {
         $card='
         <div id="individualcard_'.$individual['id'].'" class="individual-item text-center p-1 shadow-lg rounded-lg relative gender_'.$individual['gender'] .'">
                 <div class="relative z-2">
-                    <h4 class="text-xl font-bold text-shadow-'. $individual['gender'] .'"><a href="?to=family/individual&individual_id='. $individual['id'] .'">'. $individual['pref_name'] . ' ' . $individual['last_name'] .'</a></h4>
+                    <h4 class="text-xl font-bold text-shadow-'. $individual['gender'] .' overflow-hidden whitespace-nowrap" title="'. $individual['pref_name'] . ' ' . $individual['last_name'] .'"><a href="?to=family/individual&individual_id='. $individual['id'] .'">'. $individual['pref_name'] . ' ' . $individual['last_name'] .'</a></h4>
                 </div>';
         $card .= '
                 <img class="keyimage-img-md keyimage-washed-out bg-opacity-20 border mt-0.5 float-left object-cover" src="'.$keyimage.'" title="'. $individual['first_names'] .' '. $individual['last_name'] .'">

@@ -1020,5 +1020,38 @@
     background-color: rgba(var(--fiji-red-red), var(--fiji-red-green), var(--fiji-red-blue), 0.2);
 }
 
+.stamp {
+    transform: rotate(25deg);
+    text-align: center;
+    color: #555;
+    font-size: 2rem;
+    font-weight: 700;
+    border: 0.25rem solid #555;
+    display: inline-block;
+    position: absolute;
+    width: 90%;
+    margin-left: -45%;
+    margin-top: 2rem;
+    padding: 1rem;
+    text-transform: uppercase;
+    border-radius: 1rem;
+    font-family: 'Courier';
+    -webkit-mask-image: url('../images/grunge.png');
+    mask-image: url('../images/grunge.png');
+    -webkit-mask-size: 944px 604px;
+    mask-size: 944px 604px;        
+    mix-blend-mode: multiply;
+    z-index: 100; 
+}
+
+.stamp-red-double {
+    color: #D23;
+    border: 0.5rem double #D23;
+    transform: rotate(-15deg);
+    -webkit-mask-position: 2re 3rem;
+    mask-position: 2re 3rem;
+    font-size: 1.5rem !important;
+}
+
 
 

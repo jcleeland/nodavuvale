@@ -24,6 +24,10 @@ if(isset($_GET['user_id'])) {
 <?php
 
 if($user_id) { 
+    //If there is a $user_id, then the individual we are looking at
+    // is a user on the system, not JUST a person in the family tree.
+    // - we could be viewing this from either the family/users page,
+    //   or from the family/individual page.
 ?>
     <script type="text/javascript">
         <?php 
@@ -61,6 +65,8 @@ if($user_id) {
         <?php 
         if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') {
             if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
+                //These options will display a users personal page - either if they 
+                // are logged in as this user themself, or if they are an admin
         ?>
             <div class="pb-6">
                 <div class="relative -mt-4 -ml-4 -mr-4 -mb-4 flex justify-center items-center text-center border-t-2 bg-gradient-to-b from-gray-200 to-white">
@@ -104,7 +110,7 @@ if($user_id) {
                     } else {
                         $missingpersontitle="your ".$missingperson['details']['relationshiplabel'];
                     }
-                    $missingpersonmessage="Do you know anything about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ".str_replace("_", " ",$missingdataoption)."?";
+                    $missingpersonmessage="What can you tell us about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ".str_replace("_", " ",$missingdataoption)."?";
                     
                     $keyimage=Utils::getKeyImage($missingperson['details']['individual_id']);
                     
@@ -116,9 +122,9 @@ if($user_id) {
                     $helpwiththis .= '<img src="'.$keyimage.'" class="rounded-full text-xl object-cover" style="width: 95% !important;" title="'. $missingperson['details']['first_names'] .' '. $missingperson['details']['last_name'] .'">';
                     $helpwiththis .= '</button>';
                     $helpwiththis .= '<p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>';
-                    $helpwiththis .= 'Can you help us with info about ';
+                    $helpwiththis .= 'Help us with info about ';
                     $helpwiththis .= $missingpersontitle;
-                    $helpwiththis .= '?</b><br />';
+                    $helpwiththis .= '</b><br />';
                     $helpwiththis .= $missingpersonmessage;
                     $helpwiththis .= '</p>';
                     $helpwiththis .= '</div>';
