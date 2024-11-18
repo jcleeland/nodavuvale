@@ -252,23 +252,33 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                         if(empty($changes['items'])): ?>
                             <div class="text-center text-gray-500">No new items at the moment.</div>
                         <?php endif; 
+
+                        //echo "<pre>ITEMGROUP<br />"; print_r($changes['items']); echo "</pre>";
                         
                         foreach ($changes['items'] as $key=>$itemgroup) :
+                            //echo "<pre>$key<br />"; print_r($changes['items'][$key]); echo "</pre>";
+                            //echo "<hr /><hr /><pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
                             if(isset($itemgroup['items']) && is_array($itemgroup['items']) && count($itemgroup['items']) > 0):
                                 //echo "<pre>"; print_r($itemgroup); echo "</pre>";
                                 $groupTitle=$key;
                                 foreach($itemgroup['items'] as $item) {
-                                    //echo "<pre>"; print_r($item); echo "</pre>";
-                                    $itemlist['group_'.$item['unique_id']][$item['item_id']]=$item;
+                                    if(!isset($item['unique_id'])) {
+                                        echo "<br /><br /><pre>"; print_r($item); echo "</pre>";
+                                        echo "UNIQUE_ID: ".$item['unique_id']."<br />";  
+                                       // $item['unique_id']=$item['item_id'];
+                                    }
+
+                                    $guid=$item['unique_id'];
+                                    $giid=$item['item_id'];
+                                    $itemlist['group_'.$guid][$giid]=$item;
                                     $itemlist['group_'.$item['unique_id']]['privacy']=$itemgroup['privacy'];
                                 }
                                 
                             else:
                                 //$groupTitle=$key;
-                                //echo "<pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
                                 //echo "<pre>ITEMLIST<br />"; print_r($itemlist); echo "</pre>";
                                 foreach($itemgroup as $item) {
-                                    //echo "<pre>"; print_r($item); echo "</pre>";
+                                    //echo "<br /><hr /><pre>ITEM"; print_r($item); echo "</pre>";
                                     //echo "item_".$item['item_id']."<br />";
                                     $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
                                     $itemlist['item_'.$item['item_id']]['privacy']=$itemgroup['privacy'];
@@ -313,23 +323,25 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                                 </div>
                                             <?php endif; ?>
                                         <?php else: ?>
-                                            <?php if(!empty($itemdetail['detail_value'])): ?>
-                                                <div class="text-xxs text-left px-1 pb-1 leading-tight" title="<?= $itemdetail['item_id'] ?>">
-                                                    <b><?= $itemdetail['detail_type'] ?>:</b>
-                                                <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
-                                                    <a href='?to=family/individual&individual_id=<?=$itemdetail['individual_name_id'] ?>'><?= $itemdetail['individual_name'] ?></a>
-                                                <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
-                                                    <?php if($itemdetail['detail_type'] == "Photo"): ?>
-                                                        <script>
-                                                            var eventElement = document.getElementById('eventid_<?= $itemidentifier ?>');
-                                                            eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['detail_value'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>" + eventElement.innerHTML;
-                                                        </script>
-                                                    <?php endif; ?>
-                                                <?php else: ?>
-                                                    <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
+                                                <?php if(!empty($itemdetail['detail_value'])): ?>
+                                                    <div class="text-xxs text-left px-1 pb-1 leading-tight" title="<?= $itemdetail['item_id'] ?>">
+                                                        <b><?= $itemdetail['detail_type'] ?>:</b>
+                                                    <?php if($itemdetail['detail_type'] != "Private") : ?>
+                                                        <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
+                                                            <a href='?to=family/individual&individual_id=<?=$itemdetail['individual_name_id'] ?>'><?= $itemdetail['individual_name'] ?></a>
+                                                        <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
+                                                            <?php if($itemdetail['detail_type'] == "Photo"): ?>
+                                                                <script>
+                                                                    var eventElement = document.getElementById('eventid_<?= $itemidentifier ?>');
+                                                                    eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['detail_value'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>" + eventElement.innerHTML;
+                                                                </script>
+                                                            <?php endif; ?>
+                                                        <?php else: ?>
+                                                            <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
+                                                        <?php endif; ?>
+                                                    <?php endif ?>
+                                                    </div>
                                                 <?php endif; ?>
-                                                </div>
-                                            <?php endif; ?>
                                         <?php endif; ?>
 
                                     <?php endforeach; ?>

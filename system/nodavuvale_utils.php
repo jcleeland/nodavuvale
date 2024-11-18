@@ -985,13 +985,15 @@ class Utils {
                 if(!isset($groupedItems[$key])) {
                     $groupedItems[$key] = []; //Create empty array for new item group
                     $groupedItems[$key]['item_group_name'] = "Private";
+                    $groupedItems[$key]['privacy'] = "private";
                     $groupedItems[$key]['status'] = "Private info, and there are grouped items with a key".$key;
                 }
-                if(!empty($item['detail_value'])) {
+                if(!empty($item['detail_value']) || (empty($item['detail_value']) && !empty($item['file_path']))) {
                     $groupedItems[$key]['items'][] = array(
                         'id'=>null,
                         'item_group_name'=>'Private',
                         'detail_type'=>'Private',
+                        'detail_value'=>'Private',
                         'unique_id'=>$item['unique_id'],
                         'item_id'=>$item['item_id'],
                         'first_name'=>$item['first_name'],
@@ -1001,6 +1003,8 @@ class Utils {
                         'tree_last_name'=>$item['tree_last_name'],
                         'individualId'=>$item['individualId'],
                     );
+                } else {
+                    $groupedItems[$key]['items'][] = $item;
                 }
             }
         }
