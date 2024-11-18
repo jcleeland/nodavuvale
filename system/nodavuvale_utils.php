@@ -974,18 +974,27 @@ class Utils {
                 }
             }
             if($thisispublic) {
+                /**
+                 * PUBLIC INFORMATION
+                 */
                 if (!isset($groupedItems[$key])) {
                     $groupedItems[$key] = []; //Create empty array for new item group
                     $groupedItems[$key]['item_group_name'] = $itemGroupName;
                     $groupedItems[$key]['privacy'] = $userprivacy ? "public" : "private";
+                    $groupedItems[$key]['status'] = $item;
                 }
-                if(!empty($item['detail_value'])) {
+                if(!empty($item['detail_value']) || (empty($item['detail_value']) && !empty($item['file_path']))) {
                     $groupedItems[$key]['items'][] = $item;
+                    $groupedItems[$key]['status'] = "Userprivacy: ".$userprivacy;
                 }
             } else {
+                /** 
+                 * PRIVATE INFORMATION 
+                 * */
                 if(!isset($groupedItems[$key])) {
                     $groupedItems[$key] = []; //Create empty array for new item group
                     $groupedItems[$key]['item_group_name'] = "Private";
+                    $groupedItems[$key]['status'] = "Private info, and there are grouped items with a key".$key;
                 }
                 if(!empty($item['detail_value'])) {
                     $groupedItems[$key]['items'][] = array(

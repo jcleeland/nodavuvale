@@ -263,7 +263,11 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                     
                                 else:
                                     //$groupTitle=$key;
+                                    echo "<pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
+                                    //echo "<pre>ITEMLIST<br />"; print_r($itemlist); echo "</pre>";
                                     foreach($itemgroup as $item) {
+                                        echo "<pre>"; print_r($item); echo "</pre>";
+                                        echo "item_".$item['item_id']."<br />";
                                         $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
                                     }
                                 endif; 

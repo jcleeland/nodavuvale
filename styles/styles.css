@@ -1031,7 +1031,7 @@
     position: absolute;
     width: 90%;
     margin-left: -45%;
-    margin-top: 2rem;
+    margin-top: 3rem;
     padding: 1rem;
     text-transform: uppercase;
     border-radius: 1rem;
@@ -1045,8 +1045,8 @@
 }
 
 .stamp-red-double {
-    color: #D23;
-    border: 0.5rem double #D23;
+    color: rgba(var(--fiji-red-red), var(--fiji-red-green), var(--fiji-red-blue), 0.3);
+    border: 0.5rem double rgba(var(--fiji-red-red), var(--fiji-red-green), var(--fiji-red-blue), 0.3);
     transform: rotate(-15deg);
     -webkit-mask-position: 2re 3rem;
     mask-position: 2re 3rem;
