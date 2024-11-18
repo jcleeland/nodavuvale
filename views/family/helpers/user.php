@@ -90,9 +90,10 @@ if($user_id) {
                     $missingpersongroup = $missingitem[array_rand($missingitem)];
                     //echo "<pre>Selected person group"; print_r($missingpersongroup); echo "</pre>";
                     $missingperson = $missingpersongroup[array_rand($missingpersongroup)];
+                    
                     //echo "<pre>Selected person"; print_r($missingperson); echo "</pre>";
 
-                    $missingdataoption=[];
+                    $missingdataoption="";
                     if(!empty($missingperson['missingcoredata'])) {
                         //Select a random item from $missingperson['missingcoredata']
                         $missingdataoption = $missingperson['missingcoredata'][array_rand($missingperson['missingcoredata'])];
@@ -110,7 +111,9 @@ if($user_id) {
                     } else {
                         $missingpersontitle="your ".$missingperson['details']['relationshiplabel'];
                     }
-                    $missingpersonmessage="What can you tell us about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ".str_replace("_", " ",$missingdataoption)."?";
+                    $missingpersonmessage="What can you tell us about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ";
+                    
+                    $missingpersonmessage.=str_replace("_", " ",$missingdataoption)."?";
                     
                     $keyimage=Utils::getKeyImage($missingperson['details']['individual_id']);
                     
