@@ -874,15 +874,6 @@ class Utils {
 
         $individualtypes=[];
 
-        //Get the individual's privacy settings
-        /*$privacy_settings=self::getPrivacySettings(null, $individual_id);
-        $visibility=[];
-        foreach($privacy_settings as $key=>$value) {
-            if(substr($key, 0, 6)=='items_') {
-                $setting=substr($key, 6);
-                $visibility[$setting]=$value;
-            }
-        }        */
 
         
         $itemstyles=self::getItemStyles();
@@ -1092,7 +1083,7 @@ class Utils {
             }
             array_multisort($sortedItems, SORT_ASC, $groupedItems);
         }
-
+        
         return $groupedItems;
     }
 

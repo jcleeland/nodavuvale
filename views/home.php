@@ -251,41 +251,53 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                         <?php
                         if(empty($changes['items'])): ?>
                             <div class="text-center text-gray-500">No new items at the moment.</div>
-                        <?php endif; ?>
-                        <?php foreach ($changes['items'] as $key=>$itemgroup) : ?>
-                                <?php
-                                if(isset($itemgroup['items']) && is_array($itemgroup['items']) && count($itemgroup['items']) > 0):
-                                    $groupTitle=$key;
-                                    foreach($itemgroup['items'] as $item) {
-                                        //echo "<pre>"; print_r($item); echo "</pre>";
-                                        $itemlist['group_'.$item['unique_id']][$item['item_id']]=$item;
-                                    }
-                                    
-                                else:
-                                    //$groupTitle=$key;
-                                    echo "<pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
-                                    //echo "<pre>ITEMLIST<br />"; print_r($itemlist); echo "</pre>";
-                                    foreach($itemgroup as $item) {
-                                        echo "<pre>"; print_r($item); echo "</pre>";
-                                        echo "item_".$item['item_id']."<br />";
-                                        $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
-                                    }
-                                endif; 
-                            endforeach;
-                            //echo " <pre>";print_r($itemlist); echo "</pre>";
-                            
-                            foreach($itemlist as $itemgroup) {
-                                $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/5 mx-auto";
-                                $firstItem=reset($itemgroup);
+                        <?php endif; 
+                        
+                        foreach ($changes['items'] as $key=>$itemgroup) :
+                            if(isset($itemgroup['items']) && is_array($itemgroup['items']) && count($itemgroup['items']) > 0):
                                 //echo "<pre>"; print_r($itemgroup); echo "</pre>";
-                                $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
-                                $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
-                                ?>
+                                $groupTitle=$key;
+                                foreach($itemgroup['items'] as $item) {
+                                    //echo "<pre>"; print_r($item); echo "</pre>";
+                                    $itemlist['group_'.$item['unique_id']][$item['item_id']]=$item;
+                                    $itemlist['group_'.$item['unique_id']]['privacy']=$itemgroup['privacy'];
+                                }
+                                
+                            else:
+                                //$groupTitle=$key;
+                                //echo "<pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
+                                //echo "<pre>ITEMLIST<br />"; print_r($itemlist); echo "</pre>";
+                                foreach($itemgroup as $item) {
+                                    //echo "<pre>"; print_r($item); echo "</pre>";
+                                    //echo "item_".$item['item_id']."<br />";
+                                    $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
+                                    $itemlist['item_'.$item['item_id']]['privacy']=$itemgroup['privacy'];
+                                }
+                            endif; 
+
+
+                        endforeach;
+                            
+                        foreach($itemlist as $itemgroup) {
+                            $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/5 mx-auto";
+                            $firstItem=reset($itemgroup);
+                            //echo "<pre>"; print_r($itemgroup); echo "</pre>";
+                            $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
+                            $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
+                            
+                            if($itemgroup['privacy'] == 'private') {
+                                $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
+                            } else {
+                                $privacystamp="";
+                            }
+                            ?>
                             <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>&tab=generaltab"'>
                                 <div class="item_header p-1 h-12 rounded mb-1 bg-deep-green text-white break-words text-center items-center center text-sm">
                                     <b>
-                                        <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?></b>
-                                     <?= str_replace("Key Image", "Pic", $groupTitle) ?> 
+                                        <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?>
+                                    </b>
+                                    <?= str_replace("Key Image", "Pic", $groupTitle) ?> 
+                                    <?= $privacystamp ?>
                                 </div>
                                 <div id="eventid_<?= $itemidentifier ?>" class="item_body relative break-words text-gray leading-none bg-cream m-0.5 h-12 overflow-y-scroll overflow-y-hidden">
                                     <?php foreach ($itemgroup as $key=>$itemdetail) : ?>
@@ -311,7 +323,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                                         <script>
                                                             var eventElement = document.getElementById('eventid_<?= $itemidentifier ?>');
                                                             eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['detail_value'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>" + eventElement.innerHTML;
-                                                       </script>
+                                                        </script>
                                                     <?php endif; ?>
                                                 <?php else: ?>
                                                     <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
@@ -329,7 +341,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 </div>                                    
 
                             </div>
-                            <?php } ?>
+                        <?php } ?>
                         </div>
                     </div>
 

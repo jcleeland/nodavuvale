@@ -1023,16 +1023,12 @@
 .stamp {
     transform: rotate(25deg);
     text-align: center;
-    color: #555;
-    font-size: 2rem;
-    font-weight: 700;
-    border: 0.25rem solid #555;
     display: inline-block;
     position: absolute;
-    width: 90%;
-    margin-left: -45%;
-    margin-top: 3rem;
-    padding: 1rem;
+    width: 65%;
+    margin-left: -35%;
+    margin-top: 15%;
+    padding: auto;
     text-transform: uppercase;
     border-radius: 1rem;
     font-family: 'Courier';
@@ -1050,7 +1046,7 @@
     transform: rotate(-15deg);
     -webkit-mask-position: 2re 3rem;
     mask-position: 2re 3rem;
-    font-size: 1.5rem !important;
+    white-space: nowrap;
 }
 
 
