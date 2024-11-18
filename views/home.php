@@ -254,7 +254,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                         <?php endif; ?>
                         <?php foreach ($changes['items'] as $key=>$itemgroup) : ?>
                                 <?php
-                                if(count($itemgroup['items']) > 0):
+                                if(isset($itemgroup['items']) && is_array($itemgroup['items']) && count($itemgroup['items']) > 0):
                                     $groupTitle=$key;
                                     foreach($itemgroup['items'] as $item) {
                                         //echo "<pre>"; print_r($item); echo "</pre>";
