@@ -82,6 +82,8 @@ if($user_id) {
             if($user['individuals_id']) {
                 $missinginfo=Utils::getMissingDataForUser($user['individuals_id']);
                 //echo "<pre>ALl the info"; print_r($missinginfo); echo "</pre>";
+                //Remove all the items that have no missing data
+                
                 if($missinginfo) {
                     //select a random missing info group
                     $missingitem = $missinginfo[array_rand($missinginfo)];
@@ -89,49 +91,53 @@ if($user_id) {
                     //Select a random person from the group
                     $missingpersongroup = $missingitem[array_rand($missingitem)];
                     //echo "<pre>Selected person group"; print_r($missingpersongroup); echo "</pre>";
-                    $missingperson = $missingpersongroup[array_rand($missingpersongroup)];
-                    
-                    //echo "<pre>Selected person"; print_r($missingperson); echo "</pre>";
+                    if($missingperson=$missingpersongroup[array_rand($missingpersongroup)]) {
+                        
+                        $missingperson = $missingpersongroup[array_rand($missingpersongroup)];
+                        
+                        //echo "<pre>Selected person"; print_r($missingperson); echo "</pre>";
 
-                    $missingdataoption="";
-                    if(!empty($missingperson['missingcoredata'])) {
-                        //Select a random item from $missingperson['missingcoredata']
-                        $missingdataoption = $missingperson['missingcoredata'][array_rand($missingperson['missingcoredata'])];
-                    } elseif(!empty($missingperson['missingitems'])) {
-                        //Select a random item from $missingperson['missingitems']
-                        $missingdataoption = $missingperson['missingitems'][array_rand($missingperson['missingitems'])];
-                    }
-                    if(empty($missingperson['details'])) {
-                        //echo "<pre>"; print_r($missingpersongroup); echo "</pre>";
-                    }
-                    $missingpersontitle="";
-                    $missingpersonmessage="";
-                    if($missingperson['details']['relationshiplabel']=="Self") {
-                        $missingpersontitle="yourself";
-                    } else {
-                        $missingpersontitle="your ".$missingperson['details']['relationshiplabel'];
-                    }
-                    $missingpersonmessage="What can you tell us about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ";
-                    
-                    $missingpersonmessage.=str_replace("_", " ",$missingdataoption)."?";
-                    
-                    $keyimage=Utils::getKeyImage($missingperson['details']['individual_id']);
-                    
-                    $helpwiththis = '<div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer "';
-                    $helpwiththis .= ' onclick="window.location.href=\'?to=family/individual&individual_id='.$missingperson['details']['individual_id'].'\'"';
-                    $helpwiththis .= '>';
-                    $helpwiththis .= '<button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white rounded-full h-16 w-16 min-w-16 max-w-16 py-1 text-xl px-1 my-4 mx-1" title="Help us with this thing" ';
-                    $helpwiththis .= '>';
-                    $helpwiththis .= '<img src="'.$keyimage.'" class="rounded-full text-xl object-cover" style="width: 95% !important;" title="'. $missingperson['details']['first_names'] .' '. $missingperson['details']['last_name'] .'">';
-                    $helpwiththis .= '</button>';
-                    $helpwiththis .= '<p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>';
-                    $helpwiththis .= 'Help us with info about ';
-                    $helpwiththis .= $missingpersontitle;
-                    $helpwiththis .= '</b><br />';
-                    $helpwiththis .= $missingpersonmessage;
-                    $helpwiththis .= '</p>';
-                    $helpwiththis .= '</div>';
+                        $missingdataoption="";
+                        if(!empty($missingperson['missingcoredata'])) {
+                            //Select a random item from $missingperson['missingcoredata']
+                            $missingdataoption = $missingperson['missingcoredata'][array_rand($missingperson['missingcoredata'])];
 
+                        } elseif(!empty($missingperson['missingitems'])) {
+                            //Select a random item from $missingperson['missingitems']
+                            $missingdataoption = $missingperson['missingitems'][array_rand($missingperson['missingitems'])];
+
+                        }
+                        if(empty($missingperson['details'])) {
+                            //echo "<pre>"; print_r($missingpersongroup); echo "</pre>";
+                        }
+                        $missingpersontitle="";
+                        $missingpersonmessage="";
+                        if($missingperson['details']['relationshiplabel']=="Self") {
+                            $missingpersontitle="yourself";
+                        } else {
+                            $missingpersontitle="your ".$missingperson['details']['relationshiplabel'];
+                        }
+                        $missingpersonmessage="What can you tell us about ".explode(" ",$missingperson['details']['first_names'])[0]."'s ";
+                        
+                        $missingpersonmessage.=strtolower(str_replace("_", " ",$missingdataoption))."?";
+                        
+                        $keyimage=Utils::getKeyImage($missingperson['details']['individual_id']);
+                        
+                        $helpwiththis = '<div class="flex border p-2 rounded-full h-28 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer "';
+                        $helpwiththis .= ' onclick="window.location.href=\'?to=family/individual&individual_id='.$missingperson['details']['individual_id'].'\'"';
+                        $helpwiththis .= '>';
+                        $helpwiththis .= '<button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white rounded-full h-16 w-16 min-w-16 max-w-16 py-1 text-xl px-1 my-4 mx-1" title="Help us with this thing" ';
+                        $helpwiththis .= '>';
+                        $helpwiththis .= '<img src="'.$keyimage.'" class="rounded-full text-xl object-cover" style="width: 95% !important;" title="'. $missingperson['details']['first_names'] .' '. $missingperson['details']['last_name'] .'">';
+                        $helpwiththis .= '</button>';
+                        $helpwiththis .= '<p class="text-gray-600 ml-3 h-22 overflow-y-scroll"><b>';
+                        $helpwiththis .= 'Help us with info about ';
+                        $helpwiththis .= $missingpersontitle;
+                        $helpwiththis .= '</b><br />';
+                        $helpwiththis .= $missingpersonmessage;
+                        $helpwiththis .= '</p>';
+                        $helpwiththis .= '</div>';
+                    }
                 }
             }
             ?>
