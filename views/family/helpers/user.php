@@ -92,7 +92,7 @@ if($user_id) {
                     $missingperson = $missingpersongroup[array_rand($missingpersongroup)];
                     //echo "<pre>Selected person"; print_r($missingperson); echo "</pre>";
 
-
+                    $missingdataoption=[];
                     if(!empty($missingperson['missingcoredata'])) {
                         //Select a random item from $missingperson['missingcoredata']
                         $missingdataoption = $missingperson['missingcoredata'][array_rand($missingperson['missingcoredata'])];
