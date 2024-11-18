@@ -444,6 +444,8 @@ if ($individual_id) {
             <div class="document-list grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
                 <?php 
                 foreach ($items as $key=>$itemgroup):
+                    //$firstItem=reset($itemgroup);
+                    //echo "<pre>"; print_r($itemgroup); echo "</pre>";
                     if($itemgroup['item_group_name'] == "Private") {
                         //Show a "private" div
                         ?>
@@ -461,7 +463,7 @@ if ($individual_id) {
                         continue;
                     }
                     $privacystamp="";
-                    if ($itemgroup['privacy']=='private') {
+                    if ($itemgroup['privacy'] == "private") {
                         //Add the tailwind class for the cursor to show the information icon
                         $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
                     }

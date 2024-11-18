@@ -2,7 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Generation Time: Nov 08, 2024 at 07:58 AM
+-- Host: 127.0.0.1:3306
+-- Generation Time: Nov 18, 2024 at 11:58 PM
 -- Server version: 8.2.0
 -- PHP Version: 8.2.13
 
@@ -11,7 +12,7 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 --
--- Database: `nodavuvare`
+-- Database: `nataleira`
 --
 
 -- --------------------------------------------------------
@@ -20,12 +21,15 @@ SET time_zone = "+00:00";
 -- Table structure for table `comment_reactions`
 --
 
-CREATE TABLE `comment_reactions` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `comment_reactions` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `comment_id` int DEFAULT NULL,
   `user_id` int DEFAULT NULL,
   `reaction_type` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
-  `reacted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `reacted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `comment_id` (`comment_id`),
+  KEY `user_id` (`user_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -34,8 +38,8 @@ CREATE TABLE `comment_reactions` (
 -- Table structure for table `discussions`
 --
 
-CREATE TABLE `discussions` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `discussions` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
   `title` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `content` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
@@ -43,7 +47,9 @@ CREATE TABLE `discussions` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_sticky` tinyint(1) DEFAULT '0',
   `is_news` tinyint(1) DEFAULT '0',
-  `individual_id` int DEFAULT '0'
+  `individual_id` int DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -52,13 +58,16 @@ CREATE TABLE `discussions` (
 -- Table structure for table `discussion_comments`
 --
 
-CREATE TABLE `discussion_comments` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `discussion_comments` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `discussion_id` int NOT NULL,
   `user_id` int NOT NULL,
   `comment` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `discussion_id` (`discussion_id`),
+  KEY `user_id` (`user_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -67,12 +76,15 @@ CREATE TABLE `discussion_comments` (
 -- Table structure for table `discussion_reactions`
 --
 
-CREATE TABLE `discussion_reactions` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `discussion_reactions` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `discussion_id` int DEFAULT NULL,
   `user_id` int DEFAULT NULL,
   `reaction_type` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
-  `reacted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `reacted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `discussion_id` (`discussion_id`),
+  KEY `user_id` (`user_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -81,14 +93,15 @@ CREATE TABLE `discussion_reactions` (
 -- Table structure for table `files`
 --
 
-CREATE TABLE `files` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `files` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `file_type` enum('image','document') CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `file_path` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `file_format` varchar(10) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `file_description` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci,
   `user_id` int DEFAULT NULL,
-  `upload_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `upload_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -97,11 +110,15 @@ CREATE TABLE `files` (
 -- Table structure for table `file_links`
 --
 
-CREATE TABLE `file_links` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `file_links` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `file_id` int NOT NULL,
   `individual_id` int DEFAULT NULL,
-  `item_id` int DEFAULT NULL
+  `item_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `file_id` (`file_id`),
+  KEY `individual_id` (`individual_id`),
+  KEY `item_id` (`item_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -110,8 +127,8 @@ CREATE TABLE `file_links` (
 -- Table structure for table `individuals`
 --
 
-CREATE TABLE `individuals` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `individuals` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `nodavuvale_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `first_names` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `aka_names` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -128,7 +145,8 @@ CREATE TABLE `individuals` (
   `is_deceased` int DEFAULT '0',
   `created_by` int DEFAULT NULL,
   `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `created` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -146,16 +164,33 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `individuals_privacy`
+--
+
+CREATE TABLE IF NOT EXISTS `individuals_privacy` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `individual_id` int DEFAULT NULL,
+  `privacy_label` varchar(255) NOT NULL,
+  `public` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `items`
 --
 
-CREATE TABLE `items` (
-  `item_id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `items` (
+  `item_id` int NOT NULL AUTO_INCREMENT,
   `detail_type` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `detail_value` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `item_identifier` int DEFAULT NULL,
   `user_id` int DEFAULT NULL,
-  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`item_id`),
+  KEY `fk_item_identifier` (`item_identifier`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -164,10 +199,12 @@ CREATE TABLE `items` (
 -- Table structure for table `item_groups`
 --
 
-CREATE TABLE `item_groups` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `item_groups` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `item_identifier` int NOT NULL,
-  `item_group_name` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL
+  `item_group_name` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `event_identifier` (`item_identifier`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -176,10 +213,11 @@ CREATE TABLE `item_groups` (
 -- Table structure for table `item_links`
 --
 
-CREATE TABLE `item_links` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `item_links` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `individual_id` int NOT NULL,
-  `item_id` int NOT NULL
+  `item_id` int NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -188,12 +226,15 @@ CREATE TABLE `item_links` (
 -- Table structure for table `relationships`
 --
 
-CREATE TABLE `relationships` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `relationships` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `individual_id_1` int NOT NULL,
   `individual_id_2` int NOT NULL,
   `relationship_type` enum('child','spouse') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `individual_id_1` (`individual_id_1`),
+  KEY `individual_id_2` (`individual_id_2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -202,13 +243,14 @@ CREATE TABLE `relationships` (
 -- Table structure for table `site_settings`
 --
 
-CREATE TABLE `site_settings` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `site_settings` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `value` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `description` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
@@ -217,8 +259,8 @@ CREATE TABLE `site_settings` (
 -- Table structure for table `users`
 --
 
-CREATE TABLE `users` (
-  `id` int NOT NULL,
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `individuals_id` int DEFAULT NULL,
   `password` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `email` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
@@ -232,187 +274,10 @@ CREATE TABLE `users` (
   `show_presence` tinyint DEFAULT '1',
   `registration_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `last_login` timestamp NULL DEFAULT NULL,
-  `last_view` timestamp NULL DEFAULT NULL
+  `last_view` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `comment_reactions`
---
-ALTER TABLE `comment_reactions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `comment_id` (`comment_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `discussions`
---
-ALTER TABLE `discussions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `discussion_comments`
---
-ALTER TABLE `discussion_comments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `discussion_id` (`discussion_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `discussion_reactions`
---
-ALTER TABLE `discussion_reactions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `discussion_id` (`discussion_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `files`
---
-ALTER TABLE `files`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `file_links`
---
-ALTER TABLE `file_links`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `file_id` (`file_id`),
-  ADD KEY `individual_id` (`individual_id`),
-  ADD KEY `item_id` (`item_id`);
-
---
--- Indexes for table `individuals`
---
-ALTER TABLE `individuals`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `items`
---
-ALTER TABLE `items`
-  ADD PRIMARY KEY (`item_id`),
-  ADD KEY `fk_item_identifier` (`item_identifier`);
-
---
--- Indexes for table `item_groups`
---
-ALTER TABLE `item_groups`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `event_identifier` (`item_identifier`);
-
---
--- Indexes for table `item_links`
---
-ALTER TABLE `item_links`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `relationships`
---
-ALTER TABLE `relationships`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `individual_id_1` (`individual_id_1`),
-  ADD KEY `individual_id_2` (`individual_id_2`);
-
---
--- Indexes for table `site_settings`
---
-ALTER TABLE `site_settings`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `comment_reactions`
---
-ALTER TABLE `comment_reactions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `discussions`
---
-ALTER TABLE `discussions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `discussion_comments`
---
-ALTER TABLE `discussion_comments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `discussion_reactions`
---
-ALTER TABLE `discussion_reactions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `files`
---
-ALTER TABLE `files`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `file_links`
---
-ALTER TABLE `file_links`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `individuals`
---
-ALTER TABLE `individuals`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `items`
---
-ALTER TABLE `items`
-  MODIFY `item_id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `item_groups`
---
-ALTER TABLE `item_groups`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `item_links`
---
-ALTER TABLE `item_links`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `relationships`
---
-ALTER TABLE `relationships`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `site_settings`
---
-ALTER TABLE `site_settings`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

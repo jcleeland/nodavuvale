@@ -916,6 +916,17 @@ class Utils {
                     
                     ELSE NULL
                 END AS individual_name_id,
+                CASE
+                    WHEN
+                        individuals.is_deceased = 1
+                        THEN '1'
+                    WHEN
+                        individuals_privacy.public IS NULL
+                        THEN '0'
+                    ELSE
+                        individuals_privacy.public
+                END AS public,
+                individuals_privacy.privacy_label, CONCAT('items_', item_groups.item_group_name) as privacy_match,
                 items.*,  files.id as file_id, files.*
             FROM item_links 
             INNER JOIN items ON items.item_id=item_links.item_id
@@ -926,6 +937,9 @@ class Utils {
             LEFT JOIN users ON items.user_id = users.id
             LEFT JOIN item_links AS duplicateItems ON items.item_id = duplicateItems.item_id AND duplicateItems.id != item_links.id
             LEFT JOIN individuals AS others ON duplicateItems.individual_id = others.id
+            LEFT JOIN individuals_privacy ON item_links.individual_id=individuals_privacy.individual_id 
+                AND individuals_privacy.privacy_label = CONCAT('items_', item_groups.item_group_name)
+
             WHERE item_links.individual_id like ?
             AND items.updated > ?
             $order 
@@ -952,18 +966,25 @@ class Utils {
             $itemGroupName = $item['item_group_name'] ? $item['item_group_name'] : $item['detail_type'];
             $thisispublic = false; //Assume everything is private
             $userprivacy = false;
-            if($item['is_deceased'] ==1) {
-                $thisispublic=true; //If the person is deceased, then everything is visible
-                $userprivacy=true; 
-            } elseif ($_SESSION['individuals_id'] == $individual_id || $isAdmin) {
-                $thisispublic=true; //If the person is the user, then everything is visible
-            } else {
-                //Check if the individuals private settings are public
-                if(isset($visibility[$itemGroupName]) && $visibility[$itemGroupName] == 1) {
-                    $thisispublic=true;
+
+            //First check against the user/individual's personal privacy settings
+            //Check if the individuals privacy settings are public. Individual settings always override other ones.
+            if($item['public'] == 1) {
+                $thisispublic=true;
+                $userprivacy=true;
+            }
+    
+            if(!$thisispublic) {
+                if($item['is_deceased'] ==1) {
+                    $thisispublic=true; //If the person is deceased, then we will make it public
                     $userprivacy=true; 
+                } elseif (!$thisispublic && ($_SESSION['individuals_id'] == $individual_id || $isAdmin)) {
+                    $thisispublic=true; //If the person is the user, then everything is visible
+                    $userprivacy=false;
                 }
             }
+
+
             if($thisispublic) {
                 /**
                  * PUBLIC INFORMATION

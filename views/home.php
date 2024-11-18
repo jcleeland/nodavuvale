@@ -294,8 +294,10 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             //echo "<pre>"; print_r($itemgroup); echo "</pre>";
                             $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
                             $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
-                            
-                            if($itemgroup['privacy'] == 'private') {
+                            $itemprivacy=$itemgroup['privacy']=="private" ? "private" : "public";
+                            //echo "<pre class='text-xxs'>"; print_r($itemgroup); echo "</pre>";
+                            //$itemprivacy=$firstItem['public'] ? "public" : "private";
+                            if($itemprivacy == 'private') {
                                 $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
                             } else {
                                 $privacystamp="";
