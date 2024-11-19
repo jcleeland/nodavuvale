@@ -478,6 +478,7 @@ if ($individual_id) {
                         if($itemgroup['item_group_name'] == "Birth" || $itemgroup['item_group_name'] == "Death") {
                             //insert "Date" at the beginning of the array
                             array_unshift($reference, "Date");
+                            //echo "<pre>"; print_r($reference); echo "</pre>";
                         }
                         $groupTitle=$itemgroup['item_group_name'];
                     ?>
@@ -499,8 +500,10 @@ if ($individual_id) {
                     }
                     $thisitem=array();
                     foreach($itemgroup['items'] as $itemdetail) {
+                        //echo "<pre>"; print_r($itemdetail); echo "</pre>";
                         $thisitem[$itemdetail['detail_type']]=$itemdetail;
                     }
+                    //echo "<pre>"; print_r($thisitem); echo "</pre>";
                     $incompleteItems=[];
                     ?>
                         <div class="item_header p-1 rounded mb-2 bg-brown text-white"><b><?= $groupTitle ?></b></div>

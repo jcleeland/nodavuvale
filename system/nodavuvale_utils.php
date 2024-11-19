@@ -894,8 +894,24 @@ class Utils {
                 users.first_name, users.last_name,
                 individuals.first_names as tree_first_names, individuals.last_name as tree_last_name, individuals.id as individualId,
                 individuals.is_deceased,
-                CONCAT(individuals.birth_year,'-',individuals.birth_month,'-',individuals.birth_date) as tree_birth_date,
-                CONCAT(individuals.death_year,'-',individuals.death_month,'-',individuals.death_date) as tree_death_date,
+                CASE
+                    WHEN individuals.birth_year IS NULL THEN NULL
+                    WHEN individuals.birth_month IS NULL OR individuals.birth_date IS NULL THEN CAST(individuals.birth_year AS CHAR)
+                    ELSE CONCAT(
+                        individuals.birth_year, '-', 
+                        LPAD(individuals.birth_month, 2, '0'), '-', 
+                        LPAD(individuals.birth_date, 2, '0')
+                    )
+                END AS tree_birth_date,
+                CASE
+                    WHEN individuals.death_year IS NULL THEN NULL
+                    WHEN individuals.death_month IS NULL OR individuals.death_date IS NULL THEN CAST(individuals.death_year AS CHAR)
+                    ELSE CONCAT(
+                        individuals.death_year, '-',
+                        LPAD(individuals.death_month, 2, '0'), '-',
+                        LPAD(individuals.death_date, 2, '0')
+                    )
+                END AS tree_death_date,
                 IFNULL(items.item_identifier, UUID_SHORT()) as unique_id,
                 CASE 
                     WHEN 
@@ -1066,7 +1082,14 @@ class Utils {
 
 
                 if($groupType=='Birth') {
-                    $sortDate=date("Y-m-d", strtotime($item['tree_birth_date']));
+                    //echo "<pre> -->"; print_r($item); echo "</pre><br />";
+                    //See if the "tree_birth_date" is just a year, and if so, simply show the year
+                    if(strlen($item['tree_birth_date'])==4) {
+                        $sortDate=$item['tree_birth_date'];
+                    } else {
+                        $sortDate=date("D, d M Y", strtotime($item['tree_birth_date']));
+                    }
+
                     //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the birth date
                     $groupedItems[$key]['items'][]=array(
                         'id'=>null,
@@ -1085,7 +1108,13 @@ class Utils {
 
                 }
                 if($groupType=='Death') {
-                    $sortDate=date("Y-m-d", strtotime($item['tree_death_date']));
+                    //See if the tree_death_date is just a year, and if so, simply show the year
+                    if(strlen($item['tree_death_date'])==4) {
+                        $sortDate=$item['tree_death_date'];
+                    } else {
+                        $sortDate=date("D, d M Y", strtotime($item['tree_death_date']));   
+                    }
+                    //$sortDate=date("Y-m-d", strtotime($item['tree_death_date']));
                     //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the death date
                     $groupedItems[$key]['items'][]=array(
                         'id'=>null,
