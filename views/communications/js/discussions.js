@@ -46,6 +46,31 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => console.error('Error:', error)); // Catch and log any errors
         });
     });
+    
+    // Handle file uploads for discussions
+    document.getElementById('add-discussion-files').addEventListener('change', function () {
+        const files = this.files;
+        const formData = new FormData();
+        formData.append('discussion_id', document.getElementById('discussion_id').value);
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files[]', files[i]);
+        }
+
+        fetch('upload.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Handle successful upload
+                console.log('Files uploaded successfully');
+            } else {
+                console.error(result.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });    
 
     function updateReactionSummary(discussionId = null, commentId = null) {
         let data = {
@@ -149,31 +174,6 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => console.error('Error:', error)); // Catch and log any errors
     }
 
-    // Handle file uploads for discussions
-    document.getElementById('add-discussion-files').addEventListener('change', function () {
-        const files = this.files;
-        const formData = new FormData();
-        formData.append('discussion_id', document.getElementById('discussion_id').value);
-        for (let i = 0; i < files.length; i++) {
-            formData.append('files[]', files[i]);
-        }
-
-        fetch('upload.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Handle successful upload
-                console.log('Files uploaded successfully');
-            } else {
-                console.error(result.error);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    });
-
 });
 
 function editDiscussion($discussionId) {
@@ -182,6 +182,49 @@ function editDiscussion($discussionId) {
 
 function editComment($commentId) {
 
+}
+
+function makeSticky(discussionId) {
+    if(confirm("Are you sure you want to stick this discussion to the top of the list?")) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=communications/discussions';
+    
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'discussion_id';
+        idInput.value = discussionId; // Make sure $discussionId is defined and accessible
+        form.appendChild(idInput);
+
+        var actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'make_sticky';
+        form.appendChild(actionInput);
+    
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function unStick(discussionId) {
+    if(confirm("Are you sure you want to unstick this discussion?")) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?to=communications/discussions';
+        
+        var idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'discussion_id';
+        idInput.value = discussionId; // Make sure $discussionId is defined and accessible
+        form.appendChild(idInput);
+        var actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'delete_sticky';
+        form.appendChild(actionInput);
+    
+        document.body.appendChild(form);
+        form.submit();
+    }
 }
 
 function deleteDiscussion(discussionId) {

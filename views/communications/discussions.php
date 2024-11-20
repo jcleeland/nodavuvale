@@ -309,27 +309,35 @@ function getCommentsForDiscussion($discussion_id) {
                     <div class="discussion-item"> 
                         <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>"></a>
                         <div class='discussion-content'>
+
                             <div class="text-sm text-gray-500">
                             <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b></a><br />
                                 <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
                                 <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
-                                    <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-20 top-2 font-normal text-xs">
+                                    <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-green-800 rounded-full py-1 px-2 m-0 right-14 top-1 font-normal text-xs">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button type="button" title="Delete this story" onClick="deleteDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                    <button type="button" title="Delete this story" onClick="deleteDiscussion(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-red-800 rounded-full py-1 px-2 m-0 right-6 top-1 font-normal text-xs">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 <?php endif; ?>
                                 <?php if ($discussion['is_sticky']): ?>
-                                    <button type="button" name="delete_sticky" title="This item is pinned to the top of the list" class="absolute py-1 px-2 -top-1 -right-1 text-lg text-deep-green-disabled hover:text-deep-green">
+                                    <?php if($is_admin || $_SESSION['user_id']==$discussion['user_id']): ?>
+                                        <button type="button" name="delete_sticky" onClick="unStick(<?= $discussion['id'] ?>)" title="Unpin this item from the top of the list." class="absolute py-1 px-2 -top-5 left-1 text-lg text-burnt-orange hover:text-gray-800">
+                                            <i class="fa fa-thumbtack "></i>
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" name="this_is_sticky" title="This item is pinned to the top of the list." class="absolute py-1 px-2 -top-5 left-1 text-lg text-burnt-orange">
+                                            <i class="fa fa-thumbtack "></i>
+                                        </button>
+                                    <?php endif; ?>
+                                <?php elseif ($is_admin || $_SESSION['user_id']==$discussion['user_id']) : ?>
+                                    <button type="button" name="make_sticky" onClick="makeSticky(<?= $discussion['id'] ?>)" title="Pin this item to the top of the list" class="absolute py-1 px-2 -top-5 left-1 text-lg text-gray-200 hover:text-gray-800">
                                         <i class="fa fa-thumbtack "></i>
-                                    </button>
-                            <?php elseif ($is_admin) : ?>
-                                <button type="button" name="make_sticky" title="Pin this item to the top of the list" class="absolute py-1 px-2 -top-1 -right-1 text-lg text-deep-green-disabled hover:text-deep-green">
-                                    <i class="fa fa-thumbtack "></i>
-                                </button>                     
-                            <?php endif; ?>                                                              
+                                    </button>                     
+                                <?php endif; ?>                                                              
                             </div>
+                            
                             <div id='add-discussion-files' class='hidden'></div>
 
                             <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
