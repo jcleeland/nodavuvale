@@ -522,7 +522,7 @@ if ($individual_id) {
                         ?>
                                 <div <?= $is_group ? "id='item_id_".$item['item_id']."'" : "" ?> class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left relative">
                                     
-                                    <div class='<?= $is_group ? "w-1/3 float-left pl-1": "text-center" ?>'>
+                                    <div class='<?= $is_group ? "w-1/3 float-left pl-1 pr-1": "text-center" ?>'>
                                         <b class="text-xs mb-2"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?>&nbsp;</b>
                                     </div>
                                     
@@ -568,6 +568,11 @@ if ($individual_id) {
                                                 </div>
                                                 <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars($item['detail_value'])) ?></div>                                                    
 
+                                            <?php elseif($item_styles[$itemname] == "date" && $item['detail_value'] && preg_match("/\d{4}-\d{2}-\d{2}/", $item['detail_value'])) : ?>
+                                        
+                                                <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo date("D, d M Y", strtotime($item['detail_value'])); ?></span>
+                                                </div>
                                             <?php else: ?>
 
                                                 <div class="float-left w-2/3">

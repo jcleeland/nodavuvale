@@ -1087,7 +1087,7 @@ class Utils {
                     if(strlen($item['tree_birth_date'])==4) {
                         $sortDate=$item['tree_birth_date'];
                     } else {
-                        $sortDate=date("D, d M Y", strtotime($item['tree_birth_date']));
+                        $sortDate=date("Y-m-d", strtotime($item['tree_birth_date']));
                     }
 
                     //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the birth date
@@ -1112,7 +1112,7 @@ class Utils {
                     if(strlen($item['tree_death_date'])==4) {
                         $sortDate=$item['tree_death_date'];
                     } else {
-                        $sortDate=date("D, d M Y", strtotime($item['tree_death_date']));   
+                        $sortDate=date("Y-m-d", strtotime($item['tree_death_date']));   
                     }
                     //$sortDate=date("Y-m-d", strtotime($item['tree_death_date']));
                     //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the death date
