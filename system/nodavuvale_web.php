@@ -151,4 +151,88 @@ class Web {
         return $card;
     }
     
+    public function handleFileUpload($files, $discussion_id = null, $comment_id = null) {
+        $uploadDir = 'uploads/';
+        $uploadedFiles = [];
+
+        foreach ($files['name'] as $key => $name) {
+            $tmpName = $files['tmp_name'][$key];
+            $filePath = $uploadDir . basename($name);
+
+            if (move_uploaded_file($tmpName, $filePath)) {
+                $uploadedFiles[] = $filePath;
+
+                // Save file information to the database
+                $this->db->query(
+                    "INSERT INTO files (file_path, discussion_id, comment_id) VALUES (?, ?, ?)",
+                    [$filePath, $discussion_id, $comment_id]
+                );
+            }
+        }
+
+        return $uploadedFiles;
+    }
+
+    public function handleDiscussionFileUpload($files, $discussion_id) {
+        $uploadDir = 'uploads/discussions/';
+        $uploadedFiles = [];
+
+        foreach ($files['name'] as $key => $name) {
+            $tmpName = $files['tmp_name'][$key];
+            $filePath = $uploadDir . basename($name);
+
+            if (move_uploaded_file($tmpName, $filePath)) {
+                $uploadedFiles[] = $filePath;
+
+                // Save file information to the database
+                $this->db->query(
+                    "INSERT INTO discussion_files (discussion_id, file_path, file_type) VALUES (?, ?, ?)",
+                    [$discussion_id, $filePath, mime_content_type($filePath)]
+                );
+            }
+        }
+
+        return $uploadedFiles;
+    }
+
+    public function getFontAwesomeIcon($filename) {
+        // Get the file extension
+        $ext = pathinfo($filename, PATHINFO_EXTENSION);
+        //Select an appropriate fontawesome icon based on the file extension
+        switch ($ext) {
+            case 'pdf':
+                $icon = 'fa-file-pdf';
+                break;
+            case 'doc':
+            case 'docx':
+                $icon = 'fa-file-word';
+                break;
+            case 'xls':
+            case 'xlsx':
+                $icon = 'fa-file-excel';
+                break;
+            case 'ppt':
+            case 'pptx':
+                $icon = 'fa-file-powerpoint';
+                break;
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+                $icon = 'fa-file-image';
+                break;
+            case 'zip':
+            case 'rar':
+                $icon = 'fa-file-archive';
+                break;
+            case 'txt':
+                $icon = 'fa-file-alt';
+                break;
+            default:
+                $icon = 'fa-file';
+                break;
+        }
+        return $icon;
+    }
+    
 }

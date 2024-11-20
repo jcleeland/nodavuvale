@@ -79,6 +79,7 @@ if($auth->getUserRole() == 'admin') {
                 <a href="?to=family/tree" class="text-white hover:text-burnt-orange">Tree</a>
                 <a href="?to=family/users" class="text-white hover:text-burnt-orange">Members</a>
                 <a href="?to=communications/discussions" class="text-white hover:text-burnt-orange">Chat</a>
+                <a href="?to=family/gallery" class="text-white hover:text-burnt-orange">Gallery</a>
             </nav>
             
             <!-- Mobile Navigation Toggle Button -->
@@ -96,6 +97,7 @@ if($auth->getUserRole() == 'admin') {
                 <a href="?to=family/tree" class="block px-4 py-2 text-white hover:text-burnt-orange">Tree</a>
                 <a href="?to=family/users" class="block px-4 py-2 text-white hover:text-burnt-orange">Members</a>
                 <a href="?to=communications/discussions" class="block px-4 py-2 text-white hover:text-burnt-orange">Chat</a>
+                <a href="?to=family/gallery" class="block px-4 py-2 text-white hover:text-burnt-orange">Gallery</a>
             </div>
             
             <!-- User Account/Login -->

@@ -90,6 +90,23 @@ CREATE TABLE IF NOT EXISTS `discussion_reactions` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `discussion_files`
+--
+
+CREATE TABLE IF NOT EXISTS `discussion_files` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `discussion_id` int NOT NULL,
+  `file_description` tinytext COLLATE utf8mb3_unicode_ci,
+  `file_path` varchar(255) COLLATE utf8mb3_unicode_ci NOT NULL,
+  `file_type` varchar(50) COLLATE utf8mb3_unicode_ci NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `discussion_id` (`discussion_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `files`
 --
 

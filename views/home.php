@@ -198,7 +198,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                     $url="?to=family/individual&individual_id=".$discussion['individual_id'];
                                 } else {
                                     echo "<b>General Chat:</b> New ".$discussion['change_type'];
-                                    $url="?to=communications/discussions&view_discussion_id=".$discussion['discussionId'];
+                                    $url="?to=communications/discussions&discussion_id=".$discussion['discussionId'];
                                 }
                                 ?>
                                 </div>

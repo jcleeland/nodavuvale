@@ -49,9 +49,14 @@ $db = Database::getInstance();
 $auth = new Auth($db);
 $web = new Web($db);
 
+
 $site_name=$db->getSiteSettings()['site_name'];
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '';
 
+// Ensure the uploads directory exists
+if (!is_dir('uploads/discussions')) {
+    mkdir('uploads/discussions', 0777, true);
+}
 
 // Define restricted directories
 $restricted_paths = ['family', 'village', 'communications'];

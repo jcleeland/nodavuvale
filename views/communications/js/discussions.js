@@ -148,6 +148,32 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Error:', error)); // Catch and log any errors
     }
+
+    // Handle file uploads for discussions
+    document.getElementById('add-discussion-files').addEventListener('change', function () {
+        const files = this.files;
+        const formData = new FormData();
+        formData.append('discussion_id', document.getElementById('discussion_id').value);
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files[]', files[i]);
+        }
+
+        fetch('upload.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Handle successful upload
+                console.log('Files uploaded successfully');
+            } else {
+                console.error(result.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
 });
 
 function editDiscussion($discussionId) {

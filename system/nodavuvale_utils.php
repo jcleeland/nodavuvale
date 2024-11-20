@@ -983,6 +983,11 @@ class Utils {
             $thisispublic = false; //Assume everything is private
             $userprivacy = false;
 
+            // Key Images are always public
+            if($itemGroupName == "Key Image") {
+                $thisispublic=true;
+                $userprivacy=true;
+            }
             //First check against the user/individual's personal privacy settings
             //Check if the individuals privacy settings are public. Individual settings always override other ones.
             if($item['public'] == 1) {
