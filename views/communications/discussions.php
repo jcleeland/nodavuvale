@@ -180,20 +180,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
     $content = trim($_POST['content']);
     $user_id = (int)$_POST['user_id'];
     $is_sticky = isset($_POST['is_sticky']) ? 1 : 0;
+    $is_event = isset($_POST['is_event']) ? 1 : 0;
     $is_news = isset($_POST['is_news']) ? 1 : 0;
+    $event_date = isset($_POST['event_date']) ? $_POST['event_date'] : null;
+    $event_location = isset($_POST['event_location']) ? $_POST['event_location'] : null;
     
     // Validate discussion
     if (!empty($title) && !empty($content) && $user_id > 0) {
-        // Insert the new discussion into the database
-        $db->insert("INSERT INTO discussions (user_id, title, content, is_sticky, is_news, created_at) VALUES (?, ?, ?, ?, ?, NOW())", [$user_id, $title, $content, $is_sticky, $is_news]);
+        try {
+            // Start a transaction
+            $db->beginTransaction();
+            // Insert the new discussion into the database
+            $sql="INSERT INTO discussions (user_id, title, content, is_sticky, is_event, is_news, event_date, event_location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            echo $sql."<br />Paramaters: ".$user_id.", ".$title.", ".$content.", ".$is_sticky.", ".$is_event.", ".$is_news.", ".$event_date.", ".$event_location;
+            $discussion_id=$db->insert($sql, [$user_id, $title, $content, $is_sticky, $is_event, $is_news, $event_date, $event_location]);
         
-        //Get the ID of the new discussion
-        $discussion_id = $db->lastInsertId();
-
-        // Handle file upload
-        if (isset($_FILES['discussion_files'])) {
-            $web->handleDiscussionFileUpload($_FILES['discussion_files'], $discussion_id);
+            
+            $db->commit();
+            // Handle file upload
+            if (isset($_FILES['discussion_files'])) {
+                $web->handleDiscussionFileUpload($_FILES['discussion_files'], $discussion_id, $user_id);
+            }
+            // Redirect to avoid form resubmission issues
+            ?>
+            <script type="text/javascript">
+                window.location.href = "index.php?to=communications/discussions&discussion_id=<?= $discussion_id ?>";
+            </script>
+            <?php
+            exit;            
+        } catch (Exception $e) {
+            // Rollback the transaction
+            $db->rollBack();
+            // Log the error
+            error_log($e->getMessage());
         }
+
+
+
+
+    }
+}
+
+// Handle file upload for existing discussions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files'], $_POST['discussion_id'], $_POST['user_id'])) {
+    $discussion_id = (int)$_POST['discussion_id'];
+    $user_id = (int)$_POST['user_id'];
+
+    // Validate discussion ID and user ID
+    if ($discussion_id > 0 && $user_id > 0) {
+        // Handle file upload
+        $web->handleDiscussionFileUpload($_FILES['add_discussion_files'], $discussion_id, $user_id);
+
         // Redirect to avoid form resubmission issues
         ?>
         <script type="text/javascript">
@@ -203,8 +240,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
         exit;
     }
 }
-
-
 
 
 // Fetch discussions from the database
@@ -240,43 +275,79 @@ function getCommentsForDiscussion($discussion_id) {
 
 <!-- New Discussion Section -->
 <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8 mb-0">
-    <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative">
+        <button type="button" id="hidediscussionform" class="new-discussion-form hidden font-bold text-xl text-white bg-gray-200 hover:bg-gray-400 py-0 px-2 rounded-full absolute right-1 top-1" title="Close new discussion">
+            <i class="fas fa-close"></i>
+        </button>
         <div class="discussion-content">
             <?php $my_avatar_path = $auth->getAvatarPath(); ?>
             <?php $presenceclass = $auth->getUserPresence($user_id) ? "userpresent" : "userabsent"; ?>
             <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left mr-2 object-cover {$presenceclass}"); ?>
             <div class='discussion-content'>
-                <form method="POST" enctype="multipart/form-data" class="mt-4">
+                <div class="mr-2 new-discussion-form relative">
+                    <input type="text" id="showdiscussionform" placeholder="Start a new discussion..." class="w-full border rounded-lg px-4 py-2 my-2 ml-2 mr-4 cursor-pointer text-gray-500" title="Start a new discussion...">
+                </div>
+                <form method="POST" enctype="multipart/form-data" class="mt-4 new-discussion-form hidden">
                     <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
-                    <div id="additional-fields" style="display: none;">
-                        <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Title (optional)">
-                        <div class="grid grid-cols-4 gap-8 text-sm text-gray-500">
-                            <div class="p-2 text-left">
-                                <input type="checkbox" id="is_sticky" name="is_sticky" class="mr-2">
-                                <label for="is_sticky">Pin to top</label>
+                    <div id="additional-fields">
+                        <div class="px-2 mt-1">
+                            <textarea id="content" name="content" rows="3" class="border w-full rounded-lg py-1 px-2" placeholder="Start a new discussion..." required></textarea>
+
+                        </div>
+                        <div class="px-2 mt-1">
+                            <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)">
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm text-gray-500">
+                            <div class="p-2 text-center">
+                                <label for="is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                    <input type="checkbox" id="is_event" name="is_event" class="mr-2">
+                                    <span class='block sm:hidden'>Event</span>
+                                    <span class='hidden sm:block'>This is an Event</span>
+                                </label>
                             </div>
                             <div class="p-2 text-center">
-                                <input type="checkbox" id="is_event" name="is_event" class="mr-2">
-                                <label for="is_event">This is an Event</label>
+                                <label for="is_news" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                    <input type="checkbox" id="is_news" name="is_news" class="mr-2">
+                                    <span class='block sm:hidden'>News</span>
+                                    <span class='hidden sm:block'>This is News</span>
+                                </label>
                             </div>
                             <div class="p-2 text-center">
-                                <input type="checkbox" id="is_news" name="is_news" class="mr-2">
-                                <label for="is_news">News item</label>
+                                <label for="is_sticky" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                    <input type="checkbox" id="is_sticky" name="is_sticky" class="mr-2">
+                                    <span class='block sm:hidden'>Pin</span>
+                                    <span class='hidden sm:block'>Pin to top</span>
+                                </label>
                             </div>
-                            <div class="p-2 text-right">
-                                <label for="discussion-files" class="bg-blue-500 hover:bg-blue-700 text-white font-xs font-bold py-2 px-4 rounded cursor-pointer inline-flex items-center">
-                                    <i class="fas fa-upload mr-2"></i> Add files
+                            <div class="p-2 text-center">
+                                <label for="discussion-files" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                    <i class="fas fa-upload mr-2"></i>
+                                    <span class='block sm:hidden'> Add</span>
+                                    <span class='hidden sm:block'> Add Pics/Files</span>
                                 </label>
                             </div>
                         </div>
-                    </div>
-                    <div class="p-2">
-                        <textarea id="content" name="content" rows="3" class="border w-full rounded-lg p-2 m-1 mb-2" placeholder="Share your thoughts..." required></textarea>
+                        <div id="event_date_section" class="px-2 mt-1 hidden flex">
+                            <div class="text-center w-1/5">
+                                <input type="text" name="event_date" id="event_date" class="w-full border rounded-lg p-2" placeholder="Event Date">
+                            </div>
+                            <div class="pl-2 text-center w-4/5">
+                                <input type="text" name="event_location" id="event_location" class="w-full border rounded-lg p-2" placeholder="Event Location">
+                            </div>
+                        </div>
+                        
+                        <div id="submitarea" class="grid grid-cols-2 sm:grid-cols-4 gap-8 px-2 mt-1">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div class="p-2 text-center">
+                                <button type="submit" name="new_discussion" class="w-full max-w-max font-bold text-xl bg-deep-green-800 hover:nv-bg-opacity-50 text-white py-2 px-4 rounded-lg">
+                                    <i class="fas fa-paper-plane"></i> Submit
+                                </button>
+                            </div>
+                        </div>                        
                     </div>
                     <input type="file" id="discussion-files" name="discussion_files[]" multiple class="hidden">
-                    <button type="submit" name="new_discussion" class="bg-deep-green hover:bg-deep-green-800 font-bold text-white py-2 px-4 rounded-lg float-right">
-                        Submit <!-- Unicode for paper plane -->
-                    </button>
                 </form>
             </div>
         </div>
@@ -284,15 +355,54 @@ function getCommentsForDiscussion($discussion_id) {
 </section>
 
 <script>
-    document.getElementById('content').addEventListener('input', function() {
-        var additionalFields = document.getElementById('additional-fields');
-        if (this.value.trim() !== '') {
-            additionalFields.style.display = 'block';
+    document.getElementById('showdiscussionform').addEventListener('click', function() {
+        //Hide this input
+        this.classList.toggle('hidden');
+        
+        var elements = document.getElementsByClassName('new-discussion-form');
+        for (var i = 0; i < elements.length; i++) {
+            //Toggle the 'hidden' class
+            elements[i].classList.toggle('hidden');
+        }
+        console.log('Shew new-discussion-form');
+    });
+
+    document.getElementById('hidediscussionform').addEventListener('click', function() {
+        //Hide this input
+        document.getElementById('showdiscussionform').classList.toggle('hidden');
+        
+        var elements = document.getElementsByClassName('new-discussion-form');
+        for (var i = 0; i < elements.length; i++) {
+            //Toggle the 'hidden' class
+            elements[i].classList.toggle('hidden');
+        }
+        console.log('Hide new-discussion-form');
+    });
+
+    document.getElementById('is_event').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('event_date_section').classList.remove('hidden');
         } else {
-            additionalFields.style.display = 'none';
+            document.getElementById('event_date_section').classList.add('hidden');
         }
     });
 </script>
+
+<!-- Gallery Modal Popup -->
+
+
+<div id="gallery-modal" class="modal">
+    <div class="modal-content w-4/5 max-h-screen my-5 overflow-y-auto">
+        <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
+            <span id="slideshowClose" class="close-slideshow-btn absolute right-1 top-0 text-xl" onClick="document.getElementById('gallery-modal').style.display='none'">&times;</span>
+            <h2 id="customPromptTitle" class="text-lg font-bold text-center">Slideshow</h2>
+        </div>
+        <div id="gallery-modal-content" class="relative flex items-center justify-left overflow-x-scroll">
+            <!-- Slideshow content will go here -->
+        </div>
+    </div>
+</div>
+
 
 <!-- Discussions Section -->
 <section class="container mx-auto py-0 pb-6 px-4 sm:px-6 lg:px-8">
@@ -309,9 +419,9 @@ function getCommentsForDiscussion($discussion_id) {
                     <div class="discussion-item"> 
                         <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>"></a>
                         <div class='discussion-content'>
-
+                            <!-- User Information -->
                             <div class="text-sm text-gray-500">
-                            <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b></a><br />
+                                <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b></a><br />
                                 <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
                                 <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
                                     <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-green-800 rounded-full py-1 px-2 m-0 right-14 top-1 font-normal text-xs">
@@ -335,17 +445,32 @@ function getCommentsForDiscussion($discussion_id) {
                                     <button type="button" name="make_sticky" onClick="makeSticky(<?= $discussion['id'] ?>)" title="Pin this item to the top of the list" class="absolute py-1 px-2 -top-5 left-1 text-lg text-gray-200 hover:text-gray-800">
                                         <i class="fa fa-thumbtack "></i>
                                     </button>                     
-                                <?php endif; ?>                                                              
+                                <?php endif; ?>                                                            
                             </div>
                             
-                            <div id='add-discussion-files' class='hidden'></div>
-
-                            <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
+                            <!-- Title Section -->
+                            <div id='discussion-title-<?= $discussion['id'] ?>' class='relative'>
+                                <div class="p-2 absolute right-0 text-sm" >
+                                    <form id="discussion-form-<?= $discussion['id'] ?>" method="POST" enctype="multipart/form-data" >                                
+                                        <label for="add-discussion-files-<?= $discussion['id'] ?>" title="Add a picture or file to this discussion" class="bg-gray-300 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                            <i class="fas fa-upload mr-2"></i><i class="fas fa-images"></i>
+                                        </label>
+                                        <input type="file" id="add-discussion-files-<?= $discussion['id'] ?>" name="add_discussion_files[]" multiple class="hidden">
+                                        <input type="discussion_id" name="discussion_id" value="<?= $discussion['id'] ?>" class="hidden">
+                                        <input type="user_id" name="user_id" value="<?= $_SESSION['user_id'] ?>" class="hidden">
+                                    </form>
+                                </div>
+                                <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
+                            </div>
                             <?php
                             //Insert a photo / file gallery if there are any files. It should be a carousel
                             if (!empty($files)) {
                                 ?>
-                                <div class='file-gallery flex overflow-x-auto mt-2 border rounded-lg p-2'>
+                                <div class='file-gallery relative flex overflow-x-auto mt-2 border rounded-lg p-2'>
+                                    <!-- button to view the gallery in a modal -->
+                                    <button type="button" title="View images" onClick="showGalleryModal(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-gray-800 rounded-full py-1 px-2 m-0 -right-1 -top-1 font-normal text-lg">
+                                        <i class="fas fa-images"></i>
+                                    </button>
                                 <?php
                                 foreach ($files as $file) {
                                     $file_path = $file['file_path'];
@@ -360,24 +485,36 @@ function getCommentsForDiscussion($discussion_id) {
                                         'image/svg+xml'
                                     ];
                                     ?>
-                                    <div class="file-gallery-item h-24 w-20 rounded-lg flex flex-col items-center justify-center bg-deep-green-800 nv-bg-opacity-10 m-2">
-                                    <?php
-                                    if (in_array($file_type, $supported_image_types)) {
-                                        ?>
-                                        <img src='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 rounded-lg'>
-                                        <span class='text-xxs text-gray-500 overflow'><?= $file_description ?></span>
+                                    <div id="discussion_file_id_<?= $file['id'] ?>" class="file-gallery-item h-28 w-20 relative rounded-lg flex flex-shrink-0 flex-col items-center justify-center bg-deep-green-800 nv-bg-opacity-10 m-2">
+                                        <?php if($file['user_id']==$_SESSION['user_id'] || $discussion['user_id']==$_SESSION['user_id'] || $is_admin): ?>
+                                            <button type="button" title="Delete this file" onClick="deleteDiscussionFile(<?= $file['id'] ?>);" class="absolute text-gray-300 hover:text-red-800 rounded-full py-1 px-2 m-0 -right-1 -top-1 font-normal text-xxs">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        <?php endif; ?>
                                         <?php
-                                    } else {
-                                        //For other files, show a generic icon using the fontawesome class based on the file type
-                                        $file_icon = $web->getFontAwesomeIcon($file_name);
+                                        if (in_array($file_type, $supported_image_types)) {
+                                            ?>
+                                            <a href='<?= $file_path ?>' target='_blank' title='<?= $file_name ?>'>
+                                                <img src='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 min-w-min rounded-lg'>
+                                            </a>
+                                            <?php
+                                        } else {
+                                            // For other files, show a generic icon using the FontAwesome class based on the file type
+                                            $file_icon = $web->getFontAwesomeIcon($file_name);
+                                            ?>
+                                            <div class='bg-gray-200 text-gray-500 h-16 w-16 flex items-center justify-center'>
+                                            <a href='<?= $file_path ?>' target='_blank' title='<?= $file_name ?>'>
+                                                <i class='fa <?= $file_icon ?> fa-2x mb-2'></i>
+                                            </a>
+                                            </div>
+                                            <?php
+                                        }
+                                        $spanOption="";
+                                        if($file['user_id']==$_SESSION['user_id'] || $discussion['user_id']==$_SESSION['user_id'] || $is_admin) {
+                                            $spanOption="onDblClick='editDiscussionFileDescription(".$file['id'].")' title='Double-click to edit this desciption'";
+                                        }
                                         ?>
-                                        <div class='bg-gray-200 text-gray-500'>
-                                            <i class='fa <?= $file_icon ?> fa-2x mb-2'></i>
-                                        </div>
-                                        <span class='text-xxs text-gray-500 overflow'><?= $file_description ?></span>
-                                        <?php
-                                    }
-                                    ?>
+                                        <span id='discussion_file_description_<?= $file['id']; ?>'class='text-xxs text-gray-500 text-center overflow-y-scroll p-1 h-8' <?=$spanOption ?>><?= $file_description ?></span>
                                     </div>
                                     <?php
                                 }

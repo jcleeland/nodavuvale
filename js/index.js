@@ -94,7 +94,7 @@ async function uploadFileAndItem(individualId, eventType, eventDetail, fileDescr
  *
  * @param {string} title - The title of the custom prompt dialog.
  * @param {string} message - The message or description to display in the custom prompt dialog.
- * @param {Array<string>} inputs - An array of placeholder texts for the input fields.
+ * @param {Array<string>} inputs - An array of placeholder texts for the input fields. These should be in the format [inputfieldname_inputfieldtype], for example "filedescription_textarea"
  * @param {Array<string>} values - An array of default values for the input fields.
  * @param {function} callback - A callback function to handle the input values. The callback receives an array of input values if the user clicks "OK", or null if the user clicks "Cancel".
  *
@@ -214,9 +214,13 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     customPromptOk.onclick = function() {
         customPrompt.classList.remove('show');
+        console.log('Inputs:');
+        console.log(inputs);
         var inputValues = inputs.map((input, index) => {
             var inputElement = document.getElementById('customPromptInput' + index);
-            if (input.toLowerCase().includes('file')) {
+            //if the last 4 characters of the input string are 'file' then return the file object
+            if (input.toLowerCase().slice(-4).includes('file')) {
+                console.log(input.toLowerCase().slice(-4));
                 return inputElement.files[0]; // Return the File object
             }
             return inputElement.value;

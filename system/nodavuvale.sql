@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS `discussion_reactions` (
 CREATE TABLE IF NOT EXISTS `discussion_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `discussion_id` int NOT NULL,
+  `user_id` int NOT NULL,
   `file_description` tinytext COLLATE utf8mb3_unicode_ci,
   `file_path` varchar(255) COLLATE utf8mb3_unicode_ci NOT NULL,
   `file_type` varchar(50) COLLATE utf8mb3_unicode_ci NOT NULL,

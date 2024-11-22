@@ -60,6 +60,10 @@
     --nv-bg-opacity: 0.5 !important;
 }
 
+.nv-bg-opacity-90 {
+    --nv-bg-opacity: 0.9 !important;
+}
+
 .bg-white-800, .hover\:bg-white-800:hover {
     --nv-bg-opacity: 1;
     background-color: rgba(var(--white-red), var(--white-green), var(--white-blue), var(--nv-bg-opacity));
@@ -179,7 +183,7 @@
     color: var(--warm-red);
 }
 
-.text-sm.text-gray-500 {
+.nowrap {
     white-space: nowrap; /* Prevent text from wrapping */
 }
 

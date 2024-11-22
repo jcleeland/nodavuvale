@@ -173,7 +173,7 @@ class Web {
         return $uploadedFiles;
     }
 
-    public function handleDiscussionFileUpload($files, $discussion_id) {
+    public function handleDiscussionFileUpload($files, $discussion_id, $user_id=null) {
         $uploadDir = 'uploads/discussions/';
         $uploadedFiles = [];
 
@@ -186,8 +186,8 @@ class Web {
 
                 // Save file information to the database
                 $this->db->query(
-                    "INSERT INTO discussion_files (discussion_id, file_path, file_type) VALUES (?, ?, ?)",
-                    [$discussion_id, $filePath, mime_content_type($filePath)]
+                    "INSERT INTO discussion_files (discussion_id, user_id, file_path, file_type) VALUES (?, ?, ?, ?)",
+                    [$discussion_id, $user_id, $filePath, mime_content_type($filePath)]
                 );
             }
         }

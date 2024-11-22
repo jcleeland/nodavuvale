@@ -535,7 +535,7 @@ if ($individual_id) {
                                                     <a href="<?= $item['file_path'] ?>" target="_blank">
                                                         <img class="w-full h-auto rounded" src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>"  >
                                                     </a>
-                                                    <p class="absolute <?= $is_group ? "w-full" : "w-full" ?> leading-tight bottom-0 rounded text-xxs text-white bg-gray-800 bg-opacity-40 text-center py-1 p-0" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" ><?= $item['file_description'] ?></p>
+                                                    <p class="absolute <?= $is_group ? "w-full" : "w-full" ?> leading-tight bottom-0 rounded text-xxs text-white bg-gray-800 bg-opacity-40 text-center py-1 p-0" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" title="Double click to edit this description" ><?= $item['file_description'] ?></p>
                                                 </div>
                                             </div>
 
@@ -546,7 +546,7 @@ if ($individual_id) {
                                                     <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
                                                         <i class="text-md fas fa-file pl-1 pr-0 pb-0"></i>
                                                     </a>
-                                                    <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
+                                                    <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" title="Double click to edit this description" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
                                                 </div>
                                             </div>
                                             
@@ -564,19 +564,19 @@ if ($individual_id) {
                                             <?php elseif($item_styles[$itemname] == "textarea") : ?>
                                         
                                                 <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id'])); ?></span>
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id'])); ?></span>
                                                 </div>
                                                 <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars($item['detail_value'])) ?></div>                                                    
 
                                             <?php elseif($item_styles[$itemname] == "date" && $item['detail_value'] && preg_match("/\d{4}-\d{2}-\d{2}/", $item['detail_value'])) : ?>
                                         
                                                 <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo date("D, d M Y", strtotime($item['detail_value'])); ?></span>
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this date" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo date("D, d M Y", strtotime($item['detail_value'])); ?></span>
                                                 </div>
                                             <?php else: ?>
 
                                                 <div class="float-left w-2/3">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars($item['detail_value'])); ?></span>
+                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars($item['detail_value'])); ?></span>
                                                 </div>
                                         
                                             <?php endif; ?>
@@ -718,7 +718,7 @@ if ($individual_id) {
                             <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
                         </a>
                         <?php if (!empty($photo['file_description'])): ?>
-                            <p id="photo_<?= $photo['id'] ?>" class="mt-2 text-xs text-gray-600" onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')"><?php echo $photo['file_description']; ?></p>
+                            <p id="photo_<?= $photo['id'] ?>" class="mt-2 text-xs text-gray-600" title="Double click to edit this description" onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')" ><?php echo $photo['file_description']; ?></p>
                         <?php endif; ?>
                             <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
                                 <i class="fas fa-info-circle" title="Added by <?= $photo['first_name'] ?> <?= $photo['last_name'] ?> on <?= date("d M Y", strtotime($photo['upload_date'])); ?>"></i>
