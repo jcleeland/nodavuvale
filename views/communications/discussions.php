@@ -431,6 +431,14 @@ function getCommentsForDiscussion($discussion_id) {
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 <?php endif; ?>
+                                    <form id="discussion-form-<?= $discussion['id'] ?>" method="POST" enctype="multipart/form-data" >                                
+                                        <label for="add-discussion-files-<?= $discussion['id'] ?>" title="Add a picture or file to this discussion" class="absolute text-gray-400 hover:text-gree-800 py-1 px-2 m-0 right-20 top-1 font-normal text-xs cursor-pointer">
+                                            <i class="fas fa-upload mr-2"></i>
+                                        </label>
+                                        <input type="file" id="add-discussion-files-<?= $discussion['id'] ?>" name="add_discussion_files[]" multiple class="hidden">
+                                        <input type="discussion_id" name="discussion_id" value="<?= $discussion['id'] ?>" class="hidden">
+                                        <input type="user_id" name="user_id" value="<?= $_SESSION['user_id'] ?>" class="hidden">
+                                    </form>
                                 <?php if ($discussion['is_sticky']): ?>
                                     <?php if($is_admin || $_SESSION['user_id']==$discussion['user_id']): ?>
                                         <button type="button" name="delete_sticky" onClick="unStick(<?= $discussion['id'] ?>)" title="Unpin this item from the top of the list." class="absolute py-1 px-2 -top-5 left-1 text-lg text-burnt-orange hover:text-gray-800">
@@ -450,16 +458,6 @@ function getCommentsForDiscussion($discussion_id) {
                             
                             <!-- Title Section -->
                             <div id='discussion-title-<?= $discussion['id'] ?>' class='relative'>
-                                <div class="p-2 absolute right-0 text-sm" >
-                                    <form id="discussion-form-<?= $discussion['id'] ?>" method="POST" enctype="multipart/form-data" >                                
-                                        <label for="add-discussion-files-<?= $discussion['id'] ?>" title="Add a picture or file to this discussion" class="bg-gray-300 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
-                                            <i class="fas fa-upload mr-2"></i><i class="fas fa-images"></i>
-                                        </label>
-                                        <input type="file" id="add-discussion-files-<?= $discussion['id'] ?>" name="add_discussion_files[]" multiple class="hidden">
-                                        <input type="discussion_id" name="discussion_id" value="<?= $discussion['id'] ?>" class="hidden">
-                                        <input type="user_id" name="user_id" value="<?= $_SESSION['user_id'] ?>" class="hidden">
-                                    </form>
-                                </div>
                                 <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
                             </div>
                             <?php
