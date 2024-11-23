@@ -21,6 +21,10 @@ if(isset($_GET['individual_id'])) {
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="styles/dTree.css">
 
+    <!-- Link to Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
     <!-- Link to main js file -->
     <script src="js/index.js"></script>
 

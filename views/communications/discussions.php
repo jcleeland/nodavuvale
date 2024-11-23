@@ -78,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_discussion']) 
     exit;
 }
 
-
 // Handle deletion of stickiness
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_sticky'])) {
     $discussion_id = $_POST['discussion_id'] ?? 0;
@@ -114,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['make_sticky'])) {
     <?php
     exit;
 }
-
 
 // Handle deletion of comments
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment']) && $_POST['delete_comment'] === 'true') {
@@ -218,6 +216,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
 
 
 
+    }
+}
+
+// Handle updating of a discussion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_discussion'], $_POST['user_id'], $_POST['discussion_id'])) {
+
+    $discussion_id = (int)$_POST['discussion_id'];
+    $title = trim($_POST['discussion_edit_title']);
+    $content = trim($_POST['discussion_edit_content']);
+    $user_id = (int)$_POST['user_id'];
+    $is_sticky = isset($_POST['discussion_edit_is_sticky']) ? 1 : 0;
+    $is_event = isset($_POST['discussion_edit_is_event']) ? 1 : 0;
+    $is_news = isset($_POST['discussion_edit_is_news']) ? 1 : 0;
+    $event_date = isset($_POST['discussion_edit_event_date']) ? $_POST['discussion_edit_event_date'] : null;
+    $event_location = isset($_POST['discussion_edit_event_location']) ? $_POST['discussion_edit_event_location'] : null;
+
+    // Validate discussion
+    if (!empty($title) && !empty($content) && $discussion_id > 0 && $user_id > 0) {
+        try {
+            // Start a transaction
+            $db->beginTransaction();
+            // Update the discussion in the database
+            $db->query("UPDATE discussions SET title = ?, content = ?, is_sticky = ?, is_event = ?, is_news = ?, event_date = ?, event_location = ? WHERE id = ?", [$title, $content, $is_sticky, $is_event, $is_news, $event_date, $event_location, $discussion_id]);
+            $db->commit();
+            // Redirect to avoid form resubmission issues
+            ?>
+            <script type="text/javascript">
+                window.location.href = "index.php?to=communications/discussions&discussion_id=<?= $discussion_id ?>";
+            </script>
+            <?php
+            exit;
+        } catch (Exception $e) {
+            // Rollback the transaction
+            $db->rollBack();
+            // Log the error
+            error_log($e->getMessage());
+        }
     }
 }
 
@@ -354,43 +389,7 @@ function getCommentsForDiscussion($discussion_id) {
     </div>
 </section>
 
-<script>
-    document.getElementById('showdiscussionform').addEventListener('click', function() {
-        //Hide this input
-        this.classList.toggle('hidden');
-        
-        var elements = document.getElementsByClassName('new-discussion-form');
-        for (var i = 0; i < elements.length; i++) {
-            //Toggle the 'hidden' class
-            elements[i].classList.toggle('hidden');
-        }
-        console.log('Shew new-discussion-form');
-    });
-
-    document.getElementById('hidediscussionform').addEventListener('click', function() {
-        //Hide this input
-        document.getElementById('showdiscussionform').classList.toggle('hidden');
-        
-        var elements = document.getElementsByClassName('new-discussion-form');
-        for (var i = 0; i < elements.length; i++) {
-            //Toggle the 'hidden' class
-            elements[i].classList.toggle('hidden');
-        }
-        console.log('Hide new-discussion-form');
-    });
-
-    document.getElementById('is_event').addEventListener('change', function() {
-        if (this.checked) {
-            document.getElementById('event_date_section').classList.remove('hidden');
-        } else {
-            document.getElementById('event_date_section').classList.add('hidden');
-        }
-    });
-</script>
-
 <!-- Gallery Modal Popup -->
-
-
 <div id="gallery-modal" class="modal">
     <div class="modal-content w-4/5 max-h-screen my-5 overflow-y-auto">
         <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
@@ -403,6 +402,69 @@ function getCommentsForDiscussion($discussion_id) {
     </div>
 </div>
 
+<!-- Edit Discussion Modal Popup -->
+<div id="edit-discussion-modal" class="modal">
+    <div class="modal-content w-4/5 max-h-screen my-5 overflow-y-auto">
+        <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
+            <span id="editDiscussionClose" class="close-slideshow-btn absolute right-1 top-0 text-xl" onClick="document.getElementById('edit-discussion-modal').style.display='none'">&times;</span>
+            <h2 id="editDiscussionTitle" class="text-lg font-bold text-center">Edit Discussion</h2>
+        </div>
+        <div id="edit-discussion-modal-content" class="relative flex items-center justify-left overflow-x-scroll">
+            <form method="POST" class="mt-4 new-discussion-form">
+                <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
+                <input type="hidden" name="discussion_id" id="discussion_edit_discussion_id" value=""> 
+                <div class="px-2 mt-1">
+                    <input type="text" name="discussion_edit_title" id="discussion_edit_title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)">
+                </div>
+                <div class="px-2 mt-1">
+                    <textarea id="discussion_edit_content" name="discussion_edit_content" rows="6" class="border w-full rounded-lg py-1 px-2" placeholder="Edit this discussion..." required></textarea>
+                </div>
+                <div id="discussion_edit_event_date_section" class="px-2 mt-1 hidden flex">
+                    <div class="text-center w-1/5">
+                        <input type="text" name="discussion_edit_event_date" id="discussion_edit_event_date" class="w-full border rounded-lg p-2" placeholder="Event Date">
+                    </div>
+                    <div class="pl-2 text-center w-4/5">
+                        <input type="text" name="discussion_edit_event_location" id="discussion_edit_event_location" class="w-full border rounded-lg p-2" placeholder="Event Location">
+                    </div>
+                </div>                
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 text-sm text-gray-500">
+                    <div class="p-2 text-center">
+                        <label for="discussion_edit_is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                            <input type="checkbox" id="discussion_edit_is_event" name="discussion_edit_is_event" class="mr-2">
+                            <span class='block sm:hidden'>Event</span>
+                            <span class='hidden sm:block'>This is an Event</span>
+                        </label>
+                    </div>
+                    <div class="p-2 text-center">
+                        <label for="discussion_edit_is_news" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                            <input type="checkbox" id="discussion_edit_is_news" name="discussion_edit_is_news" class="mr-2">
+                            <span class='block sm:hidden'>News</span>
+                            <span class='hidden sm:block'>This is News</span>
+                        </label>
+                    </div>
+                    <div class="p-2 text-center">
+                        <label for="discussion_edit_is_sticky" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                            <input type="checkbox" id="discussion_edit_is_sticky" name="discussion_edit_is_sticky" class="mr-2">
+                            <span class='block sm:hidden'>Pin</span>
+                            <span class='hidden sm:block'>Pin to top</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="submitarea" class="grid grid-cols-2 sm:grid-cols-4 gap-8 px-2 mt-1">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div class="p-2 text-center">
+                        <button type="submit" name="update_discussion" class="w-full max-w-max font-bold text-xl bg-deep-green-800 hover:nv-bg-opacity-50 text-white py-2 px-4 rounded-lg">
+                            <i class="fas fa-paper-plane"></i> Submit
+                        </button>
+                    </div>
+                </div>                        
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Discussions Section -->
 <section class="container mx-auto py-0 pb-6 px-4 sm:px-6 lg:px-8">

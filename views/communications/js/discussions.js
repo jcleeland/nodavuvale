@@ -1,6 +1,54 @@
 document.addEventListener('DOMContentLoaded', function () {
     const reactionButtons = document.querySelectorAll('.reaction-btn');
 
+    flatpickr('#event_date', {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i:S",
+        time_24hr: true
+    });
+
+    document.getElementById('showdiscussionform').addEventListener('click', function() {
+        //Hide this input
+        this.classList.toggle('hidden');
+        
+        var elements = document.getElementsByClassName('new-discussion-form');
+        for (var i = 0; i < elements.length; i++) {
+            //Toggle the 'hidden' class
+            elements[i].classList.toggle('hidden');
+        }
+        console.log('Shew new-discussion-form');
+    });
+
+    document.getElementById('hidediscussionform').addEventListener('click', function() {
+        //Hide this input
+        document.getElementById('showdiscussionform').classList.toggle('hidden');
+        
+        var elements = document.getElementsByClassName('new-discussion-form');
+        for (var i = 0; i < elements.length; i++) {
+            //Toggle the 'hidden' class
+            elements[i].classList.toggle('hidden');
+        }
+        console.log('Hide new-discussion-form');
+    });
+
+    document.getElementById('is_event').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('event_date_section').classList.remove('hidden');
+        } else {
+            document.getElementById('event_date_section').classList.add('hidden');
+        }
+    });
+
+    document.getElementById('discussion_edit_is_event').addEventListener('change', function() {
+        console.log('Is Event checked or unchecked');
+        if (this.checked) {
+            console.log('Checked');
+            document.getElementById('discussion_edit_event_date_section').classList.remove('hidden');
+        } else {
+            document.getElementById('discussion_edit_event_date_section').classList.add('hidden');
+        }
+    });
+
     reactionButtons.forEach(button => {
         button.addEventListener('click', function () {
             const reaction = this.getAttribute('data-reaction');
@@ -164,13 +212,56 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.error('Error fetching reactions:', result.error);
                 }
             })
-            .catch(error => console.error('Error:', error)); // Catch and log any errors
+            .catch(error => console.error('Error:;', error)); // Catch and log any errors
     }
 
 });
 
-function editDiscussion($discussionId) {
-
+function editDiscussion(discussionId) {
+    const editDiscussionForm=document.getElementById('edit-discussion-modal')
+    //Get the current values of the discussion from the ajax "get_discussion" function
+    var data = {
+        method: 'get_discussion',
+        data: {
+            discussion_id: discussionId
+        }
+    };
+    fetch('ajax.php', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        console.log(result);
+        if (result.status=="success") {
+            editDiscussionForm.style.display='block';
+            //Set the values of the form to the values of the discussion
+            document.getElementById('discussion_edit_discussion_id').value = discussionId;
+            document.getElementById('discussion_edit_title').value = result.discussion.title;
+            document.getElementById('discussion_edit_content').value = result.discussion.content;
+            document.getElementById('discussion_edit_is_event').checked = result.discussion.is_event;
+            document.getElementById('discussion_edit_is_sticky').checked = result.discussion.is_sticky;
+            document.getElementById('discussion_edit_is_news').checked = result.discussion.is_news;
+            document.getElementById('discussion_edit_event_date').value = result.discussion.event_date;
+            document.getElementById('discussion_edit_event_location').value = result.discussion.event_location;
+            if(result.discussion.is_event) {
+                document.getElementById('discussion_edit_event_date_section').classList.remove('hidden');
+            } else {
+                document.getElementById('discussion_edit_event_date_section').classList.add('hidden');
+            }
+            
+            flatpickr("#discussion_edit_event_date", {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i:S",
+                time_24hr: true
+            });
+        } else {
+        }
+    });
+    
 }
 
 function editComment($commentId) {
@@ -306,8 +397,8 @@ function showGalleryModal(discussionId) {
         //replace the h-24 and w-20
         div.classList.remove('h-24');
         div.classList.remove('w-20');
-        div.classList.add('h-80');
-        div.classList.add('w-64');
+        div.classList.add('h-96');
+        div.classList.add('w-80');
         //Remove the button from the div (if it exists)
         const button = div.querySelector('button');
         if (button) {
@@ -317,8 +408,8 @@ function showGalleryModal(discussionId) {
         const img = div.querySelector('img');
         img.classList.remove('h-16');
         img.classList.remove('w-16');
-        img.classList.add('h-60');
-        img.classList.add('w-60');
+        img.classList.add('h-72');
+        img.classList.add('w-72');
         //Replace the text-xxs in the span tag with text-sm
         const span = div.querySelector('span');
         span.classList.remove('h-8');
