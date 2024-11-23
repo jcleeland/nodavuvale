@@ -464,9 +464,9 @@ function getCommentsForDiscussion($discussion_id) {
                             //Insert a photo / file gallery if there are any files. It should be a carousel
                             if (!empty($files)) {
                                 ?>
-                                <div class='file-gallery relative flex overflow-x-auto mt-2 border rounded-lg p-2'>
+                                <div class='file-gallery relative flex overflow-x-auto mt-2 border rounded-lg p-2' onClick="showGalleryModal(<?= $discussion['id'] ?>);">
                                     <!-- button to view the gallery in a modal -->
-                                    <button type="button" title="View images" onClick="showGalleryModal(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-gray-800 rounded-full py-1 px-2 m-0 -right-1 -top-1 font-normal text-lg">
+                                    <button type="button" title="View images" onClick="showGalleryModal(<?= $discussion['id'] ?>);" class="absolute fixed text-gray-400 hover:text-gray-800 rounded-full py-1 px-2 m-0 -left-1 -top-1 font-normal text-lg">
                                         <i class="fas fa-images"></i>
                                     </button>
                                 <?php
@@ -493,7 +493,7 @@ function getCommentsForDiscussion($discussion_id) {
                                         if (in_array($file_type, $supported_image_types)) {
                                             ?>
                                             <a href='<?= $file_path ?>' target='_blank' title='<?= $file_name ?>'>
-                                                <img src='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 min-w-min rounded-lg'>
+                                                <img src='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 rounded-lg'>
                                             </a>
                                             <?php
                                         } else {
