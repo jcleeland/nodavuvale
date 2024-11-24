@@ -100,15 +100,13 @@ document.addEventListener('DOMContentLoaded', function () {
     
     discussionForms.forEach(function(form) {
         var fileInput = form.querySelector('input[type="file"]');
-        var label = form.querySelector('label[for="' + fileInput.id + '"]');
-        
-        label.addEventListener('click', function() {
-            fileInput.click();
-        });
+        //var label = form.querySelector('label[for="' + fileInput.id + '"]');
         
         fileInput.addEventListener('change', function() {
             if (fileInput.files.length > 0) {
-                form.submit();
+                setTimeout(function() {
+                    form.submit();
+                }, 100);
             }
         });
     });
@@ -287,6 +285,7 @@ function deleteDiscussionFile(fileId) {
         .then(response => response.json())
         .then(result => {
             if (result.status=="success") {
+                document.getElementById('gallery_discussion_file_id_' + fileId).remove();
                 document.getElementById('discussion_file_id_' + fileId).remove();
             } else {
                 console.error('Error deleting file:', result.error);
@@ -394,16 +393,21 @@ function showGalleryModal(discussionId) {
     files.forEach((file) => {
         //Get the parent div and add it to the modal - note that the parent div is two parents up
         const div = file.parentElement.parentElement.cloneNode(true);
+        //show the id of the div in the console
+        console.log(div.id);
+        //Change the id of the new div by adding "gallery_" to the beginning of the id
+        div.id = 'gallery_' + div.id;
         //replace the h-24 and w-20
         div.classList.remove('h-24');
         div.classList.remove('w-20');
         div.classList.add('h-96');
         div.classList.add('w-80');
-        //Remove the button from the div (if it exists)
-        const button = div.querySelector('button');
-        if (button) {
-            button.remove();
-        }
+        
+        //Remove the hidden class from the deleteImage buttons
+        const deleteImageButtons = div.querySelectorAll('.delete-image-button');
+        deleteImageButtons.forEach((button) => {
+            button.classList.remove('hidden');
+        });
         //Replace the h-16 and w-16 in the img tag with h-60 and w-60
         const img = div.querySelector('img');
         img.classList.remove('h-16');

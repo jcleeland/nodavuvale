@@ -257,9 +257,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_discussion'], 
 }
 
 // Handle file upload for existing discussions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files'], $_POST['discussion_id'], $_POST['user_id'])) {
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files'])) {
     $discussion_id = (int)$_POST['discussion_id'];
     $user_id = (int)$_POST['user_id'];
+    if(!isset($discussion_id) || !isset($user_id)) {
+        echo "Discussion ID or User ID not set";
+        exit;
+    }
 
     // Validate discussion ID and user ID
     if ($discussion_id > 0 && $user_id > 0) {
@@ -268,9 +273,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files
 
         // Redirect to avoid form resubmission issues
         ?>
-        <script type="text/javascript">
-            window.location.href = "index.php?to=communications/discussions&discussion_id=<?= $discussion_id ?>";
-        </script>
+    <center>File(s) uploaded</center>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=communications/discussions&discussion_id=<?= $discussion_id ?>";
+    </script>
         <?php
         exit;
     }
@@ -498,8 +504,8 @@ function getCommentsForDiscussion($discussion_id) {
                                             <i class="fas fa-upload mr-2"></i>
                                         </label>
                                         <input type="file" id="add-discussion-files-<?= $discussion['id'] ?>" name="add_discussion_files[]" multiple class="hidden">
-                                        <input type="discussion_id" name="discussion_id" value="<?= $discussion['id'] ?>" class="hidden">
-                                        <input type="user_id" name="user_id" value="<?= $_SESSION['user_id'] ?>" class="hidden">
+                                        <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
+                                        <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>">
                                     </form>
                                 <?php if ($discussion['is_sticky']): ?>
                                     <?php if($is_admin || $_SESSION['user_id']==$discussion['user_id']): ?>
@@ -526,11 +532,7 @@ function getCommentsForDiscussion($discussion_id) {
                             //Insert a photo / file gallery if there are any files. It should be a carousel
                             if (!empty($files)) {
                                 ?>
-                                <div class='file-gallery relative flex overflow-x-auto mt-2 border rounded-lg p-2' onClick="showGalleryModal(<?= $discussion['id'] ?>);">
-                                    <!-- button to view the gallery in a modal -->
-                                    <button type="button" title="View images" onClick="showGalleryModal(<?= $discussion['id'] ?>);" class="absolute fixed text-gray-400 hover:text-gray-800 rounded-full py-1 px-2 m-0 -left-1 -top-1 font-normal text-lg">
-                                        <i class="fas fa-images"></i>
-                                    </button>
+                                <div class='file-gallery relative flex overflow-x-auto mt-2 border rounded-lg p-2 cursor-pointer' onClick="showGalleryModal(<?= $discussion['id'] ?>);" title="View the gallery">
                                 <?php
                                 foreach ($files as $file) {
                                     $file_path = $file['file_path'];
@@ -547,7 +549,7 @@ function getCommentsForDiscussion($discussion_id) {
                                     ?>
                                     <div id="discussion_file_id_<?= $file['id'] ?>" class="file-gallery-item h-28 w-20 relative rounded-lg flex flex-shrink-0 flex-col items-center justify-center bg-deep-green-800 nv-bg-opacity-10 m-2">
                                         <?php if($file['user_id']==$_SESSION['user_id'] || $discussion['user_id']==$_SESSION['user_id'] || $is_admin): ?>
-                                            <button type="button" title="Delete this file" onClick="deleteDiscussionFile(<?= $file['id'] ?>);" class="absolute text-gray-300 hover:text-red-800 rounded-full py-1 px-2 m-0 -right-1 -top-1 font-normal text-xxs">
+                                            <button type="button" title="Delete this file" onClick="deleteDiscussionFile(<?= $file['id'] ?>);" class="absolute delete-image-button text-gray-300 hover:text-red-800 rounded-full py-1 px-2 m-0 -right-1 -top-1 font-normal text-sm hidden">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         <?php endif; ?>
