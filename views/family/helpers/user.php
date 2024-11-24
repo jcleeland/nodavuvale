@@ -33,13 +33,13 @@ if($user_id) {
         <?php 
         if($user['individuals_id']) { 
         ?>
-        document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?php echo $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>';
+        document.getElementById('individual-options').innerHTML = '<button class="jason flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?php echo $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>';
         <?php 
-        } 
+        }
         if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-        document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
+            document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
         <?php 
-        } 
+        }
         ?>
             
     </script>
@@ -57,13 +57,26 @@ if($user_id) {
         </div>
     </div>
 
-    <!-- User's Page -->
-    <div id="userDetails" class="pt-10">
+    <!-- User's Personal Page -->
+    <?php 
+        if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') {
+            $hideuser="";
+            if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
+                $hideuser="hidden";
+                ?>
+                <center><button onClick='toggleUserInfo()'><i class='fas fa-eye'></i> View as user</button></center>
+                <script type='text/javascript'>
+                    function toggleUserInfo() {
+                        document.getElementById('userDetails').classList.toggle('hidden');
+                    }
+                </script>  
+                <?php
+            }
+    ?>
+    <div id="userDetails" class="pt-10 <?= $hideuser ?>">
         <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
 
-
-        <?php 
-        if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') {
+        <?php
             if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
                 //These options will display a users personal page - either if they 
                 // are logged in as this user themself, or if they are an admin
@@ -193,16 +206,27 @@ if($user_id) {
                 </div>
 
             </div>
+        </div>
+
         <?php 
         } 
         ?>
-            <!-- User's Public Information (for other members) -->
+    </div>
+    <!-- User's Public Page (for other members) -->
+    <div id="publicUserDetails" class="pt-10">
+        <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
             <div class="pb-6">
-                <div class="relative grid grid-cols-3 justify-center items-center text-center border-t-2 bg-gradient-to-b from-gray-200 to-white">
-        
+                <div class="relative grid grid-cols-3 justify-center items-center text-center min-h-4">
+                <div class='w-1'></div>
+                    <div class="flex-grow" style="z-index: 100000">
+                        <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 100000" >
+                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50"><?php echo $user['first_name'] ?>'s Page</span>
+                        </h3>
+                    </div>
+                    <div class='w-1'></div>
+
                 </div>
             </div>
-
         </div>
-    </div>
+    </div>    
 </section>

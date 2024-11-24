@@ -274,8 +274,6 @@ async function getSpouses(id) {
 
 function initialiseTabs(tabSelector, contentSelector, storageKey) {
     const tabs = document.querySelectorAll(tabSelector);
-    console.log('Tabs:');
-    console.log(tabs);
     if (tabs.length === 0) return;
 
     // Retrieve the active tab from localStorage
@@ -285,6 +283,7 @@ function initialiseTabs(tabSelector, contentSelector, storageKey) {
     const activeTabId = localStorage.getItem(storageKey);
     //Check that the chosen activeTabId is a valid tab
     if (activeTabId) {
+        
         // Remove active class from all tabs and tab contents
         document.querySelectorAll(tabSelector).forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll(contentSelector).forEach(content => content.classList.remove('active'));
@@ -314,6 +313,26 @@ function initialiseTabs(tabSelector, contentSelector, storageKey) {
             localStorage.setItem(storageKey, this.getAttribute('data-tab'));
         });
     });
+}
+
+function showTab(tabId) {
+    tempTabName=tabId;
+    tabSelector='.tab';
+    contentSelector='.tab-content';
+
+    const tabs = document.querySelectorAll(tabSelector);
+    document.querySelectorAll(tabSelector).forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll(contentSelector).forEach(content => content.classList.remove('active'));
+
+    // Add active class to the stored tab and its content
+    if(document.querySelector(`${tabSelector}[data-tab="${tempTabName}"]`) === null) {
+        console.log('Its null');
+        tempTabName = tabs[0].getAttribute('data-tab');
+    } else {
+        document.querySelector(`${tabSelector}[data-tab="${tempTabName}"]`).classList.add('active');
+        document.getElementById(tempTabName).classList.add('active');
+    }
+
 }
 
 /**

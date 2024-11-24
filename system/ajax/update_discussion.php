@@ -1,6 +1,7 @@
 <?php
 // system/ajax/update_discussion.php
 $response = ['success' => false];
+$response['status'] = 'error';
 
 if(!isset($_SESSION['user_id'])) {
     $response['message'] = 'You must be logged in to view reactions.';
@@ -36,6 +37,7 @@ try {
                 [$data['title'], $data['content'], $discussion_id]
             );
 
+    $response['status'] = 'success';
     $response['success'] = true;
     $response['message'] = 'Discussion updated successfully.';
 } catch (Exception $e) {

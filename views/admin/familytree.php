@@ -34,18 +34,6 @@ WHERE id NOT IN (
     )";
 $orphans = $db->fetchAll($query);
 
-echo "<h1>Orphaned Individuals</h1>";
-if (count($orphans) > 0) {
-    echo "<ul class='grid grid-cols-2 sm:grid-cols-4'>";
-    foreach ($orphans as $orphan) {
-        echo "<li><a href='?to=family/indidivual&individual_id={$orphan['id']}'>";
-        echo "{$orphan['first_name']} {$orphan['last_name']}";
-        echo "</a></li>";
-    }
-    echo "</ul>";
-} else {
-    echo "<p>No orphaned individuals found</p>";
-}
 
 //Check for orphaned files
 // Firstly by getting a list of  in the uploads directories (including subdirectories)
@@ -94,25 +82,62 @@ foreach ($files as $file) {
     }
 }
 
-echo "<h1>Orphaned Files</h1>";
-//Present the list of orphaned files in a submitable form
-// so I can check the ones I want to delete
-if(count($orphanedFiles) > 0) {
-    echo "<form method='post' class='max-h-min overflow-x-scroll'>";
-    echo "<center><button type='submit' class='rounded-lg p-2 text-white border bg-gray-400 hover:bg-gray-800 value='Delete Selected Files'><i class='fas fa-trash-alt'></i> Delete Selected Files</button></center>";
-    echo "<ul class='grid grid-cols-2 sm:grid-cols-4'>";
-    $i=1;
-    foreach ($orphanedFiles as $orphanedFile) {
-        echo "<li class='flex justify-start items-center space-x-4 m-1'><div>";
-        echo "<input type='checkbox' id='delfile$i' name='files[]' value='{$orphanedFile}'></div>";
-        echo "<label for='delfile$i'><img src='{$orphanedFile}' class='object-cover rounded-lg w-24 h-24'></label>";
-        //echo "{$orphanedFile}";
-        echo "</li>";
-        $i++;
-    }
-    echo "</ul>";
-    echo "</form>";
-} else {
-    echo "<p>No orphaned files found</p>";
-}
 
+?>
+<!-- Orphaned Individuals -->
+<section class="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold mb-6">Orphaned Individuals</h1>
+    </div>
+    <div class="mb-4 p-2 pb-4 border border-blue-500 rounded bg-white">
+        <div class="mt-4 max-h-96 overflow-auto" id="orphaned-files-section" >
+            <?php
+            if (count($orphans) > 0) {
+            ?>
+            <ul class='grid grid-cols-2 sm:grid-cols-4'>
+            <?php
+                foreach ($orphans as $orphan) {
+                    echo "<li class='flex justify-start items-center space-x-4 m-1'><a href='?to=family/indidivual&individual_id={$orphan['id']}'>";
+                    echo "{$orphan['first_name']} {$orphan['last_name']}";
+                    echo "</a></li>";
+                } ?>
+            </ul> <?php
+            } else {
+                echo "<p class='text-center'>No orphaned individuals found</p>";
+            }                
+            ?>
+        </div>
+    </div>
+</section>
+<section class="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <form method="post">
+        <div class="flex justify-between items-center">
+            <h1 class="text-4xl font-bold mb-6">Orphaned Files</h1>
+            <?php if(count($orphanedFiles) > 0) { ?>
+                <button type="submit" class="float-right bg-blue-500 text-white px-2 py-1 mb-2 rounded"><i class='fas fa-trash'></i> Delete Selected Files</button>
+            <?php } ?>
+        </div>
+        <div class="mb-4 p-2 pb-4 border border-blue-500 rounded bg-white">
+            <div class="mt-4 max-h-96 overflow-auto" id="orphaned-files-section" >
+                    <?php
+                    if(count($orphanedFiles) > 0) { ?>
+                        <ul class='grid grid-cols-2 sm:grid-cols-4'> <?php
+
+                        $i=1;
+                        foreach ($orphanedFiles as $orphanedFile) {
+                            echo "<li class='flex justify-start items-center space-x-4 m-1'><div>";
+                            echo "<input type='checkbox' id='delfile$i' name='files[]' value='{$orphanedFile}'></div>";
+                            echo "<label for='delfile$i'><img src='{$orphanedFile}' class='object-cover rounded-lg w-24 h-24'></label>";
+                            //echo "{$orphanedFile}";
+                            echo "</li>";
+                            $i++;
+                        } ?>
+                        </ul> <?php
+                    } else {
+                        echo "<p class='text-center'>No orphaned files found</p>";
+                    }
+                    ?>
+            </div>
+        </div>
+    </form>
+</section>

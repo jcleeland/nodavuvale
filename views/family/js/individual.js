@@ -1083,7 +1083,9 @@ function editDiscussion(discussion_id) {
                             .then(response => {
                                 if(response.status === 'success') {
                                     document.getElementById('discussion_title_'+discussion_id).textContent=newTitle;
-                                    document.getElementById('discussion_text_'+discussion_id).textContent=newText;
+                                    //format newText so it replaces newlines (/n or /r or combination) with <br />
+                                    newText = newText.replace(/(?:\r\n|\r|\n)/g, '<br />');
+                                    document.getElementById('discussion_text_'+discussion_id).innerHTML=newText;
                                 } else {
                                     alert('Error: ' + response.message);
                                 }

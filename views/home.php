@@ -195,7 +195,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 <div class="w-full text-xs pt-0 pt-1 pb-1 ml-0 mr-0 mt-0 bg-brown rounded-t text-white">
                                 <?php if($discussion['individual_id']) {
                                     echo "New ".$discussion['change_type']." in <b>Family Tree Chat:</b>";
-                                    $url="?to=family/individual&individual_id=".$discussion['individual_id'];
+                                    $url="?to=family/individual&individual_id=".$discussion['individual_id']."&discussion_id=".$discussion['discussionId'];
                                 } else {
                                     echo "<b>General Chat:</b> New ".$discussion['change_type'];
                                     $url="?to=communications/discussions&discussion_id=".$discussion['discussionId'];
@@ -272,6 +272,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                     $giid=$item['item_id'];
                                     $itemlist['group_'.$guid][$giid]=$item;
                                     $itemlist['group_'.$item['unique_id']]['privacy']=$itemgroup['privacy'];
+                                    $itemlist['group_'.$guid]['group_identifier']=$key;
                                 }
                                 
                             else:
@@ -303,7 +304,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                 $privacystamp="";
                             }
                             ?>
-                            <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>&tab=generaltab"'>
+                            <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>&tab=generaltab&item_group_id=<?= $itemgroup['group_identifier'] ?>"'>
                                 <div class="item_header p-1 h-12 rounded mb-1 bg-deep-green text-white break-words text-center items-center center text-sm">
                                     <b>
                                         <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?>
@@ -367,7 +368,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                         <?php endif; ?>
                         <?php foreach ($changes['files'] as $file): ?>
                             <div class='border rounded p-2 m-2 text-center text-wrap w-48 shadow-xl text-sm'>
-                            <?= $file['file_description'] ?>
+                            <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>&tab=mediatab&file_id=<?= $file['id'] ?>'><?= $file['file_description'] ?>
                             saved to <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>'><?= $file['tree_first_name'] ." ".$file['tree_last_name'] ?></a><br />
                             <?php if ($file['file_type'] == 'image'): ?>
                                 <img src='<?= $file['file_path'] ?>' class='w-full h-auto rounded' />

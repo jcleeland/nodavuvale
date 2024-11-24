@@ -10,8 +10,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     include("helpers/update_individual.php");
 }
 
-//Handle form submission for updating discussions
+//If the page is loaded with a $_GET['discussion_id'] parameter, scroll so that the top of that div is at the top of the screen
+if (isset($_GET['discussion_id'])) {
+    ?>
+    <script>
+        //Show the general tab (where the discussions are)
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('generaltab');
+            var discussionElement = document.getElementById('discussion_id_<?= $_GET['discussion_id'] ?>');
+            if (discussionElement) {
+                discussionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.scrollTo({
+                    top: discussionElement.getBoundingClientRect().top + window.scrollY - document.documentElement.clientTop,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    </script>
+    <?php
+}
 
+if (isset($_GET['item_group_id'])) {
+    ?>
+    <script>
+        //Show the general tab (where the discussions are)
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('generaltab');
+            var eventElement = document.getElementById('item_group_id_<?= $_GET['item_group_id'] ?>');
+            if (eventElement) {
+                eventElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.scrollTo({
+                    top: eventElement.getBoundingClientRect().top + window.scrollY - document.documentElement.clientTop,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    </script>
+    <?php
+}
+
+if(isset($_GET['tab'])) {
+    ?>
+    <script>
+        //Show the general tab (where the discussions are)
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('<?= $_GET['tab'] ?>');
+        });
+    </script>
+    <?php
+}
 
 if(!isset($rootId)) {
     $rootId = Web::getRootId();
@@ -123,7 +170,7 @@ if ($individual_id) {
     $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
     $items = Utils::getItems($individual_id);
-
+    
     // Extract the birth details
     $year = $individual['birth_year'];
     $month = isset($individual['birth_month']) && $individual['birth_month'] > 0 ? $individual['birth_month'] : null;
@@ -210,12 +257,16 @@ if ($individual_id) {
 
 
     <div class="tabs absolute -bottom-0 text-sm md:text-lg gap-2">
-        <?php if($user): ?>
+        <?php 
+        $nouserclass="active";
+        if($user): 
+            $nouserclass="";
+        ?>
             <div class="tab active px-4 py-0" data-tab="membertab" title="This person is registered on this website. Find out more about them...">
                 <img src="<?= $useravatar ?>" alt="<?= $user['first_name'] ?> <?= $user['last_name'] ?>" class="avatar-img-sm object-cover mt-1 p-1 h-1 <?=$activityclass ?>" title="<?= $user['first_name'] ?> <?= $user['last_name'] ?>">
             </div>
         <?php endif; ?>
-        <div class="tab active px-4 py-2" data-tab="generaltab" title="View (or add-to) facts about this person's life, and read or share stories for ancestors">General</div>
+        <div class="tab $nouserclass px-4 py-2" data-tab="generaltab" title="View (or add-to) facts about this person's life, and read or share stories for ancestors">General</div>
         <div class="tab px-4 py-2" data-tab="relationshipstab" title="View (or add-to) the family tree relationships for this person">Relationships</div>
         <div class="tab px-4 py-2" data-tab="mediatab" title="View (or add-to) photos, videos, documents and other digital records about this person">Media</div>
     </div>
@@ -298,7 +349,7 @@ if ($individual_id) {
                         <?php 
                             $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; 
                         ?>
-                        <div class="discussion-item">
+                        <div class="discussion-item" id="discussion_id_<?= $discussion['id'] ?>">
                             <a href='<?= "?to=family/users&user_id=".$discussion['user_id'] ?>'>
                                 <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover mr-1 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
                             </a>
@@ -319,9 +370,9 @@ if ($individual_id) {
                                         </button>
                                     <?php endif; ?>  
                                 </div>
-                                <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
+                                <h3 class="text-2xl font-bold" id="discussion_title_<?= $discussion['id'] ?>"><?= htmlspecialchars($discussion['title']) ?></h3>
                                 <?php $content = $web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand"); ?>
-                                <p class="mt-2" id="individualstory_<?= $discussion['id'] ?>"><?= stripslashes($content) ?></p>
+                                <p class="mt-2" id="discussion_text_<?= $discussion['id'] ?>"><?= stripslashes($content) ?></p>
                                 <p class="mt-2 hidden" id="fullindividualstory_<?= $discussion['id'] ?>"><?= nl2br($discussion['content']) ?></p>
                                 <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                     <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
@@ -468,8 +519,7 @@ if ($individual_id) {
                         $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
                     }
                     $is_group = count($itemgroup['items']) > 1 ? true : false; 
-                    //echo "<pre>"; print_r($itemgroup['sortDate']); echo "</pre>";
-                ?>
+                    ?>
                     
                     <?php 
                     if($is_group) {
@@ -482,7 +532,7 @@ if ($individual_id) {
                         }
                         $groupTitle=$itemgroup['item_group_name'];
                     ?>
-                            <div id="item_group_id_<?= $key ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                        <div id="item_group_id_<?= $key ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
                             <button class="absolute text-burnt-orange nv-text-opacity-20 bg-gray-800 bg-opacity-10 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete <?= $groupTitle ?>" onclick="doAction('delete_item_group', '<?= $individual['id'] ?>', '<?= $itemgroup['items'][0]['item_identifier'] ?>');">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -492,7 +542,7 @@ if ($individual_id) {
                         $reference=(isset($item_types[$itemgroup['items'][0]['detail_type']])) ? $item_types[$itemgroup['items'][0]['detail_type']] : [$itemgroup['items'][0]['detail_type']];    
                         $groupTitle=$itemgroup['item_group_name'];
                         ?>
-                            <div id="item_id_<?= $itemgroup['items'][0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
+                        <div id="item_id_<?= $itemgroup['items'][0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
                             <button class="absolute text-burnt-orange nv-text-opacity-20 bg-gray-800 bg-opacity-10 rounded-full py-1 px-2 m-0 -right-2 -top-2 font-normal text-xs" title="Delete <?= $groupTitle ?>" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $itemgroup['items'][0]['item_id'] ?>');">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -506,12 +556,14 @@ if ($individual_id) {
                     //echo "<pre>"; print_r($thisitem); echo "</pre>";
                     $incompleteItems=[];
                     ?>
-                        <div class="item_header p-1 rounded mb-2 bg-brown text-white"><b><?= $groupTitle ?></b></div>
-                        <?= $privacystamp ?>
+                            <div class="item_header p-1 rounded mb-2 bg-brown text-white">
+                                <b><?= $groupTitle ?></b>
+                            </div>
+                            <?= $privacystamp ?>
 
-                        <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0 Z-2">
-                            <i class="fas fa-info-circle" title="Added by <?= $itemgroup['items'][0]['first_name'] ?> <?= $itemgroup['items'][0]['last_name'] ?> on <?= date("d M Y", strtotime($itemgroup['items'][0]['updated'])); ?>"></i>
-                        </button>   
+                            <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0 Z-2">
+                                <i class="fas fa-info-circle" title="Added by <?= $itemgroup['items'][0]['first_name'] ?> <?= $itemgroup['items'][0]['last_name'] ?> on <?= date("d M Y", strtotime($itemgroup['items'][0]['updated'])); ?>"></i>
+                            </button>   
 
                         <?php 
                         //Iterate through all the items for this item group & show them
@@ -520,80 +572,80 @@ if ($individual_id) {
                                 $item=$thisitem[$itemname];
                                 //echo "<pre>"; print_r($item); echo "</pre>";
                         ?>
-                                <div <?= $is_group ? "id='item_id_".$item['item_id']."'" : "" ?> class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left relative">
-                                    
-                                    <div class='<?= $is_group ? "w-1/3 float-left pl-1 pr-1": "text-center" ?>'>
-                                        <b class="text-xs mb-2"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?>&nbsp;</b>
-                                    </div>
-                                    
-                                    
-                                    <?php if(!empty($item['file_id'])): //This is a file ?>
-                                        <?php if($item['file_type']=='image'): ?>
+                            <div <?= $is_group ? "id='item_id_".$item['item_id']."'" : "" ?> class="bg-cream-800 nv-bg-opacity-20 rounded p-0.5 text-left relative">
+                                
+                                <div class='<?= $is_group ? "w-1/3 float-left pl-1 pr-1": "text-center" ?>'>
+                                    <b class="text-xs mb-2"><?= $item['detail_type'] == $groupTitle ? "" : $item['detail_type'] ?>&nbsp;</b>
+                                </div>
+                                
+                                
+                                <?php if(!empty($item['file_id'])): //This is a file ?>
+                                    <?php if($item['file_type']=='image'): ?>
 
-                                            <div class="<?= $is_group ? "float-left w-2/3" : "mx-auto w-3/4" ?>">
-                                                <div class="<?= $is_group ? "relative w-11/12" : "relative" ?> h-auto p-0 m-0 mt-2">
-                                                    <a href="<?= $item['file_path'] ?>" target="_blank">
-                                                        <img class="w-full h-auto rounded" src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>"  >
-                                                    </a>
-                                                    <p class="absolute <?= $is_group ? "w-full" : "w-full" ?> leading-tight bottom-0 rounded text-xxs text-white bg-gray-800 bg-opacity-40 text-center py-1 p-0" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" title="Double click to edit this description" ><?= $item['file_description'] ?></p>
-                                                </div>
+                                        <div class="<?= $is_group ? "float-left w-2/3" : "mx-auto w-3/4" ?>">
+                                            <div class="<?= $is_group ? "relative w-11/12" : "relative" ?> h-auto p-0 m-0 mt-2">
+                                                <a href="<?= $item['file_path'] ?>" target="_blank">
+                                                    <img class="w-full h-auto rounded" src="<?= $item['file_path'] ?>" alt="<?= $item['detail_value'] ?>"  >
+                                                </a>
+                                                <p class="absolute <?= $is_group ? "w-full" : "w-full" ?> leading-tight bottom-0 rounded text-xxs text-white bg-gray-800 bg-opacity-40 text-center py-1 p-0" id="file_<?= $item['file_id'] ?>" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')" title="Double click to edit this description" ><?= $item['file_description'] ?></p>
+                                            </div>
+                                        </div>
+
+                                    <?php else: ?>
+
+                                        <div class="float-left w-2/3">
+                                            <div class='border rounded text-xs pr-1 pb-1 mx-2 mt-1 bg-cream no-indent <?= $is_group ? "inline" : "" ?>'>
+                                                <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
+                                                    <i class="text-md fas fa-file pl-1 pr-0 pb-0"></i>
+                                                </a>
+                                                <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" title="Double click to edit this description" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <?= $is_group ? "<div style='clear: both'></div>" : "" ?>
+                                    
+                                        <?php endif; ?>
+                                <?php else: //This is not a file ?>
+                                    <?php if (!empty($item['detail_value'])): ?>
+                                        <?php if($item_styles[$itemname] == "individual") : ?>
+                                    
+                                            <div class="float-left w-2/3">
+                                                <a href="index.php?to=family/individual&individual_id=<?= $item['individual_name_id'] ?>" class="text-blue-600 hover:text-blue-800"><?= $item['individual_name'] ?></a>
                                             </div>
 
+                                        <?php elseif($item_styles[$itemname] == "textarea") : ?>
+                                    
+                                            <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id'])); ?></span>
+                                            </div>
+                                            <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars($item['detail_value'])) ?></div>                                                    
+
+                                        <?php elseif($item_styles[$itemname] == "date" && $item['detail_value'] && preg_match("/\d{4}-\d{2}-\d{2}/", $item['detail_value'])) : ?>
+                                    
+                                            <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this date" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo date("D, d M Y", strtotime($item['detail_value'])); ?></span>
+                                            </div>
                                         <?php else: ?>
 
                                             <div class="float-left w-2/3">
-                                                <div class='border rounded text-xs pr-1 pb-1 mx-2 mt-1 bg-cream no-indent <?= $is_group ? "inline" : "" ?>'>
-                                                    <a href="<?= $item['file_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 z-2" title="Download file">
-                                                        <i class="text-md fas fa-file pl-1 pr-0 pb-0"></i>
-                                                    </a>
-                                                    <span class="pl-0 text-xxs" id="file_<?= $item['file_id'] ?>" title="Double click to edit this description" onDblClick="triggerEditFileDescription('file_<?= $item['file_id'] ?>')"><?= !empty($item['file_description']) ? $item['file_description'] : 'Attached file'; ?></span>
-                                                </div>
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars($item['detail_value'])); ?></span>
                                             </div>
-                                            
-                                            <?= $is_group ? "<div style='clear: both'></div>" : "" ?>
-                                        
-                                            <?php endif; ?>
-                                    <?php else: //This is not a file ?>
-                                        <?php if (!empty($item['detail_value'])): ?>
-                                            <?php if($item_styles[$itemname] == "individual") : ?>
-                                        
-                                                <div class="float-left w-2/3">
-                                                    <a href="index.php?to=family/individual&individual_id=<?= $item['individual_name_id'] ?>" class="text-blue-600 hover:text-blue-800"><?= $item['individual_name'] ?></a>
-                                                </div>
-
-                                            <?php elseif($item_styles[$itemname] == "textarea") : ?>
-                                        
-                                                <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id'])); ?></span>
-                                                </div>
-                                                <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars($item['detail_value'])) ?></div>                                                    
-
-                                            <?php elseif($item_styles[$itemname] == "date" && $item['detail_value'] && preg_match("/\d{4}-\d{2}-\d{2}/", $item['detail_value'])) : ?>
-                                        
-                                                <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this date" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo date("D, d M Y", strtotime($item['detail_value'])); ?></span>
-                                                </div>
-                                            <?php else: ?>
-
-                                                <div class="float-left w-2/3">
-                                                    <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars($item['detail_value'])); ?></span>
-                                                </div>
-                                        
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-
-                                    <?php endif; ?>
-                                    <?php if($is_group) : ?>
-
-                                        <button data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$itemname] ?>" data-group-id="<?= $item['item_identifier'] ?>" class="absolute text-burnt-orange nv-text-opacity-20 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete <?= $itemname ?>" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>', event);">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-
-                                    <?php endif; ?>
                                     
-                                    <div style="clear: both"></div>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
 
-                                </div>
+                                <?php endif; ?>
+                                <?php if($is_group) : ?>
+
+                                    <button data-group-event-name="<?= $groupTitle ?>" data-group-item-type="<?= $item_styles[$itemname] ?>" data-group-id="<?= $item['item_identifier'] ?>" class="absolute text-burnt-orange nv-text-opacity-20 p-0 m-0 -right-0 -top-0 text-xxxxs" title="Delete <?= $itemname ?>" onclick="doAction('delete_item', '<?= $individual['id'] ?>', '<?= $item['item_id'] ?>', event);">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+
+                                <?php endif; ?>
+                                
+                                <div style="clear: both"></div>
+
+                            </div>
                             <?php 
                             } else { 
                                 $incompleteItems[]=$itemname;
@@ -602,7 +654,7 @@ if ($individual_id) {
                         <?php 
                         }
                         ?>
-                                    <div class="h-10"></div>
+                            <div class="h-10"></div>
                         <?php if(count($incompleteItems) > 0) : ?>
                             <div class='flex justify-end items-end absolute right-1 bottom-1 w-full p-0' id='item_buttons_group_<?= $itemgroup['items'][0]['item_identifier'] ?>'>
                             <?php foreach($incompleteItems as $incompleteItem) : ?>
@@ -615,7 +667,7 @@ if ($individual_id) {
                             <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
-                    </div>
+                        </div>
                 <?php endforeach; ?>
             </div>
         </div>
