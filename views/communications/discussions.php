@@ -310,7 +310,7 @@ function getCommentsForDiscussion($discussion_id) {
                 <div class="mr-2 new-discussion-form relative">
                     <input type="text" id="showdiscussionform" placeholder="Start a new discussion..." class="w-full border rounded-lg px-4 py-2 my-2 ml-2 mr-4 cursor-pointer text-gray-500" title="Start a new discussion...">
                 </div>
-                <form method="POST" enctype="multipart/form-data" class="mt-4 new-discussion-form hidden">
+                <form method="POST" enctype="multipart/form-data" class="mt-4 new-discussion-form hidden" id="newDiscussionForm">
                     <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
                     <div id="additional-fields">
                         <div class="px-2 mt-1">
@@ -398,7 +398,7 @@ function getCommentsForDiscussion($discussion_id) {
             <h2 id="editDiscussionTitle" class="text-lg font-bold text-center">Edit Discussion</h2>
         </div>
         <div id="edit-discussion-modal-content" class="relative flex items-center justify-left overflow-x-scroll">
-            <form method="POST" class="mt-4 new-discussion-form">
+            <form method="POST" class="mt-4 new-discussion-form" id="editDiscussionForm">
                 <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
                 <input type="hidden" name="discussion_id" id="discussion_edit_discussion_id" value=""> 
                 <div class="px-2 mt-1">
@@ -569,8 +569,8 @@ function getCommentsForDiscussion($discussion_id) {
 
                             ?>
                             <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
-                            <p id="individualstory_<?= $discussion['id'] ?>" class="mt-2"><?= $content ?></p>
-                            <p id="fullindividualstory_<?= $discussion['id'] ?>" class="hidden mt-2"><?= stripslashes(nl2br($discussion['content'])) ?></p>
+                            <div id="individualstory_<?= $discussion['id'] ?>" class="mt-2"><?= $content ?></div>
+                            <div id="fullindividualstory_<?= $discussion['id'] ?>" class="hidden mt-2"><?= stripslashes(nl2br($discussion['content'])) ?></div>
                             <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                 <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                     <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

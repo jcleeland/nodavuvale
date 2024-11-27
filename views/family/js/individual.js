@@ -485,6 +485,20 @@ async function openStoryModal(individualId) {
         // Populate the form with the individual's data
         storyIndividualIdInput.value = individualId;
 
+        tinymce.init({
+            selector: 'textarea#content',
+            plugins: 'advlist autolink lists link image charmap preview anchor pagebreak',
+            menubar: 'edit insert table format tools help',
+            toolbar_mode: 'floating',
+            promotion: false,
+            license_key: 'gpl',
+            setup: function (editor) {
+                editor.on('change', function() {
+                    tinymce.triggerSave();
+                })
+            }
+        });   
+
         storyModal.style.display = 'block';
     } catch (error) {
         console.error('Error opening story modal:', error);

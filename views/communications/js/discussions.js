@@ -7,6 +7,29 @@ document.addEventListener('DOMContentLoaded', function () {
         time_24hr: true
     });
 
+    tinymce.init({
+        selector: 'textarea#content, textarea#discussion_edit_content',
+        plugins: 'advlist autolink lists link image charmap preview anchor pagebreak',
+        toolbar_mode: 'floating',
+        promotion: false,
+        license_key: 'gpl',
+        setup: function (editor) {
+            editor.on('change', function() {
+                tinymce.triggerSave();
+            })
+        }
+    });    
+
+    // Ensure TinyMCE content is synchronized before form submission
+    document.querySelector('#newDiscussionForm').addEventListener('submit', function() {
+        tinymce.triggerSave();
+    });
+
+    document.querySelector('#editDiscussionForm').addEventListener('submit', function() {
+        console.log('Triggering tinyMCE update');
+        tinymce.triggerSave();
+    });    
+
     document.getElementById('showdiscussionform').addEventListener('click', function() {
         //Hide this input
         this.classList.toggle('hidden');
@@ -213,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => console.error('Error:;', error)); // Catch and log any errors
     }
 
+
 });
 
 function editDiscussion(discussionId) {
@@ -239,7 +263,7 @@ function editDiscussion(discussionId) {
             //Set the values of the form to the values of the discussion
             document.getElementById('discussion_edit_discussion_id').value = discussionId;
             document.getElementById('discussion_edit_title').value = result.discussion.title;
-            document.getElementById('discussion_edit_content').value = result.discussion.content;
+            tinymce.get('discussion_edit_content').setContent(result.discussion.content); // Set content in TinyMCE editor
             document.getElementById('discussion_edit_is_event').checked = result.discussion.is_event;
             document.getElementById('discussion_edit_is_sticky').checked = result.discussion.is_sticky;
             document.getElementById('discussion_edit_is_news').checked = result.discussion.is_news;

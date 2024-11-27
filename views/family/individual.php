@@ -328,7 +328,7 @@ if ($individual_id) {
 
 
 <div class="tab-content active" id="generaltab">
-    <?php if($is_deceased) { ?>
+    <?php if($is_deceased || ($_SESSION['user_id'] == $user['user_id'])) { ?>
     <?php 
     /*********************************************
      * Only show the stories page if the individual is deceased
@@ -372,8 +372,8 @@ if ($individual_id) {
                                 </div>
                                 <h3 class="text-2xl font-bold" id="discussion_title_<?= $discussion['id'] ?>"><?= htmlspecialchars($discussion['title']) ?></h3>
                                 <?php $content = $web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand"); ?>
-                                <p class="mt-2" id="discussion_text_<?= $discussion['id'] ?>"><?= stripslashes($content) ?></p>
-                                <p class="mt-2 hidden" id="fullindividualstory_<?= $discussion['id'] ?>"><?= nl2br($discussion['content']) ?></p>
+                                <div class="mt-2" id="discussion_text_<?= $discussion['id'] ?>"><?= stripslashes($content) ?></div>
+                                <div class="mt-2 hidden" id="fullindividualstory_<?= $discussion['id'] ?>"><?= nl2br($discussion['content']) ?></div>
                                 <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                     <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

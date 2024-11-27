@@ -25,6 +25,9 @@ if(isset($_GET['individual_id'])) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
+    <!-- Link to tinymce editor -->
+    <script src="js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
+    
     <!-- Link to main js file -->
     <script src="js/index.js"></script>
 
@@ -51,7 +54,7 @@ if($auth->getUserRole() == 'admin') {
 
     <!-- shared modal prompt for all pages --> 
     <div id="customPrompt" class="modal">
-        <div class="modal-content w-3/5 min-w-max max-h-screen my-5 overflow-y-auto">
+        <div class="modal-content w-3/5 min-w-min max-h-screen my-5 overflow-y-auto">
             <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
                 <span id="customPromptClose" class="close-story-btn">&times;</span>
                 <h2 id="customPromptTitle" class="text-xl font-bold mb-4 text-center">Custom Prompt</h2>

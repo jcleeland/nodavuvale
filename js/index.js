@@ -135,7 +135,7 @@ function showCustomPrompt(title, message, inputs, values, callback) {
         switch (input.split('_')[0]) {
             case 'textarea':
                 var inputElement = document.createElement('textarea');
-                inputElement.rows=8;
+                inputElement.rows=10;
                 break;
             case 'date':
                 var inputElement = document.createElement('input');
@@ -198,6 +198,27 @@ function showCustomPrompt(title, message, inputs, values, callback) {
         inputElement.className = 'w-full p-2 border rounded mb-2';
         inputElement.value = values[index] || '';
         customPromptInputs.appendChild(inputElement);
+
+        //Iterate through any textareas in the customPromptInputs and gather their to use when initialising tinymce:
+        var textareas = customPromptInputs.getElementsByTagName('textarea');
+        for (var i = 0; i < textareas.length; i++) {
+            var textarea = textareas[i];
+            var textareaId = textarea.id;
+            //console.log('Initialising tinyMCE on ' + textareaId);
+            tinymce.init({
+                selector: '#' + textareaId,
+                plugins: 'advlist autolink lists link image charmap preview anchor pagebreak',
+                menubar: 'edit insert table format tools help',
+                toolbar_mode: 'floating',
+                promotion: false,
+                license_key: 'gpl',
+                setup: function (editor) {
+                    editor.on('change', function () {
+                        tinymce.triggerSave();
+                    });
+                }
+            });
+        }
     });
 
     customPrompt.classList.add('show');

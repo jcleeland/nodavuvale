@@ -69,13 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_comment'])) {
 
 ?>
     <div id="storyModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content w-4/5 sm:w-3/5 min-w-15 max-w-[40rem] max-h-screen my-5 overflow-y-auto">
             <div id="modal-header" class="modal-header">
                 <span class="close-story-btn" onClick='document.getElementById("storyModal").style.display="none";'>&times;</span>
                 <h2 id="modal-title">Add A Story<span id='adding_relationship_to'></span></h2>
             </div>
             <div class="modal-body">
-                <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left object-cover mr-1"); ?>
+                <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left object-cover mr-1 hidden sm:block"); ?>
                 <div class='discussion-content'>
                     <form method="POST" class="mt-4">
                         <input type="hidden" name="individual_id" value="<?= $individual_id ?>" id="story-individual_id">
