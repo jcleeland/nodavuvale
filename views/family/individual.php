@@ -328,7 +328,7 @@ if ($individual_id) {
 
 
 <div class="tab-content active" id="generaltab">
-    <?php if($is_deceased || ($_SESSION['user_id'] == $user['user_id'])) { ?>
+    <?php if($is_deceased || (isset($user['user_id']) && $_SESSION['user_id'] == $user['user_id'])) { ?>
     <?php 
     /*********************************************
      * Only show the stories page if the individual is deceased
