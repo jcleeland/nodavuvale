@@ -39,6 +39,12 @@
     --individual-item-height: 120px;
 }
 
+.discussion-item-content a {
+    text-decoration: underline !important;
+    text-decoration-style: dashed !important;
+    text-decoration-color: rgba(currentColor, 0.3) !important; /* Inherit text color with reduced opacity */
+}
+
 /* Background Colors */
 .bg-brown {
     background-color: var(--brown);
