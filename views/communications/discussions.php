@@ -569,8 +569,15 @@ function getCommentsForDiscussion($discussion_id) {
 
                             ?>
                             <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
-                            <div id="individualstory_<?= $discussion['id'] ?>" class="mt-2"><?= $content ?></div>
-                            <div id="fullindividualstory_<?= $discussion['id'] ?>" class="hidden mt-2"><?= stripslashes(nl2br($discussion['content'])) ?></div>
+                            <div id="individualstory_<?= $discussion['id'] ?>" class="mt-2">
+                                <!-- START CONTENT -->
+                                <?= $content ?>
+                                <!-- END CONTENT -->
+                            </div>
+                            <div id="fullindividualstory_<?= $discussion['id'] ?>" class="hidden mt-2">
+                                <?= stripslashes(nl2br($discussion['content'])) ?>
+                                <span style="font-family: 'times new roman', <span title=" read="" more..."="" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="shrinkStory('individualstory_<?= $discussion['id'] ?>')">less … </span>
+                            </div>
                             <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                 <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                     <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

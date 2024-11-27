@@ -115,12 +115,45 @@ class Web {
         if (count($words) > $wordLimit) {
             $newWords = array_slice($words, 0, $wordLimit);
             $output = implode(' ', $newWords);
+            //Check that the last bit isn't a tag, and if so, remove it
+            $output = preg_replace('/<[^>]*$/', '', $output);
+            $output=$this->closeTags($output);
             if($method=="popup") {
                 $output .= '<span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer text-blue" onClick="showStory(\'Story\', \''.$textDivId.'\')"> &hellip; </span>';
             } elseif ($method=="expand") {
                 $output .= ' <span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="expandStory(\''.$textDivId.'\')">more &hellip; </span>';
             }
             return $output;
+        }
+        //Look for unclosed tags in the text, and close them
+        return $text;
+    }
+
+    public function closeTags($text) {
+        // List of self-closing tags and tags that don't need to be closed
+        $selfClosingTags = ['!--', 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+    
+        // Look through a text string, and find any unclosed tags, then close them
+        $openedTags = [];
+        $closedTags = [];
+        $tagPattern = '/<[^>]*>/';
+        preg_match_all($tagPattern, $text, $tags);
+        foreach ($tags[0] as $tag) {
+            // Check if the tag is self-closing or doesn't need to be closed
+            if (preg_match('/<\s*\/?\s*(' . implode('|', $selfClosingTags) . ')\b[^>]*>/i', $tag)) {
+                continue; // Ignore self-closing tags and tags that don't need to be closed
+            } elseif (preg_match('/<[^\/>]+>/', $tag)) {
+                // This is an opening tag
+                $openedTags[] = $tag;
+            } elseif (preg_match('/<\/[^>]+>/', $tag)) {
+                // This is a closing tag
+                $closedTags[] = $tag;
+            }
+        }
+        $unclosedTags = array_diff($openedTags, $closedTags);
+        foreach ($unclosedTags as $tag) {
+            $tagName = preg_replace('/<\s*([a-zA-Z0-9]+)[^>]*>/', '$1', $tag);
+            $text .= '</' . $tagName . '>';
         }
         return $text;
     }

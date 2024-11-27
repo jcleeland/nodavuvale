@@ -9,8 +9,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     tinymce.init({
         selector: 'textarea#content, textarea#discussion_edit_content',
-        plugins: 'advlist autolink lists link image charmap preview anchor pagebreak',
-        toolbar_mode: 'floating',
+        plugins: 'advlist autolink code lists link image charmap preview anchor pagebreak',
+        menubar: false,
+        toolbar_mode: 'sliding',
+        toolbar1: 'bold italic | fontfamily fontsize | forecolor backcolor | alignleft aligncenter alignright alignjustify ', 
+        toolbar2: 'undo redo | bulllist numlist outdent indent | link image | code removeformat | preview',
         promotion: false,
         license_key: 'gpl',
         setup: function (editor) {

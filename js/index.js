@@ -207,9 +207,11 @@ function showCustomPrompt(title, message, inputs, values, callback) {
             //console.log('Initialising tinyMCE on ' + textareaId);
             tinymce.init({
                 selector: '#' + textareaId,
-                plugins: 'advlist autolink lists link image charmap preview anchor pagebreak',
-                menubar: 'edit insert table format tools help',
-                toolbar_mode: 'floating',
+                plugins: 'advlist autolink code lists link image charmap preview anchor pagebreak',
+                menubar: false,
+                toolbar_mode: 'sliding',
+                toolbar1: 'undo redo | styleselect | fontfamily fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright alignjustify ', 
+                toolbar2: 'bulllist numlist outdent indent | link image | code removeformat | preview',
                 promotion: false,
                 license_key: 'gpl',
                 setup: function (editor) {
@@ -267,7 +269,12 @@ function showStory(title, textId) {
 }
 
 function expandStory(textId) {
-    console.log(textId);
+    //console.log(textId);
+    document.getElementById(textId).classList.toggle('hidden');
+    document.getElementById('full'+textId).classList.toggle('hidden');
+}
+function shrinkStory(textId) {
+    //console.log(textId);
     document.getElementById(textId).classList.toggle('hidden');
     document.getElementById('full'+textId).classList.toggle('hidden');
 }
