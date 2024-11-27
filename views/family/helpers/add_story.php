@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_comment'])) {
 
 ?>
     <div id="storyModal" class="modal">
-        <div class="modal-content w-4/5 sm:w-3/5 min-w-15 max-w-[40rem] max-h-screen my-5 overflow-y-auto">
+        <div class="modal-content w-4/5 sm:w-3/5 min-w-15 max-w-20 max-h-screen my-5 overflow-y-auto">
             <div id="modal-header" class="modal-header">
                 <span class="close-story-btn" onClick='document.getElementById("storyModal").style.display="none";'>&times;</span>
                 <h2 id="modal-title">Add A Story<span id='adding_relationship_to'></span></h2>

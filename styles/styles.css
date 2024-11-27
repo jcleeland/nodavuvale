@@ -325,6 +325,18 @@
     max-width: 5rem;
 }
 
+.max-w-10 {
+    max-width: 30rem;
+}
+
+.max-w-15 {
+    max-width: 45rem;
+}
+
+.max-w-20 {
+    max-width: 60rem;
+}
+
 .min-w-10 {
     min-width: 10rem;
 }

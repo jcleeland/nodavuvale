@@ -392,7 +392,7 @@ function getCommentsForDiscussion($discussion_id) {
 
 <!-- Edit Discussion Modal Popup -->
 <div id="edit-discussion-modal" class="modal">
-    <div class="modal-content w-4/5 max-h-screen my-5 overflow-y-auto">
+    <div class="modal-content min-w-15 w-4/5 max-w-15 max-h-screen my-5 overflow-y-auto">
         <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
             <span id="editDiscussionClose" class="close-slideshow-btn absolute right-1 top-0 text-xl" onClick="document.getElementById('edit-discussion-modal').style.display='none'">&times;</span>
             <h2 id="editDiscussionTitle" class="text-lg font-bold text-center">Edit Discussion</h2>
@@ -401,13 +401,13 @@ function getCommentsForDiscussion($discussion_id) {
             <form method="POST" class="mt-4 new-discussion-form" id="editDiscussionForm">
                 <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
                 <input type="hidden" name="discussion_id" id="discussion_edit_discussion_id" value=""> 
-                <div class="px-2 mt-1">
+                <div class="px-2 mt-1 w-full">
                     <input type="text" name="discussion_edit_title" id="discussion_edit_title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)">
                 </div>
-                <div class="px-2 mt-1">
+                <div class="px-2 mt-1 w-full">
                     <textarea id="discussion_edit_content" name="discussion_edit_content" rows="6" class="border w-full rounded-lg py-1 px-2" placeholder="Edit this discussion..." required></textarea>
                 </div>
-                <div id="discussion_edit_event_date_section" class="px-2 mt-1 hidden flex">
+                <div id="discussion_edit_event_date_section" class="w-full px-2 mt-1 hidden flex">
                     <div class="text-center w-1/5">
                         <input type="text" name="discussion_edit_event_date" id="discussion_edit_event_date" class="w-full border rounded-lg p-2" placeholder="Event Date">
                     </div>
@@ -570,9 +570,7 @@ function getCommentsForDiscussion($discussion_id) {
                             ?>
                             <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
                             <div id="individualstory_<?= $discussion['id'] ?>" class="mt-2">
-                                <!-- START CONTENT -->
                                 <?= $content ?>
-                                <!-- END CONTENT -->
                             </div>
                             <div id="fullindividualstory_<?= $discussion['id'] ?>" class="hidden mt-2">
                                 <?= stripslashes(nl2br($discussion['content'])) ?>

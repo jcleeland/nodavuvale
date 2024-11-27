@@ -54,7 +54,7 @@ if($auth->getUserRole() == 'admin') {
 
     <!-- shared modal prompt for all pages --> 
     <div id="customPrompt" class="modal">
-        <div class="modal-content w-3/5 min-w-min max-h-screen my-5 overflow-y-auto">
+        <div class="modal-content w-3/5 max-w-20 min-w-min max-h-screen my-5 overflow-y-auto">
             <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
                 <span id="customPromptClose" class="close-story-btn">&times;</span>
                 <h2 id="customPromptTitle" class="text-xl font-bold mb-4 text-center">Custom Prompt</h2>
