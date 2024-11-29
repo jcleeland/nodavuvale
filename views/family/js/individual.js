@@ -99,10 +99,15 @@ document.addEventListener("DOMContentLoaded", function() {
     const commentReactions = document.querySelectorAll('.comment-reactions');
 
     // Fetch reactions for discussions
-    discussionReactions.forEach(discussion => {
-        const discussionId = discussion.getAttribute('data-discussion-id');
-        fetchReactions(discussionId, 'discussion');
-    });
+    // If there are any discussions on the page, fetch their reactions
+    if(discussionReactions.length > 0) {
+        console.log('There are discussionReactions on the page!');
+        console.log(discussionReactions);
+        discussionReactions.forEach(discussion => {
+            const discussionId = discussion.getAttribute('data-discussion-id');
+            fetchReactions(discussionId, 'discussion');
+        });
+    }
 
     // Fetch reactions for comments
     commentReactions.forEach(comment => {
@@ -111,6 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     function fetchReactions(id, type) {
+        console.log('Starting the fetchReactions function!');
         if(type === 'discussion') {discussionId=id; commentId=null;}
         else if(type === 'comment') {discussionId=null; commentId=id;}
         let data = {

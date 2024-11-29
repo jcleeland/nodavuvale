@@ -103,8 +103,8 @@ async function uploadFileAndItem(individualId, eventType, eventDetail, fileDescr
  * showCustomPrompt(
  *     'Enter Details',
  *     'Please fill in the following details:',
- *     ['Name', 'Email', 'Phone'],
- *     ['John Doe', 'john@example.com', ''],
+ *     ['Name', 'Email', 'Phone', 'textarea_Essay'],
+ *     ['John Doe', 'john@example.com', '', 'Once a jolly swagman...'],
  *     function(inputValues) {
  *         if (inputValues) {
  *             console.log('User input:', inputValues);
@@ -127,6 +127,7 @@ function showCustomPrompt(title, message, inputs, values, callback) {
     customPromptMessage.innerHTML = message;
     customPromptInputs.innerHTML = ''; // Clear previous inputs
 
+    var isLanguage=false;
     // Create input elements based on the inputs and values arrays
     inputs.forEach((input, index) => {
         var inputElement = document.createElement('input');
@@ -147,6 +148,154 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                 var inputElement = document.createElement('input');
                 inputElement.type = 'file';
                 break;
+            case 'language':
+                isLanguage=true;
+                // Create a look-ahead style input that will display a list of languages as you type, and when you select them, add them to a hidden
+                // element that will be submitted with the form
+                var languages = ['Abkhaz', 'Afar', 'Afrikaans', 'Akan', 'Albanian', 'Amharic', 'Arabic', 'Aragonese', 'Armenian', 'Assamese', 'Avaric', 'Avestan', 'Aymara', 'Azerbaijani', 'Bambara', 'Bashkir', 'Basque', 'Belarusian', 'Bengali', 'Bihari', 'Bislama', 'Bosnian', 'Breton', 'Bulgarian', 'Burmese', 'Catalan', 'Chamorro', 'Chechen', 'Chichewa', 'Chinese', 'Chuvash', 'Cornish', 'Corsican', 'Cree', 'Croatian', 'Czech', 'Danish', 'Divehi', 'Dutch', 'Dzongkha', 'English', 'Esperanto', 'Estonian', 'Ewe', 'Faroese', 'Finnish', 'French', 'Fula', 'Galician', 'Georgian', 'German', 'Greek', 'Guaraní', 'Gujarati', 'Haitian', 'Hausa', 'Hebrew', 'Herero', 'Hindi', 'Hiri Motu', 'Hungarian', 'Icelandic', 'Ido', 'Igbo', 'Indonesian', 'Interlingua', 'Interlingue', 'Inuktitut', 'Inupiaq', 'Irish', 'Italian', 'Japanese', 'Javanese', 'Kalaallisut', 'Kannada', 'Kanuri', 'Kashmiri', 'Kazakh', 'Khmer', 'Kikuyu', 'Kinyarwanda', 'Kirghiz', 'Komi', 'Kongo', 'Korean', 'Kurdish', 'Kwanyama', 'Lao', 'Latin', 'Latvian', 'Limburgish', 'Lingala', 'Lithuanian', 'Luba-Katanga', 'Luxembourgish', 'Macedonian', 'Malagasy', 'Malay', 'Malayalam', 'Maltese', 'Manx', 'Maori', 'Marathi', 'Marshalle', 'Moldovan', 'Mongolian', 'Nauru', 'Navajo', 'Ndonga', 'Nepali', 'North Ndebele', 'Northern Sami', 'Norwegian', 'Norwegian Bokmål', 'Norwegian Nynorsk', 'Nuosu', 'Occitan', 'Ojibwe', 'Old Church Slavonic', 'Oriya', 'Oromo', 'Ossetian', 'Pali', 'Pashto', 'Persian', 'Polish', 'Portuguese', 'Punjabi', 'Quechua', 'Romanian', 'Romansh', 'Russian', 'Samoan', 'Sango', 'Sanskrit', 'Sardinian', 'Scottish Gaelic', 'Serbian', 'Shona', 'Sindhi', 'Sinhala', 'Slovak', 'Slovene', 'Somali', 'Southern Ndebele', 'Southern Sotho', 'Spanish', 'Sundanese', 'Swahili', 'Swati', 'Swedish', 'Tagalog', 'Tahitian', 'Tajik', 'Tamil', 'Tatar', 'Telugu', 'Thai', 'Tibetan', 'Tigrinya', 'Tonga', 'Tsonga', 'Tswana', 'Turkish', 'Turkmen', 'Twi', 'Uighur', 'Ukrainian', 'Urdu', 'Uzbek', 'Venda', 'Vietnamese', 'Volapük', 'Walloon', 'Welsh', 'Western Frisian', 'Wolof', 'Xhosa', 'Yiddish', 'Yoruba', 'Zhuang', 'Zulu'];
+                // add the most common south pacific and maori languages
+                languages.push('Tongan', 'Samoan', 'Cook Island Maori', 'Niuean', 'Tokelauan', 'Tuvaluan', 'Kiribati', 'Fijian', 'Rotuman', 'Tahitian');
+                // remove duplicates
+                languages = [...new Set(languages)];
+                languages.sort();
+
+                var selectedLanguages = document.createElement('div');
+                selectedLanguages.id = 'selectedLanguages';
+                selectedLanguages.className = 'w-full flex justify-around items-center p-2 bg-cream border h-12 rounded-lg mb-2'; 
+                customPromptInputs.appendChild(selectedLanguages);
+                //If default values have been passed, then split the value into an array and display the languages in the selectedLanguages div
+                if(values[index]) {
+                    var selectedLanguages = values[index].split(',');
+                    var selectedLanguagesDiv = document.getElementById('selectedLanguages');
+                    selectedLanguages.forEach(language => {
+                        var selectedLanguage = document.createElement('div');
+                        selectedLanguage.textContent = language;
+                        selectedLanguage.className = 'inline-block bg-gray-200 rounded p-2 m-2 cursor-not-allowed bg-brown text-white';
+                        selectedLanguage.title = 'Click to remove';
+                        selectedLanguagesDiv.appendChild(selectedLanguage);
+                        //Add a click event to remove the language from the selectedLanguages div
+                        selectedLanguage.addEventListener('click', function() {
+                            // Remove the language from the hidden input value
+                            var selectedLanguages = inputElement.value.split(',');
+                            var index = selectedLanguages.indexOf(language);
+                            if (index > -1) {
+                                selectedLanguages.splice(index, 1);
+                            }
+                            inputElement.value = selectedLanguages.join(',');
+
+                            // Remove the selected language from the selectedLanguages div
+                            selectedLanguage.remove();
+                        });
+                    });
+                } else {
+                    selectedLanguages.textContent = 'No languages selected';
+                }
+
+                var workingElement = document.createElement('input');
+                workingElement.type = 'text';
+                workingElement.id = 'language_selector';
+                workingElement.placeholder = 'Find a language';
+                workingElement.className = 'w-full p-2 border rounded mb-2';
+                //workingElement.value = values[index] || '';
+                customPromptInputs.appendChild(workingElement);
+
+                // Create a hidden input to store the selected languages
+                var inputElement = document.createElement('input');
+                inputElement.type = 'hidden';
+                inputElement.id = 'customPromptInput' + index;
+                inputElement.name = 'customPromptInput' + index;
+                inputElement.value = values[index] || '';
+                customPromptInputs.appendChild(inputElement);
+
+                // Create a list of languages to display as options
+                var languageList = document.createElement('div');
+                languageList.className = 'language-list hidden p-2 border rounded bg-white shadow-md absolute w-full cursor-pointer';
+                
+                //Create a div above the input to show selected languages
+
+                languages.forEach(language => {
+                    var languageOption = document.createElement('div');
+                    languageOption.textContent = language;
+                    languageOption.addEventListener('click', function() {
+                        // Add the selected language to the hidden input value
+                        var selectedLanguages = inputElement.value.split(',');
+                        selectedLanguages.push(language);
+                        inputElement.value = selectedLanguages.join(',');
+
+                        //Add the selected language to the selectedLanguages div
+                        var selectedLanguage = document.createElement('div');
+                        selectedLanguage.textContent = language;
+                        selectedLanguage.className = 'inline-block bg-gray-200 rounded p-2 m-2 cursor-not-allowed bg-brown text-white';
+                        selectedLanguage.title = 'Click to remove';
+                        var languageDiv=document.getElementById('selectedLanguages');
+                        //If the text "No languages selected" is present, remove it
+                        if(languageDiv.textContent === 'No languages selected') {
+                            languageDiv.textContent = '';
+                        }
+                        languageDiv.appendChild(selectedLanguage);
+
+                        //Add a click event to remove the language from the selectedLanguages div
+                        selectedLanguage.addEventListener('click', function() {
+                            // Remove the language from the hidden input value
+                            var selectedLanguages = inputElement.value.split(',');
+                            var index = selectedLanguages.indexOf(language);
+                            if (index > -1) {
+                                selectedLanguages.splice(index, 1);
+                            }
+                            inputElement.value = selectedLanguages.join(',');
+
+                            // Remove the selected language from the selectedLanguages div
+                            selectedLanguage.remove();
+                        });
+
+                        // Clear the input field
+                        workingElement.value = '';
+
+                        // Hide the language list
+                        languageList.classList.add('hidden');
+                        //Focus on the input element
+                        workingElement.focus();
+
+                        // Prevent the default click event
+                        return false;
+
+
+                    });
+                    languageList.appendChild(languageOption);
+                });
+
+                // when the input has any characters, 
+                // show the language list, filtered by the input value
+                workingElement.addEventListener('input', function() {
+                    //remove the "hidden" class from the language list
+                    languageList.classList.remove('hidden');
+
+                    var input = this.value.toLowerCase();
+                    var options = languageList.children;
+                    for (var i = 0; i < options.length; i++) {
+                        var option = options[i];
+                        var text = option.textContent.toLowerCase();
+                        if (text.includes(input)) {
+                            option.style.display = '';
+                        } else {
+                            option.style.display = 'none';
+                        }
+                    }
+                });
+                
+
+                // Hide the language list when the input is blurred
+                workingElement.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        languageList.classList.add('hidden');
+                    }, 200);
+                });
+
+                customPromptInputs.appendChild(languageList);
+
+
+                return;
+
             case 'individual':
                 var inputElement = document.createElement('select');
                 inputElement.id = 'customPromptInput' + index;
@@ -193,11 +342,28 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                 inputElement.type = input.split('_')[0];
                 break;
         }
+
+
         if(!inputElement.placeholder) inputElement.placeholder = input.split('_')[1];
+        
         inputElement.id = 'customPromptInput' + index;
         inputElement.className = 'w-full p-2 border rounded mb-2';
         inputElement.value = values[index] || '';
         customPromptInputs.appendChild(inputElement);
+
+        //If there is a "selectedlanguages" div, and there is a value, then split the value into an array and display the languages in the selectedLanguages div
+        if(isLanguage && values[index]) {
+            var selectedLanguages = values[index].split(',');
+            var selectedLanguagesDiv = document.getElementById('selectedLanguages');
+            selectedLanguages.forEach(language => {
+                var selectedLanguage = document.createElement('div');
+                selectedLanguage.textContent = language;
+                selectedLanguage.className = 'inline-block bg-gray-200 rounded p-1 m-1';
+                selectedLanguagesDiv.appendChild(selectedLanguage);
+            });
+            
+        }
+        
 
         //Iterate through any textareas in the customPromptInputs and gather their to use when initialising tinymce:
         var textareas = customPromptInputs.getElementsByTagName('textarea');
@@ -484,3 +650,63 @@ function userResetPassword() {
         alert('An error occurred while sending the password reset email: ' + error.message);
     });
 }
+
+function editUserField(fieldname, description, userId) {
+    let fieldType = "text"; // Default input type
+    //See if the element which called this function has a value for data-field-value,
+    // and if so, use that as the default value
+    let editDefaultValue = '';
+    if(event.target.getAttribute('data-field-value')) {
+        editDefaultValue = event.target.getAttribute('data-field-value');
+    }
+    console.log('Default value: ' + editDefaultValue);
+    // Define input types for specific fields
+    switch (fieldname) {
+        case "about":
+            fieldType = "textarea_";
+            break;
+        case "languages_spoken":
+            fieldType = "language_"; // Use json for multiple languages
+            break;
+        case "skills":
+            fieldType = "textarea_"; // Use textarea for multiple skills
+            break;
+        case "location":
+            fieldType = "_";
+            break;
+    }
+
+    // Show the custom prompt
+    showCustomPrompt(
+        `Edit ${fieldname.replace("_", " ")}`,
+        description,
+        [fieldType+fieldname],
+        [editDefaultValue], // Default value
+        function (inputValues) {
+            if (inputValues) {
+                var thisvalue=inputValues[0];
+                if(fieldType === 'language_') {
+                    //Split the value into an array
+                    thisvalue = thisvalue.split(',');
+                    //Convert the value to a json string
+                    thisvalue = JSON.stringify(thisvalue);
+                }
+                const data = {
+                    'user_id': userId,
+                    //how do I set the key to the fieldname?
+                    [fieldname]: thisvalue,                    
+                };
+                getAjax('update_user', data).then(response => {
+                    if (response.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                }).catch(error => {
+                    alert('An error occurred while updating the user: ' + error.message);
+                });
+            }
+        }
+    );
+}
+

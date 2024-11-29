@@ -53,7 +53,7 @@ if($auth->getUserRole() == 'admin') {
 <input type='hidden' id='js_user_id' value='<?= isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '' ?>'>
 
     <!-- shared modal prompt for all pages --> 
-    <div id="customPrompt" class="modal">
+    <div id="customPrompt" class="modal" style='z-index: 2000'>
         <div class="modal-content w-3/5 max-w-20 min-w-min max-h-screen my-5 overflow-y-auto">
             <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
                 <span id="customPromptClose" class="close-story-btn">&times;</span>

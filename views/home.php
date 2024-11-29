@@ -53,13 +53,8 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
 
     <!-- Show the users descendancy line -->
     <?php 
-    $sql = "SELECT users.id, users.id as user_id, users.first_name, users.last_name, users.email, 
-    users.avatar, users.individuals_id, users.show_presence
-    FROM users
-    WHERE users.id = ?";
 
-    $user = $db->fetchOne($sql, [$user_id]);
-    $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";    
+    $user=Utils::getUser($user_id);
 
     // Fetch the line of descendancy
     if($user['individuals_id']) {

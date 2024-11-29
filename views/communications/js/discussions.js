@@ -447,9 +447,9 @@ function showGalleryModal(discussionId) {
     const files = document.querySelectorAll(`#discussion_id_${discussionId} .file-gallery-item img`);
     files.forEach((file) => {
         //Get the parent div and add it to the modal - note that the parent div is two parents up
-        const div = file.parentElement.parentElement.cloneNode(true);
+        const div = file.parentElement.cloneNode(true);
         //show the id of the div in the console
-        console.log(div.id);
+        //console.log(div.id);
         //Change the id of the new div by adding "gallery_" to the beginning of the id
         div.id = 'gallery_' + div.id;
         //replace the h-24 and w-20
@@ -469,6 +469,17 @@ function showGalleryModal(discussionId) {
         img.classList.remove('w-16');
         img.classList.add('h-72');
         img.classList.add('w-72');
+        //extract the "data-file-path" value from each image
+        const filePath = img.getAttribute('data-file-path');
+        //Wrap each img in an anchor tag that links to the filePath
+        const anchor = document.createElement('a');
+        console.log(anchor);
+        anchor.href = filePath;
+        anchor.target = '_blank';
+        anchor.appendChild(img);
+        div.appendChild(anchor);
+        
+
         //Replace the text-xxs in the span tag with text-sm
         const span = div.querySelector('span');
         span.classList.remove('h-8');

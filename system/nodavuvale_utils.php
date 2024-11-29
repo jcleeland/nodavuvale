@@ -1636,6 +1636,40 @@ class Utils {
         return $suggestions;
     }
 
+    /**
+     * Get the details of an individual website user
+     * 
+     * @param int $user_id The ID of the user.
+     * 
+     * @return array The details of the user.
+     */
+    public static function getUser($user_id) {
+        $db = Database::getInstance();
+        $sql = "SELECT users.id, users.id as user_id, users.first_name, users.last_name, users.email, 
+                    users.avatar, users.individuals_id, users.show_presence, users.location, 
+                    users.skills, users.languages_spoken, users.about, users.registration_date, users.last_login, users.last_view
+                FROM users
+                WHERE users.id = ?";
+
+        $user = $db->fetchOne($sql, [$user_id]);
+        $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";    
+        return $user;        
+    }
+
+    public static function getUserByIndividualId($individual_id) {
+        $db = Database::getInstance();
+        $sql = "SELECT users.id, users.id as user_id, users.first_name, users.last_name, users.email, 
+                    users.avatar, users.individuals_id, users.show_presence, users.location, 
+                    users.skills, users.languages_spoken, users.about, users.registration_date, users.last_login, users.last_view
+                FROM users
+                WHERE users.individuals_id = ?";
+                $user = $db->fetchOne($sql, [$individual_id]);
+        if($user) {
+            $user['avatar'] = $user['avatar'] ? $user['avatar'] : "images/default_avatar.webp";
+        }
+        return $user;
+    }
+
     public static function getMissingDataForUser($individual_id) {
         $missingdata=[];
         $missing=Utils::getMissingIndividualData($individual_id, "self", "Self");

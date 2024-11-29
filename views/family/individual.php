@@ -96,12 +96,7 @@ if ($individual_id) {
     $individual = $db->fetchOne($sql, [$individual_id]);
 
     //See if the individual matches a user
-    $user = $db->fetchOne("SELECT id as user_id, email, first_name, last_name, avatar, role, show_presence, last_login, last_view, individuals_id FROM users WHERE individuals_id = ?", [$individual_id]);
-    if($user) {
-        if(empty($user['avatar'])) {
-            $user['avatar']="images/default_avatar.webp";
-        }
-    }
+    $user=Utils::getUserByIndividualId($individual_id);
 
     //If this person is a member, use their membership name
     $firstnames=($user && $user['first_name']) ? $user['first_name'] : $individual['first_names'];

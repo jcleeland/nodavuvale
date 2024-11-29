@@ -540,18 +540,14 @@ function getCommentsForDiscussion($discussion_id) {
                                         <?php
                                         if (in_array($file_type, $supported_image_types)) {
                                             ?>
-                                            <a href='<?= $file_path ?>' target='_blank' title='<?= $file_name ?>'>
-                                                <img src='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 rounded-lg'>
-                                            </a>
+                                            <img src='<?= $file_path ?>' data-file-path='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 rounded-lg' />
                                             <?php
                                         } else {
                                             // For other files, show a generic icon using the FontAwesome class based on the file type
                                             $file_icon = $web->getFontAwesomeIcon($file_name);
                                             ?>
                                             <div class='bg-gray-200 text-gray-500 h-16 w-16 flex items-center justify-center'>
-                                            <a href='<?= $file_path ?>' target='_blank' title='<?= $file_name ?>'>
-                                                <i class='fa <?= $file_icon ?> fa-2x mb-2'></i>
-                                            </a>
+                                                <i data-file-path='<?= $file_path ?>' class='fa <?= $file_icon ?> fa-2x mb-2'></i>
                                             </div>
                                             <?php
                                         }

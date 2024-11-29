@@ -19,9 +19,9 @@ if($_SESSION['user_id'] !== $data['user_id'] && $auth->getUserRole() !== 'admin'
 }
 
 if($auth->getUserRole() !== 'admin') {
-    $validFields=['individuals_id', 'first_name','last_name','email','relative_name','relationship'];
+    $validFields=['individuals_id', 'first_name','last_name','email','relative_name','relationship', 'skills', 'languages_spoken', 'about', 'location'];
 } else {
-    $validFields=['individuals_id', 'first_name','last_name','email','relative_name','relationship','role','approved'];
+    $validFields=['individuals_id', 'first_name','last_name','email','relative_name','relationship','role','approved', 'skills', 'languages_spoken', 'about', 'location'];
 }
 foreach($data as $key=>$value) {
     if(!in_array($key,$validFields) && $key != 'user_id') {
