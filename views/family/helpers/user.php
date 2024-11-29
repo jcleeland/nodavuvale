@@ -37,27 +37,192 @@ if($user_id) {
             
     </script>
 <?php 
-} 
+}
+
+//Get a list of discussions and comments for this user
+$sql = "SELECT count(id) as discussioncount
+    FROM discussions
+    WHERE discussions.user_id = ?
+    ORDER BY discussions.created_at DESC";
+$discussionscount = $db->fetchOne($sql, [$user_id]);
+$discussioncount = $discussionscount['discussioncount'];
+$discussioncount = $discussioncount ? $discussioncount : 0;
+$discussioncount = $discussioncount == 1 ? "1 discussion" : $discussioncount . " discussions";
+$discussioncount = $discussioncount ? $discussioncount : "No discussions";
+$sql = "SELECT count(id) as commentcount
+    FROM discussion_comments
+    WHERE user_id = ?
+    ORDER BY created_at DESC";
+$comments = $db->fetchOne($sql, [$user_id]);
+$commentcount = $comments['commentcount'];
+$commentcount = $commentcount ? $commentcount : 0;
+$commentcount = $commentcount == 1 ? "1 comment" : $commentcount . " comments";
+$commentcount = $commentcount ? $commentcount : "No comments";
+
+$referencename=$_SESSION['user_id'] == $user_id ? "You" : $user['first_name'];
+$referencenamepossessive=$_SESSION['user_id'] == $user_id ? "Your" : $user['first_name'] . "'s";
+$referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $user['first_name'] . " has";
+
 ?>
 
 <section class="container mx-auto px-4 sm:px-3 xs:px-2 lg:px-8 pt-1 pb-12">
     <div class="absolute z-10 p-2 w-max">
         <div class="flex justify-full items-top">
             <div>
-                <img class="mt-6 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
+                <img 
+                    class="mt-6 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" 
+                    src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" 
+                    alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
             </div>
 
         </div>
     </div>
 
-    <!-- User's Personal Page -->
+
+
+
+
+
+
+
+    <!-- User's Public Page (for other members to see) -->
+
+
+    <div id="publicUserDetails" class="pt-10">
+        <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
+            <div class="pb-6">
+                <div class="relative grid grid-cols-3 justify-center items-center text-center min-h-4">
+                <div class='w-1'></div>
+                    <div class="flex-grow" style="z-index: 1000">
+                        <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
+                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50"><?= $referencenamepossessive ?> Page</span>
+                        </h3>
+                    </div>
+                    <div class='w-1'></div>
+                </div>
+            </div>
+            <div>
+                <p class="text-gray-600 mb-6 text-center">
+                <?php if($user['registration_date']) : ?>
+                    <?= $referencenamepastposessive ?> been registered with <i><?= $site_name ?></i> since <?= date('F j, Y', strtotime($user['registration_date'])) ?>
+                <?php endif; ?>
+                <?php if($user['last_login']) : ?>
+                    and last visited the site at <?= date('H:i a F j, Y', strtotime($user['last_login'])) ?>
+                <?php endif; ?>
+                </p>
+            </div>
+
+
+            <div class="flex flex-wrap justify-around items-center w-full">
+                <?php if($user['individuals_id']) { ?>
+                    <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=1'">
+                        <i class="fas fa-network-wired text-burnt-orange text-2xl"></i> <?= $referencename ?> in the Tree
+                    </div>
+                <?php } ?>
+                <div class="text-gray-600 min-w-10 mb-6 border rounded-full text-md p-3 cursor-pointer hover:bg-ocean-blue-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=discussions&user_id=<?= $user['user_id'] ?>'">
+                    <i class="fas fa-comments text-ocean-blue text-2xl"></i> <?= $discussioncount ?>
+                </div>
+                <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-deep-green-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=comments&user_id=<?= $user['user_id'] ?>'">
+                    <i class="fas fa-comment text-deep-green text-2xl"></i> <?= $commentcount ?>
+                </div>
+                <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-warm-red-800 hover:nv-bg-opacity-10">
+                    <i class="fas fa-envelope text-warm-red text-2xl"></i> Email <?= $user['first_name'] ?>
+                </div>
+            </div>
+
+
+
+
+            <div class="items-center text-center w-full">
+                <?php if ($user['about']) { ?>
+                    <p class="text-gray-600 mb-6"><?php echo nl2br($user['about']); ?></p>
+                <?php } ?>
+            </div>
+
+
+
+
+            <div class="flex flex-wrap justify-around items-center w-full my-4">
+            <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { 
+                $editclass='cursor-pointer';
+                $titlesuffix=" (Double click to change your settings)";
+            } else {
+                $editclass='';
+                $titlesuffix="";
+            }
+            ?>
+            <?php if ($user['location']) { ?>
+                <div 
+                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
+                    title="<?= $user['first_name'] ?> lives at <?= $titlesuffix ?>"
+                    data-field-value="<?= htmlspecialchars($user['location']) ?>"
+                    <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+                        onDblClick="editUserField('location', 'Where <?= $user['first_name'] ?> lives', '<?= $user['id'] ?>')"  
+                    <?php } ?>
+                >
+                <i class="fas fa-map text-ocean-blue text-2xl"></i> <?php echo htmlspecialchars($user['location']); ?>
+                </div>
+            <?php } ?>
+            <?php if ($user['skills']) { ?>
+                <div 
+                    class="text-gray-600 w-1/3 min-w-20 mb-6 border rounded-full p-3 text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
+                    title="Skills <?= $user['first_name'] ?> has<?= $titlesuffix ?>"
+                    data-field-value="<?= htmlspecialchars($user['skills']) ?>"
+                    <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+                        onDblClick="editUserField('skills', 'Skills <?= $user['first_name'] ?> has', '<?= $user['id'] ?>')"
+                    <?php } ?>
+                >
+                <i class="fas fa-tools text-warm-red text-2xl float-left mr-1"></i>  <?= $user['skills'] ?>
+                </div>
+            <?php } 
+            if($user['languages_spoken'] != "") {
+                $languages=json_decode($user['languages_spoken']);
+                //Convert this object into an array 
+                $languages=(array)$languages;
+                //Now convert into a comma separated string
+                $languages=implode(", ", $languages);
+                if ($user['languages_spoken']) { 
+                    ?>
+                    <div 
+                        class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" 
+                        title="Languages <?= htmlspecialchars($user['first_name']) ?> speaks<?= $titlesuffix ?>"
+                        data-field-value="<?= $languages ?>"
+                        <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+                            onDblClick="editUserField('languages_spoken', 'Languages spoken by <?= htmlspecialchars($user['first_name'], ENT_QUOTES, 'UTF-8') ?>', '<?= $user['id'] ?>')"
+                        <?php } ?>
+                    >
+                    <i class="fas fa-language text-burnt-orange text-2xl"></i> <?php 
+                        $languages=json_decode($user['languages_spoken']);
+                        foreach($languages as $language) {
+                            if($language) {
+                                echo "<span class='p-1 bg-burnt-orange text-white rounded-md m-1'>".trim($language)."</span>";
+                            }
+                        }
+                        
+                    ?>
+                    </div>
+            <?php 
+                } 
+            }    
+            ?>            
+            </div>
+        </div>
+    </div>    
+
+
+
+    <!-- User's Control Page -->
     <?php 
         if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') {
+            //Get any new comments to discussions for this user
+            $mynewdiscussioncomments = Utils::getNewCommentsToDiscussionsIveStarted($user_id, "2024-10-01");
+            $mynewcommentreplies = Utils::getNewCommentsToDiscussionsIveCommentedOn($user_id, "2024-10-01");
+            $mynewreactions = Utils::getNewReactionsToDiscussionsAndComments($user_id, "2024-01-01");
             $hideuser="";
             if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
                 $hideuser="hidden";
                 ?>
-                <center><button onClick='toggleUserInfo()'><i class='fas fa-eye'></i> View as user</button></center>
+                <center><button onClick='toggleUserInfo()'><i class='fas fa-eye'></i> View User's Private Page</button></center>
                 <script type='text/javascript'>
                     function toggleUserInfo() {
                         document.getElementById('userDetails').classList.toggle('hidden');
@@ -85,6 +250,148 @@ if($user_id) {
             </div>
             <?php 
             } 
+            ?>            
+            <!-- User's Personal Page (only visible to the user) -->
+            <div class="pb-6"> 
+                <div class="relative flex justify-center items-center text-center">
+                    <div class='w-1'></div>
+                    <div class="flex-grow" style="z-index: 1000">
+                        <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
+                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50">My Controls</span>
+                        </h3>
+                    </div>
+                    <div class='w-1'></div>
+                </div>  
+                <div id="tasks" class="mt-6">
+                    <!-- Family tree & account information -->                          
+            <?php
+            if(count($mynewdiscussioncomments) > 0 || count($mynewcommentreplies) > 0 || count($mynewreactions) > 0) {
+            ?>
+                    <div class="w-full text-center pt-12 font-bold">
+                        <span class="border-t-2 pt-2 pb-4">
+                        People are talking with you
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                    <?php if(count($mynewdiscussioncomments) > 0) { ?>
+                        <div 
+                            class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer"
+                            onClick="document.getElementById('discussionreplies').classList.toggle('hidden');"
+                            title="View discussions you've started"
+                        >
+                            <button 
+                                class="bg-ocean-blue-800 nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-6 my-4 mx-1" 
+                            >
+                                <i class="fas fa-comments"></i>
+                            </button>
+                            <p class="text-gray-600 ml-3 h-22 overflow-y-scroll">
+                                <b>Comments on your discussions</b><br />
+                                <?= count($mynewdiscussioncomments) ?> new comments
+                            </p>
+                        </div>
+                    <?php } ?>
+                    <?php if(count($mynewcommentreplies) > 0) { ?>
+                        <div 
+                            class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-burnt-orange-800 hover:nv-bg-opacity-10 cursor-pointer"
+                            onClick="document.getElementById('commentreplies').classList.toggle('hidden');"
+                            title="View discussions you've commented on"
+                        >
+                            <button 
+                                class="bg-burnt-orange-800 nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-6 my-4 mx-1" 
+                            >
+                                <i class="fas fa-comment"></i>
+                            </button>
+                            <p class="text-gray-600 ml-3 h-22 overflow-y-scroll">
+                                <b>Replies to your comments</b><br />
+                                <?= count($mynewcommentreplies) ?> new replies
+                            </p>
+                        </div>
+                    <?php } ?>
+                    <?php if(count($mynewreactions) > 0) { ?>
+                        <div 
+                            class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-deep-green-800 hover:nv-bg-opacity-10 cursor-pointer"
+                            onClick="document.getElementById('reactionreplies').classList.toggle('hidden');"
+                            title="View reactions to your discussions and comments"
+                        >
+                            <button 
+                                class="bg-deep-green-800 nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-6 my-4 mx-1" 
+                            >
+                                <i class="fas fa-thumbs-up"></i>
+                            </button>
+                            <p class="text-gray-600 ml-3 h-22 overflow-y-scroll">
+                                <b>Reactions to your posts</b><br />
+                                <?= count($mynewreactions) ?> new reactions
+                            </p>
+                        </div>
+                    <?php } ?>
+                    </div>
+                    <!-- Hidden div for listing discussions & comments -->
+                    <div id="discussionreplies" class="hidden">
+                        <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                            <?php if(count($mynewdiscussioncomments) > 0) { ?>
+                                <?php foreach($mynewdiscussioncomments as $discomment) { ?>
+                                    <p 
+                                        class="cursor-pointer border rounded-md text-center w-2/5 p-2 m-2 hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
+                                        onClick="window.location.href='index.php?to=communications/discussions&filter=discussions&discussion_id=<?= $discomment['discussion_id'] ?>&comment_id=<?= $discomment['id'] ?>'"
+                                    >
+                                        <?= $web->timeSince($discomment['created_at']) ?> <b><?= $discomment['first_name'] ?></b> commented 
+                                         "<?= stripslashes($web->truncateText($discomment['comment'], 50)) ?>"
+                                        on your discussion <b><i><?= stripslashes($discomment['title']) ?></i></b>
+                                    </p>
+                                <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                    <div id="commentreplies" class="hidden">
+                        <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                            <?php if(count($mynewcommentreplies) > 0) { ?>
+                                <?php foreach($mynewcommentreplies as $commentreply) { ?>
+                                    <p
+                                        class="cursor-pointer border rounded-md text-center w-2/5 p-2 m-2 hover:bg-burnt-orange-800 hover:nv-bg-opacity-10"
+                                        onClick="window.location.href='index.php?to=communications/discussions&filter=comments&discussion_id=<?= $commentreply['discussion_id'] ?>&comment_id=<?= $commentreply['id'] ?>'"
+                                    >
+                                        <?= $web->timeSince($commentreply['created_at']) ?> <b><?= $commentreply['first_name'] ?></b> replied 
+                                        "<?= stripslashes($web->truncateText($commentreply['comment'], 50)) ?>"
+                                        to your comment on the discussion <b><i><?= stripslashes($commentreply['title']) ?></i></b>
+                                    </p>
+                                <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                    <div id="reactionreplies" class="hidden">
+                        <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                            <?php if(count($mynewreactions) > 0) { ?>
+                                <?php foreach($mynewreactions as $reaction) { ?>
+                                    <?php 
+                                    //Work out if this is a reaction to a discussion or a comment
+                                    $reactiontype="discussion";
+                                    if(isset($reaction['comment_id'])) {
+                                        $reactiontype="comment";
+                                    }
+                                    //Build a clickable link to the discussion or comment
+                                    $reactionlink="index.php?to=communications/discussions&filter=reactions&discussion_id=".$reaction['discussion_id'];
+                                    if(isset($reaction['comment_id'])) {
+                                        $reactionlink.="&comment_id=".$reaction['comment_id'];
+                                    }
+                                    //Set an icon to reflect the type of reaction
+                                    $emoticons=$web->getReactionEmoticons();
+                                    $reactionicon="<button class='reaction-btn'>".$emoticons[$reaction['reaction_type']]."</button>";
+                                    
+                                    ?>
+                                    <p
+                                        class="cursor-pointer border rounded-md text-center w-2/5 p-2 m-2 hover:bg-deep-green-800 hover:nv-bg-opacity-10"
+                                        onClick="window.location.href='<?= $reactionlink ?>'"
+                                    >
+                                        <?= $web->timeSince($reaction['reacted_at']) ?> <b><?= $reaction['first_name'] ?></b> reacted 
+                                        <?= $reactionicon ?> to
+                                        your <?= $reactiontype ?> on the discussion <b><i><?= stripslashes($reaction['title']) ?></i></b>
+                                    </p>
+                                <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+            <?php
+            }
             if($user['individuals_id']) {
                 $missinginfo=Utils::getMissingDataForUser($user['individuals_id']);
                 //echo "<pre>ALl the info"; print_r($missinginfo); echo "</pre>";
@@ -132,9 +439,9 @@ if($user_id) {
                         $helpwiththis = '<div class="flex mx-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer "';
                         $helpwiththis .= ' onclick="window.location.href=\'?to=family/individual&individual_id='.$missingperson['details']['individual_id'].'\'"';
                         $helpwiththis .= '>';
-                        $helpwiththis .= '<button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white text-center rounded-full h-16 w-16 text-xl my-4 mx-1" title="Help us with this thing" ';
+                        $helpwiththis .= '<button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white text-center rounded-full h-16 w-12 text-xl my-4 mx-1 py-2 px-5" title="Help us with this thing" ';
                         $helpwiththis .= '>';
-                        $helpwiththis .= '<img src="'.$keyimage.'" class="rounded-full text-xl object-cover m-auto w-4/5" title="'. $missingperson['details']['first_names'] .' '. $missingperson['details']['last_name'] .'">';
+                        $helpwiththis .= '<img src="'.$keyimage.'" class="rounded-full text-xl object-cover m-auto px-2 py-1" title="'. $missingperson['details']['first_names'] .' '. $missingperson['details']['last_name'] .'">';
                         $helpwiththis .= '</button>';
                         $helpwiththis .= '<p class="text-gray-600 ml-3 h-3/5 overflow-y-scroll"><b>';
                         $helpwiththis .= 'What about ';
@@ -148,19 +455,6 @@ if($user_id) {
             }
             ?>
 
-            <!-- User's Personal Page (only visible to the user) -->
-            <div class="pb-6"> 
-                <div class="relative flex justify-center items-center text-center">
-                    <div class='w-1'></div>
-                    <div class="flex-grow" style="z-index: 1000">
-                        <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
-                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50">My Controls</span>
-                        </h3>
-                    </div>
-                    <div class='w-1'></div>
-                </div>
-                <div id="tasks" class="mt-6">
-                    <!-- Family tree & account information -->
                     <div class="w-full text-center pt-12 font-bold">
                         <span class="border-t-2 pt-2 pb-4">
                         <span class="border-t-2 pt-2">
@@ -239,7 +533,7 @@ if($user_id) {
                     //If the user has no languages spoken, then $user[$dataname] will be an empty array
                     // in which case, we want to show this as a missing item
                     if($user[$dataname] == "[]") {
-                        $user[$dataname]="";
+                        $user[$dataname]=null;
                     }
                 }
                 if(empty($user[$dataname])) {
@@ -266,7 +560,7 @@ if($user_id) {
                         //Randomise the order of $userinfos
                         shuffle($userinfos);
                         //Display the first 3 items in $userinfos
-                        $userinfos=array_slice($userinfos, 0, 3);
+                        $userinfos=array_slice($userinfos, 0, 4);
                         foreach($userinfos as $mui) : ?>
                             <div 
                                 class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer "
@@ -297,150 +591,4 @@ if($user_id) {
 
 
 
-
-
-
-
-    <!-- User's Public Page (for other members to see) -->
-
-
-
-<?php
-    //Get a list of discussions and comments for this user
-    $sql = "SELECT count(id) as discussioncount
-        FROM discussions
-        WHERE discussions.user_id = ?
-        ORDER BY discussions.created_at DESC";
-    $discussionscount = $db->fetchOne($sql, [$user_id]);
-    $discussioncount = $discussionscount['discussioncount'];
-    $discussioncount = $discussioncount ? $discussioncount : 0;
-    $discussioncount = $discussioncount == 1 ? "1 discussion" : $discussioncount . " discussions";
-    $discussioncount = $discussioncount ? $discussioncount : "No discussions";
-    $sql = "SELECT count(id) as commentcount
-        FROM discussion_comments
-        WHERE user_id = ?
-        ORDER BY created_at DESC";
-    $comments = $db->fetchOne($sql, [$user_id]);
-    $commentcount = $comments['commentcount'];
-    $commentcount = $commentcount ? $commentcount : 0;
-    $commentcount = $commentcount == 1 ? "1 comment" : $commentcount . " comments";
-    $commentcount = $commentcount ? $commentcount : "No comments";
-    
-
-?>
-    <div id="publicUserDetails" class="pt-10">
-        <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
-            <div class="pb-6">
-                <div class="relative grid grid-cols-3 justify-center items-center text-center min-h-4">
-                <div class='w-1'></div>
-                    <div class="flex-grow" style="z-index: 1000">
-                        <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
-                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50"><?php echo $user['first_name'] ?>'s Page</span>
-                        </h3>
-                    </div>
-                    <div class='w-1'></div>
-                </div>
-            </div>
-            <div>
-                <p class="text-gray-600 mb-6 text-center">
-                <?php if($user['registration_date']) : ?>
-                    <?= $user['first_name'] ?> has been registered with <i><?= $site_name ?></i> since <?= date('F j, Y', strtotime($user['registration_date'])) ?>
-                <?php endif; ?>
-                <?php if($user['last_login']) : ?>
-                    and last visited the site at <?= date('H:i a F j, Y', strtotime($user['last_login'])) ?>
-                <?php endif; ?>
-                </p>
-            </div>
-
-
-            <div class="flex flex-wrap justify-around items-center w-full">
-                <?php if($user['individuals_id']) { ?>
-                    <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=1'">
-                        <i class="fas fa-network-wired text-burnt-orange text-2xl"></i> <?= $user['first_name'] ?> in the Tree
-                    </div>
-                <?php } ?>
-                <div class="text-gray-600 min-w-10 mb-6 border rounded-full text-md p-3 cursor-pointer hover:bg-ocean-blue-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=discussions&user_id=<?= $user['user_id'] ?>'">
-                    <i class="fas fa-comments text-ocean-blue text-2xl"></i> <?= $discussioncount ?>
-                </div>
-                <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-deep-green-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=comments&user_id=<?= $user['user_id'] ?>'">
-                    <i class="fas fa-comment text-deep-green text-2xl"></i> <?= $commentcount ?>
-                </div>
-                <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-warm-red-800 hover:nv-bg-opacity-10">
-                    <i class="fas fa-envelope text-warm-red text-2xl"></i> Email <?= $user['first_name'] ?>
-                </div>
-            </div>
-
-
-
-
-            <div class="items-center text-center w-full">
-                <?php if ($user['about']) { ?>
-                    <p class="text-gray-600 mb-6"><?php echo nl2br($user['about']); ?></p>
-                <?php } ?>
-            </div>
-
-
-
-
-            <div class="flex flex-wrap justify-around items-center w-full my-4">
-            <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { 
-                $editclass='cursor-pointer';
-                $titlesuffix=" (Double click to change your settings)";
-            } else {
-                $editclass='';
-                $titlesuffix="";
-            }
-            ?>
-            <?php if ($user['location']) { ?>
-                <div 
-                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
-                    title="<?= $user['first_name'] ?> lives at <?= $titlesuffix ?>"
-                    data-field-value="<?= htmlspecialchars($user['location']) ?>"
-                    <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-                        onDblClick="editUserField('location', 'Where <?= $user['first_name'] ?> lives', '<?= $user['id'] ?>')"  
-                    <?php } ?>
-                >
-                <i class="fas fa-map text-ocean-blue text-2xl"></i> <?php echo htmlspecialchars($user['location']); ?>
-                </div>
-            <?php } ?>
-            <?php if ($user['skills']) { ?>
-                <div 
-                    class="text-gray-600 w-1/3 min-w-20 mb-6 border rounded-full p-3 text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
-                    title="Skills <?= $user['first_name'] ?> has<?= $titlesuffix ?>"
-                    data-field-value="<?= htmlspecialchars($user['skills']) ?>"
-                    <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-                        onDblClick="editUserField('skills', 'Skills <?= $user['first_name'] ?> has', '<?= $user['id'] ?>')"
-                    <?php } ?>
-                >
-                <i class="fas fa-tools text-warm-red text-2xl float-left mr-1"></i>  <?= $user['skills'] ?>
-                </div>
-            <?php } 
-            $languages=json_decode($user['languages_spoken']);
-            //Convert this object into an array 
-            $languages=(array)$languages;
-            //Now convert into a comma separated string
-            $languages=implode(", ", $languages);
-            if ($user['languages_spoken']) { ?>
-                <div 
-                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" 
-                    title="Languages <?= htmlspecialchars($user['first_name']) ?> speaks<?= $titlesuffix ?>"
-                    data-field-value="<?= $languages ?>"
-                    <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-                        onDblClick="editUserField('languages_spoken', 'Languages spoken by <?= htmlspecialchars($user['first_name'], ENT_QUOTES, 'UTF-8') ?>', '<?= $user['id'] ?>')"
-                    <?php } ?>
-                >
-                <i class="fas fa-language text-burnt-orange text-2xl"></i> <?php 
-                    $languages=json_decode($user['languages_spoken']);
-                    foreach($languages as $language) {
-                        if($language) {
-                            echo "<span class='p-1 bg-burnt-orange text-white rounded-md m-1'>".trim($language)."</span>";
-                        }
-                    }
-                    
-                ?>
-                </div>
-            <?php } ?>            
-            </div>
-        </div>
-    </div>    
 </section>

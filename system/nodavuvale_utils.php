@@ -1434,6 +1434,98 @@ class Utils {
         }
     }
 
+    public static function getNewCommentsToDiscussionsIveStarted($user_id, $date_since=null) {
+        if(!$date_since) {
+            $date_since = date('Y-m-d H:i:s', strtotime('-4 weeks'));
+        }
+        if(!$user_id) {
+            return false;
+        }
+
+        //We want to get any new comments on discussions created by this user
+        $db = Database::getInstance();
+        $sql = "SELECT discussion_comments.*, discussions.title, discussions.content, discussions.individual_id, discussions.user_id as discussion_user_id, discussions.created_at as discussion_created_at, discussions.updated_at as discussion_updated_at, users.first_name, users.last_name, users.avatar, individuals.first_names as tree_first_names, individuals.last_name as tree_last_name
+                FROM discussion_comments
+                JOIN discussions ON discussion_comments.discussion_id = discussions.id
+                JOIN users ON discussion_comments.user_id = users.id
+                LEFT JOIN individuals ON discussions.individual_id = individuals.id
+                WHERE discussion_comments.created_at > ?
+                AND discussions.user_id = ?
+                AND discussion_comments.user_id != ?
+                ORDER BY discussion_comments.created_at DESC";
+                
+        $comments = $db->fetchAll($sql, [$date_since, $user_id, $user_id]);
+        return $comments;
+    }
+
+    public static function getNewCommentsToDiscussionsIveCommentedOn($user_id, $date_since=null) {
+        if(!$date_since) {
+            $date_since = date('Y-m-d H:i:s', strtotime('-4 weeks'));
+        }
+        if(!$user_id) {
+            return false;
+        }
+
+        //We want to get any new comments on discussions that I have commented on
+        // excluding any discussions that I have created, or comments that I have made
+        // so we should be looking for comments made AFTER a comment of mine
+
+        $db = Database::getInstance();
+        $sql = "SELECT discussion_comments.*, discussions.title, discussions.content, discussions.individual_id, discussions.user_id as discussion_user_id, discussions.created_at as discussion_created_at, discussions.updated_at as discussion_updated_at, users.first_name, users.last_name, users.avatar, individuals.first_names as tree_first_names, individuals.last_name as tree_last_name
+                FROM discussion_comments
+                JOIN discussions ON discussion_comments.discussion_id = discussions.id
+                JOIN users ON discussion_comments.user_id = users.id
+                LEFT JOIN individuals ON discussions.individual_id = individuals.id
+                WHERE discussion_comments.created_at > ?
+                AND discussion_comments.user_id != ?
+                AND discussions.user_id != ?
+                AND discussions.id IN (
+                    SELECT discussion_id FROM discussion_comments WHERE user_id = ?
+                )
+                ORDER BY discussion_comments.created_at DESC";
+        $comments = $db->fetchAll($sql, [$date_since, $user_id, $user_id, $user_id]);
+        return $comments;
+    }
+
+    public static function getNewReactionsToDiscussionsAndComments($user_id, $date_since=null) {
+        if(!$date_since) {
+            $date_since = date('Y-m-d H:i:s', strtotime('-4 weeks'));
+        }
+        if(!$user_id) {
+            return false;
+        }
+
+        //There are two tables that store reactions - discussion_reactions and comment_reactions
+        // - find any reactions to discussions or comments that I have posted
+        // since "$date_since"
+
+        $db = Database::getInstance();
+        $sql = "SELECT discussion_reactions.*, discussions.title, discussions.content, discussions.individual_id, discussions.user_id as discussion_user_id, discussions.created_at as discussion_created_at, discussions.updated_at as discussion_updated_at, users.first_name, users.last_name, users.avatar, individuals.first_names as tree_first_names, individuals.last_name as tree_last_name
+                FROM discussion_reactions
+                JOIN discussions ON discussion_reactions.discussion_id = discussions.id
+                JOIN users ON discussion_reactions.user_id = users.id
+                LEFT JOIN individuals ON discussions.individual_id = individuals.id
+                WHERE discussion_reactions.reacted_at > ?
+                AND discussions.user_id = ?
+                AND discussion_reactions.user_id != ?
+                ORDER BY discussion_reactions.reacted_at DESC";
+        $discussions = $db->fetchAll($sql, [$date_since, $user_id, $user_id]);
+
+        $sql = "SELECT comment_reactions.*, discussion_comments.comment, discussions.title, discussions.content, discussions.individual_id, discussions.user_id as discussion_user_id, discussions.created_at as discussion_created_at, discussions.updated_at as discussion_updated_at, users.first_name, users.last_name, users.avatar, individuals.first_names as tree_first_names, individuals.last_name as tree_last_name
+                FROM comment_reactions
+                JOIN discussion_comments ON comment_reactions.comment_id = discussion_comments.id
+                JOIN discussions ON discussion_comments.discussion_id = discussions.id
+                JOIN users ON comment_reactions.user_id = users.id
+                LEFT JOIN individuals ON discussions.individual_id = individuals.id
+                WHERE comment_reactions.reacted_at > ?
+                AND discussions.user_id = ?
+                AND comment_reactions.user_id != ?
+                ORDER BY comment_reactions.reacted_ta DESC";
+        $comments = $db->fetchAll($sql, [$date_since, $user_id, $user_id]);
+
+        return array_merge($discussions, $comments);
+    }
+
     /**
      * Returns a list of changes since the last time the user was doing anything
      * 

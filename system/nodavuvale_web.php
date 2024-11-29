@@ -99,6 +99,23 @@ class Web {
     }
 
     /**
+     * Returns an array of usable emoticons with their reaction_type name as the key
+     * */
+    public static function getReactionEmoticons() {
+        $emoticons = [
+            'like' => '👍',
+            'love' => '❤️',
+            'haha' => '😂',
+            'wow' => '😮',
+            'sad' => '😢',
+            'angry' => '😡',
+            'care' => '🤗',
+            'remove' => '❌'
+        ];
+        return $emoticons;
+    }
+
+    /**
      * Truncate text
      * 
      * @param string $text
