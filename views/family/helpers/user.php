@@ -214,6 +214,9 @@ if($user_id) {
             $userinfos=[];
             foreach($userdata as $dataname=>$details) {
                 if($dataname == 'languages_spoken') {
+                    if($user[$dataname] == "") {
+                        $user[$dataname]="[]";
+                    }
                     $user[$dataname]=json_decode($user[$dataname]);
                     //remove any empty array keys
                     $user[$dataname]=array_filter($user[$dataname]);
