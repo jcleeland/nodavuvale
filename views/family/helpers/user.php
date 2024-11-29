@@ -129,7 +129,7 @@ if($user_id) {
                         
                         $keyimage=Utils::getKeyImage($missingperson['details']['individual_id']);
                         
-                        $helpwiththis = '<div class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer "';
+                        $helpwiththis = '<div class="flex mx-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer "';
                         $helpwiththis .= ' onclick="window.location.href=\'?to=family/individual&individual_id='.$missingperson['details']['individual_id'].'\'"';
                         $helpwiththis .= '>';
                         $helpwiththis .= '<button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white text-center rounded-full h-16 w-16 text-xl my-4 mx-1" title="Help us with this thing" ';
@@ -167,9 +167,9 @@ if($user_id) {
                         Adjust your account settings
                         </span>
                     </div>
-                    <div class="flex justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                    <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
                         <?php if(!$user['individuals_id']) { ?>
-                        <div class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer onclick="window.location.href='index.php?to=family/individual&individual_id=<?php echo $user['individuals_id'] ?>'">
+                        <div class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer onclick="window.location.href='index.php?to=family/individual&individual_id=<?php echo $user['individuals_id'] ?>'">
                             <button class="bg-ocean-blue-800 nv-bg-opacity-50 text-white rounded-full h-11 py-2 text-xl px-5 my-4 mx-1" title="Connect to our tree" onclick="window.location.href='index.php?to=family/individual&individual_id=<?php echo $user['individuals_id'] ?>'"><i class="fas fa-user-friends"></i></button>
                             <p class="text-gray-600 ml-3 h-22 overflow-y-scroll">
                                 <b>Link Yourself In</b><br />
@@ -178,7 +178,7 @@ if($user_id) {
                         </div>
                         <?php } ?>
                         <?php if($user['avatar'] == 'images/default_avatar.webp') { ?>
-                        <div class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-burnt-orange-800 hover:nv-bg-opacity-10 cursor-pointer " onclick="triggerKeyPhotoUpload();">
+                        <div class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-burnt-orange-800 hover:nv-bg-opacity-10 cursor-pointer " onclick="triggerKeyPhotoUpload();">
                             <button class="bg-burnt-orange-800 nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-6 my-4 mx-1" title="Add a profile picture" onclick="triggerKeyPhotoUpload()">
                                 <i class="fas fa-portrait"></i>
                             </button>
@@ -187,7 +187,7 @@ if($user_id) {
                             </p>
                         </div>
                         <?php } ?>
-                        <div class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-deep-green-800 hover:nv-bg-opacity-10 cursor-pointer " onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'">
+                        <div class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-deep-green-800 hover:nv-bg-opacity-10 cursor-pointer " onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'">
                             <button class="bg-deep-green-800 nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-6 my-4 mx-1" title="Edit your account">
                                 <i class="fas fa-user"></i>
                             </button>
@@ -203,11 +203,11 @@ if($user_id) {
                         Help us with missing information
                         </span>
                     </div>
-                    <div class="flex justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                    <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
                         <?php if (isset($helpwiththis)) {
                             echo $helpwiththis;
                         } ?>
-                        <div class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer ">
+                        <div class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-brown-800 hover:nv-bg-opacity-10 cursor-pointer ">
                             <button class="bg-brown-800 nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-5 my-4 mx-1" title="View your family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?php echo $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>'">
                                 <i class="fas fa-network-wired" style="transform: rotate(180deg)"></i>
                             </button>
@@ -259,7 +259,7 @@ if($user_id) {
                         Help other family members get to know you better
                         </span>
                     </div>
-                    <div class="flex justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                    <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
                     
 
                     <?php if(count($userinfos) > 0) :
@@ -269,7 +269,7 @@ if($user_id) {
                         $userinfos=array_slice($userinfos, 0, 3);
                         foreach($userinfos as $mui) : ?>
                             <div 
-                                class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer "
+                                class="flex mx-2 mb-2 border p-2 w-1/3 min-w-20 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer "
                                 onclick="editUserField('<?php echo $mui['fieldname']; ?>', '<?php echo addslashes($mui['description']); ?>', '<?php echo $user['id']; ?>');"
                                 >
                                 <button class="<?= $mui['color'] ?> nv-bg-opacity-50 text-white rounded-full h-12 py-2 text-xl px-6 my-4 mx-1" >
@@ -353,19 +353,19 @@ if($user_id) {
             </div>
 
 
-            <div class="flex justify-around items-center w-full">
+            <div class="flex flex-wrap justify-around items-center w-full">
                 <?php if($user['individuals_id']) { ?>
-                    <div class="text-gray-600 mb-6 border rounded-full p-3 cursor-pointer hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=1'">
+                    <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=1'">
                         <i class="fas fa-network-wired text-burnt-orange text-2xl"></i> <?= $user['first_name'] ?> in the Tree
                     </div>
                 <?php } ?>
-                <div class="text-gray-600 mb-6 border rounded-full text-md p-3 cursor-pointer hover:bg-ocean-blue-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=discussions&user_id=<?= $user['user_id'] ?>'">
+                <div class="text-gray-600 min-w-10 mb-6 border rounded-full text-md p-3 cursor-pointer hover:bg-ocean-blue-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=discussions&user_id=<?= $user['user_id'] ?>'">
                     <i class="fas fa-comments text-ocean-blue text-2xl"></i> <?= $discussioncount ?>
                 </div>
-                <div class="text-gray-600 mb-6 border rounded-full p-3 cursor-pointer hover:bg-deep-green-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=comments&user_id=<?= $user['user_id'] ?>'">
+                <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-deep-green-800 hover:nv-bg-opacity-10" onClick="window.location.href='index.php?to=communications/discussions&filter=comments&user_id=<?= $user['user_id'] ?>'">
                     <i class="fas fa-comment text-deep-green text-2xl"></i> <?= $commentcount ?>
                 </div>
-                <div class="text-gray-600 mb-6 border rounded-full p-3 cursor-pointer hover:bg-warm-red-800 hover:nv-bg-opacity-10">
+                <div class="text-gray-600 min-w-10 mb-6 border rounded-full p-3 cursor-pointer hover:bg-warm-red-800 hover:nv-bg-opacity-10">
                     <i class="fas fa-envelope text-warm-red text-2xl"></i> Email <?= $user['first_name'] ?>
                 </div>
             </div>
@@ -382,7 +382,7 @@ if($user_id) {
 
 
 
-            <div class="flex justify-around items-center w-full my-4">
+            <div class="flex flex-wrap justify-around items-center w-full my-4">
             <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { 
                 $editclass='cursor-pointer';
                 $titlesuffix=" (Double click to change your settings)";
@@ -393,7 +393,7 @@ if($user_id) {
             ?>
             <?php if ($user['location']) { ?>
                 <div 
-                    class="text-gray-600 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
+                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
                     title="<?= $user['first_name'] ?> lives at <?= $titlesuffix ?>"
                     data-field-value="<?= htmlspecialchars($user['location']) ?>"
                     <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
@@ -405,7 +405,7 @@ if($user_id) {
             <?php } ?>
             <?php if ($user['skills']) { ?>
                 <div 
-                    class="text-gray-600 mb-6 border rounded-full p-3 text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
+                    class="text-gray-600 w-1/3 min-w-20 mb-6 border rounded-full p-3 text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
                     title="Skills <?= $user['first_name'] ?> has<?= $titlesuffix ?>"
                     data-field-value="<?= htmlspecialchars($user['skills']) ?>"
                     <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
@@ -422,7 +422,7 @@ if($user_id) {
             $languages=implode(", ", $languages);
             if ($user['languages_spoken']) { ?>
                 <div 
-                    class="text-gray-600 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" 
+                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" 
                     title="Languages <?= htmlspecialchars($user['first_name']) ?> speaks<?= $titlesuffix ?>"
                     data-field-value="<?= $languages ?>"
                     <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
