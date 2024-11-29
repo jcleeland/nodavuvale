@@ -161,6 +161,12 @@ if($user_id) {
                 </div>
                 <div id="tasks" class="mt-6">
                     <!-- Family tree & account information -->
+                    <div class="w-full text-center pt-12 font-bold">
+                        <span class="border-t-2 pt-2 pb-4">
+                        <span class="border-t-2 pt-2">
+                        Adjust your account settings
+                        </span>
+                    </div>
                     <div class="flex justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
                         <?php if(!$user['individuals_id']) { ?>
                         <div class="flex mx-2 border p-2 w-1/3 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer onclick="window.location.href='index.php?to=family/individual&individual_id=<?php echo $user['individuals_id'] ?>'">
@@ -190,6 +196,14 @@ if($user_id) {
                                 Adjust your account settings, set your privacy levels and more..
                             </p>
                         </div>
+                    </div>
+
+                    <div class="w-full text-center pt-12 font-bold">
+                        <span class="border-t-2 pt-2 pb-4">
+                        Help us with missing information
+                        </span>
+                    </div>
+                    <div class="flex justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
                         <?php if (isset($helpwiththis)) {
                             echo $helpwiththis;
                         } ?>
@@ -240,7 +254,14 @@ if($user_id) {
             ?>                    
 
                     <!-- User information -->
+                    <div class="w-full text-center pt-12 font-bold">
+                        <span class="border-t-2 pt-2 pb-4">
+                        Help other family members get to know you better
+                        </span>
+                    </div>
                     <div class="flex justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                    
+
                     <?php if(count($userinfos) > 0) :
                         //Randomise the order of $userinfos
                         shuffle($userinfos);
@@ -384,14 +405,14 @@ if($user_id) {
             <?php } ?>
             <?php if ($user['skills']) { ?>
                 <div 
-                    class="text-gray-600 mb-6 border rounded-full p-3 <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10"
+                    class="text-gray-600 mb-6 border rounded-full p-3 text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
                     title="Skills <?= $user['first_name'] ?> has<?= $titlesuffix ?>"
                     data-field-value="<?= htmlspecialchars($user['skills']) ?>"
                     <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
                         onDblClick="editUserField('skills', 'Skills <?= $user['first_name'] ?> has', '<?= $user['id'] ?>')"
                     <?php } ?>
                 >
-                <i class="fas fa-tools text-warm-red text-2xl"></i>  <?php echo htmlspecialchars($user['skills']); ?>
+                <i class="fas fa-tools text-warm-red text-2xl float-left mr-1"></i>  <?= $user['skills'] ?>
                 </div>
             <?php } 
             $languages=json_decode($user['languages_spoken']);
