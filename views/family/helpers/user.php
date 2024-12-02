@@ -122,15 +122,13 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
     <div id="userNotifications" class="pt-10 <?= $hideuser ?>">
         <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
             <div class="pb-6">
-                <div class="relative grid grid-cols-3 justify-center items-center text-center min-h-4">
-                    <div class='w-1'></div>
+                <div class="relative flex justify-center items-center text-center min-h-4">
                     <div class="flex-grow" style="z-index: 1000">
                         <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
                             <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50"><?= $referencenamepossessive ?> Notifications</span>
                         </h3>
                         <i>Since <?= date('F j, Y', strtotime($newsincedate)) ?></i><!--&nbsp;<i class="fas fa-clock text-brown-500 cursor-pointer"></i>-->
                     </div>
-                    <div class='w-1'></div>
                 </div>
             </div>
             <div class="flex flex-wrap justify-around items-center w-full">
@@ -291,13 +289,10 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
 
 
     <!-- User's About Page (for other members to see) -->
-
-
     <div id="publicUserDetails" class="pt-10">
         <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
             <div class="pb-6">
-                <div class="relative grid grid-cols-3 justify-center items-center text-center min-h-4">
-                <div class='w-1'></div>
+                <div class="relative flex justify-center items-center text-center min-h-4">
                     <div class="flex-grow" style="z-index: 1000">
                         <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
                             <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50">About <?= $referencename ?></span>
@@ -310,7 +305,6 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                         }
                         ?>
                     </div>
-                    <div class='w-1'></div>
                 </div>
             </div>
             <div>
@@ -354,7 +348,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
 
 
 
-            <div class="flex flex-wrap justify-around items-center w-full my-4">
+            <div class="flex flex-wrap justify-between items-start w-full my-4">
             <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { 
                 $editclass='cursor-pointer';
                 $titlesuffix=" (Double click to change your settings)";
@@ -442,11 +436,9 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
         ?>
             <div class="pb-6">
                 <div class="relative -mt-4 -ml-4 -mr-4 -mb-4 flex justify-center items-center text-center border-t-2 bg-gradient-to-b from-gray-200 to-white">
-                    <div class='w-1 -mb-2'></div>
                     <div class='flex-grow text-sm italic -mb-2' style='z-index: 1000'>
                         This is the user's personal page, only visible to the user (and you because you're an admin).
                     </div>
-                    <div class='w-1 -mb-2'></div>
                 </div>
             </div>
             <?php 
