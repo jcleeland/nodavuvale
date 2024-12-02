@@ -142,13 +142,13 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                         People are talking with you
                         </span>
                     </div>
-                    <div class="flex flex-wrap justify-between items-start text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">
+                    <div class="flex flex-wrap justify-between items-start text-sm lg:text-md py-2 mx-1">
 
 
                     <?php if(count($mynewdiscussioncomments) > 0) { ?>
-                        <div class="w-1/3 p-2">
+                        <div class="w-full sm:w-1/3 min-w-20 p-2">
                             <div 
-                                class="flex ml-0 mr-2 mb-1 border p-2 w-full min-w-20 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer"
+                                class="flex ml-1 mr-1 mb-1 border p-2 w-full min-w-20 rounded-full h-22 overflow-hidden hover:bg-ocean-blue-800 hover:nv-bg-opacity-10 cursor-pointer"
                                 onClick="document.getElementById('discussionreplies').classList.toggle('hidden'); this.classList.toggle('bg-ocean-blue-800'); this.classList.toggle('nv-bg-opacity-10'); this.classList.toggle('z-1');"
                                 title="View new replies and comments on your chat posts"
                             >
@@ -168,7 +168,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                                     <?php if(count($mynewdiscussioncomments) > 0) { ?>
                                         <?php foreach($mynewdiscussioncomments as $discomment) { ?>
                                             <p 
-                                                class="w-full min-w-20 cursor-pointer border rounded-md text-center p-2 m-1 hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
+                                                class="min-w-20 cursor-pointer text-center p-2 m-1 hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
                                                 onClick="window.location.href='index.php?to=communications/discussions&filter=discussions&discussion_id=<?= $discomment['discussion_id'] ?>&comment_id=<?= $discomment['id'] ?>'"
                                             >
                                                 <?= $web->timeSince($discomment['created_at']) ?> <b><?= $discomment['first_name'] ?></b> commented 
@@ -184,7 +184,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
 
 
                     <?php if(count($mynewcommentreplies) > 0) { ?>
-                        <div class="w-1/3 p-2">
+                        <div class="w-full sm:w-1/3 min-w-20 p-2">
                             <div 
                                 class="flex ml-0 mr-2 mb-1 border p-2 w-full min-w-20 rounded-full h-22 overflow-hidden hover:bg-burnt-orange-800 hover:nv-bg-opacity-10 cursor-pointer"
                                 onClick="document.getElementById('commentreplies').classList.toggle('hidden'); this.classList.toggle('bg-burnt-orange-800'); this.classList.toggle('nv-bg-opacity-10'); this.classList.toggle('z-1');"
@@ -206,7 +206,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                                     <?php if(count($mynewcommentreplies) > 0) { ?>
                                         <?php foreach($mynewcommentreplies as $commentreply) { ?>
                                             <p
-                                                class="cursor-pointer border rounded-md text-center p-2 m-1 hover:bg-burnt-orange-800 hover:nv-bg-opacity-10"
+                                                class="cursor-pointer text-center p-2 m-1 hover:bg-burnt-orange-800 hover:nv-bg-opacity-10"
                                                 onClick="window.location.href='index.php?to=communications/discussions&filter=comments&discussion_id=<?= $commentreply['discussion_id'] ?>&comment_id=<?= $commentreply['id'] ?>'"
                                             >
                                                 <?= $web->timeSince($commentreply['created_at']) ?> <b><?= $commentreply['first_name'] ?></b> replied 
@@ -222,7 +222,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
 
 
                     <?php if(count($mynewreactions) > 0) { ?>
-                        <div class="w-1/3 p-2">
+                        <div class="w-full sm:w-1/3 min-w-20 p-2">
                             <div 
                                 class="flex ml-0 mr-2 mb-1 border p-2 w-full min-w-20 rounded-full h-22 overflow-hidden hover:bg-deep-green-800 hover:nv-bg-opacity-10 cursor-pointer"
                                 onClick="document.getElementById('reactionreplies').classList.toggle('hidden'); this.classList.toggle('bg-deep-green-800'); this.classList.toggle('nv-bg-opacity-10'); this.classList.toggle('z-1');"
@@ -260,7 +260,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                                             
                                             ?>
                                             <p
-                                                class="cursor-pointer border rounded-md text-center p-2 m-1 hover:bg-deep-green-800 hover:nv-bg-opacity-10"
+                                                class="cursor-pointer text-center p-2 m-1 hover:bg-deep-green-800 hover:nv-bg-opacity-10"
                                                 onClick="window.location.href='<?= $reactionlink ?>'"
                                             >
                                                 <?= $web->timeSince($reaction['reacted_at']) ?> <b><?= $reaction['first_name'] ?></b> reacted 
