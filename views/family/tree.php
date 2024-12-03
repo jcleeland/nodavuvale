@@ -1,3 +1,6 @@
+<!-- Link to Canvg library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvg/3.0.7/umd.min.js"></script>
+
 <?php
 
 // Check if the user is logged in and their role
@@ -182,41 +185,12 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
 
     </div>
     
-    <script>
-        //When the select with the name "findOnTree" changes, zoom to the selected individual
-        document.querySelector('select[name="findOnTree"]').addEventListener('change', function() {
-            //hide the div
-            document.getElementById('findOnTree').style.display = 'none';
-            findNodeForIndividualId(this.value)
-                .then(nodeId => {
-                    //Now remove the characters "node" from the front of the nodeId
-                    nodeId = nodeId.replace("node", "");
-                    //Now make sure it's a number not a string
-                    nodeId = parseInt(nodeId);
-                    console.log('Found node: ' + nodeId);
-                    tree.zoomToNode(nodeId, 2, 1500);
-                    // Delay the highlighting feature by 500ms to ensure it runs after the zoom is complete
-                    setTimeout(function() {
-                        // Now make the div's parent element briefly grow and then shrink
-                        var node = document.getElementById("node" + nodeId);
-                        var parent = node.parentNode;
-                        parent.style.transition = "all 0.5s";
-                        parent.style.transformOrigin = "bottom left";
-                        parent.style.transform = "scale(1.2)";
-                        setTimeout(function() {
-                            parent.style.transform = "scale(1)";
-                        }, 600);
-                    }, 600);
-                })
-                .catch(error => {
-                    console.error(error);
-                });
-        });
-    </script>
+
 
 <section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How to use the family tree" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right hidden" title="Print" id="exportTree" ><i class="fas fa-print"></i></button>
     <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" onclick="navigator.clipboard.writeText(JSON.stringify(tree))">&#128203;</button>
     <button class="hidden add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Add new individual"><i class="fas fa-plus"></i></button>
     <button class="treesettings bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Tree settings" onclick="document.getElementById('treeSettingsModal').style.display='block';"><i class="fas fa-cog"></i></button>

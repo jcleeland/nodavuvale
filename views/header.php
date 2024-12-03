@@ -14,15 +14,15 @@ if(isset($_GET['individual_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $site_name ?><?php if(!empty($pagetitlesuffix)) echo ": ".$pagetitlesuffix ?></title>
     <!-- Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="styles/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/font-awesome/css/all.min.css">
     <link href="styles/styles.css" rel="stylesheet">
 
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="styles/dTree.css">
 
     <!-- Link to Flatpickr CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="styles/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <!-- Link to tinymce editor -->

@@ -123,6 +123,64 @@ document.addEventListener("DOMContentLoaded", function() {
         openModal('add_daughter', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
 
+    document.getElementById('exportTree').addEventListener('click', function() {
+        var svgElement = document.querySelector('#family-tree svg');
+        inlineStyles(svgElement);
+        var svgData = new XMLSerializer().serializeToString(svgElement);
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+    
+        // Get the full dimensions of the SVG content
+        var viewBox = svgElement.viewBox.baseVal;
+        canvas.width = viewBox.width;
+        canvas.height = viewBox.height;
+    
+        // Use canvg to render the SVG onto the canvas
+        canvg.Canvg.fromString(ctx, svgData).then(function(instance) {
+            instance.render();
+    
+            // Create a link element
+            var imgData = canvas.toDataURL('image/png');
+            var link = document.createElement('a');
+            link.href = imgData;
+            link.download = 'tree.png';
+    
+            // Append the link to the body
+            document.body.appendChild(link);
+    
+            // Trigger the download
+            link.click();
+    
+            // Remove the link from the document
+            document.body.removeChild(link);
+        }).catch(function(error) {
+            console.error('Error rendering SVG:', error);
+        });
+    });
+    
+    function inlineStyles(svg) {
+        const styleSheets = Array.from(document.styleSheets);
+        const svgDefs = document.createElement('defs');
+        svg.prepend(svgDefs);
+    
+        styleSheets.forEach(styleSheet => {
+            try {
+                if (styleSheet.cssRules) {
+                    const cssRules = Array.from(styleSheet.cssRules);
+                    cssRules.forEach(rule => {
+                        if (rule.selectorText && svg.querySelector(rule.selectorText)) {
+                            const style = document.createElement('style');
+                            style.textContent = rule.cssText;
+                            svgDefs.appendChild(style);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Could not access stylesheet', e);
+            }
+        });
+    }
+
     
 
 });
@@ -404,6 +462,38 @@ function findNodeForIndividualId(id) {
 
 function viewTreeSearch() {
     document.getElementById('findOnTree').style.display = 'block';
+
+    /**
+    //When the select with the name "findOnTree" changes, zoom to the selected individual
+    document.querySelector('select[name="findOnTree"]').addEventListener('change', function() {
+        //hide the div
+        document.getElementById('findOnTree').style.display = 'none';
+        findNodeForIndividualId(this.value)
+            .then(nodeId => {
+                //Now remove the characters "node" from the front of the nodeId
+                nodeId = nodeId.replace("node", "");
+                //Now make sure it's a number not a string
+                nodeId = parseInt(nodeId);
+                console.log('Found node: ' + nodeId);
+                tree.zoomToNode(nodeId, 2, 1500);
+                // Delay the highlighting feature by 500ms to ensure it runs after the zoom is complete
+                setTimeout(function() {
+                    // Now make the div's parent element briefly grow and then shrink
+                    var node = document.getElementById("node" + nodeId);
+                    var parent = node.parentNode;
+                    parent.style.transition = "all 0.5s";
+                    parent.style.transformOrigin = "bottom left";
+                    parent.style.transform = "scale(1.2)";
+                    setTimeout(function() {
+                        parent.style.transform = "scale(1)";
+                    }, 600);
+                }, 600);
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    });    
+    */
 }
 
 

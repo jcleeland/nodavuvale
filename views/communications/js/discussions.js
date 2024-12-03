@@ -7,8 +7,10 @@ document.addEventListener('DOMContentLoaded', function () {
         time_24hr: true
     });
 
+    /**  */
+
     tinymce.init({
-        selector: 'textarea#content, textarea#discussion_edit_content',
+        selector: 'textarea#content',
         plugins: 'advlist autolink code lists link image charmap preview anchor pagebreak',
         menubar: false,
         toolbar_mode: 'sliding',
@@ -51,14 +53,69 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });    
 
+    tinymce.init({
+        selector: 'textarea#discussion_edit_content',
+        plugins: 'advlist autolink code lists link image charmap preview anchor pagebreak',
+        menubar: false,
+        toolbar_mode: 'sliding',
+        toolbar1: 'bold italic | fontfamily fontsize | forecolor backcolor | alignleft aligncenter alignright alignjustify ', 
+        toolbar2: 'undo redo | bulllist numlist outdent indent | link image | code removeformat | preview',
+        promotion: false,
+        license_key: 'gpl',
+        images_upload_url: 'tinymce_image_upload.php',
+        automatic_uploads: true,
+        file_picker_types: 'image',
+        file_picker_callback: function (cb, value, meta) {
+            var input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.onchange = function () {
+                var file = this.files[0];
+                var formData = new FormData();
+                formData.append('file', file);
+
+                fetch('tinymce_image_upload.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.location) {
+                        cb(result.location, { title: file.name });
+                    } else {
+                        console.error('Upload failed:', result.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            };
+            input.click();
+        },
+        setup: function (editor) {
+            editor.on('change', function() {
+                tinymce.triggerSave();
+            })
+        }
+    });        
+
     // Ensure TinyMCE content is synchronized before form submission
     document.querySelector('#newDiscussionForm').addEventListener('submit', function() {
+        console.log('Triggering tinyMCE update for new discussion');
         tinymce.triggerSave();
+        if(!this.checkValidity()) {
+            console.log('Validity check for new discussion failed')
+            event.preventDefault();
+            event.stopPropagation();
+        }
     });
 
     document.querySelector('#editDiscussionForm').addEventListener('submit', function() {
-        console.log('Triggering tinyMCE update');
+        console.log('Triggering tinyMCE update for edited discussion');
         tinymce.triggerSave();
+        if(!this.checkValidity()) {
+            console.log('Validity check for edited discussion failed');
+            event.preventDefault();
+            event.stopPropagation();
+        } 
     });    
 
     document.getElementById('showdiscussionform').addEventListener('click', function() {

@@ -405,7 +405,7 @@ function getCommentsForDiscussion($discussion_id) {
                     <input type="text" name="discussion_edit_title" id="discussion_edit_title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)">
                 </div>
                 <div class="px-2 mt-1 w-full">
-                    <textarea id="discussion_edit_content" name="discussion_edit_content" rows="6" class="border w-full rounded-lg py-1 px-2" placeholder="Edit this discussion..." required></textarea>
+                    <textarea id="discussion_edit_content" name="discussion_edit_content" rows="6" class="border w-full rounded-lg py-1 px-2" placeholder="Edit this discussion..."></textarea>
                 </div>
                 <div id="discussion_edit_event_date_section" class="w-full px-2 mt-1 hidden flex">
                     <div class="text-center w-1/5">
