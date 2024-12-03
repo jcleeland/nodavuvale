@@ -102,11 +102,18 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
             //Get any new comments to discussions for this user
 
             //See if the users' last login date is more than one month ago
-            $lastlogin = strtotime($user['last_login']);
             $now = time();
-            $newsincedate = date('Y-m-d H:i:s', strtotime('-1 month', $now));
-            if($lastlogin < strtotime($newsincedate)) {
-                $newsincedate = $user['last_login'];
+            $lastlogin=null;
+            if($user['last_login']) {
+                $lastlogin = strtotime($user['last_login']);
+                $lastlogin = strtotime($user['last_login']);
+                
+                $newsincedate = date('Y-m-d H:i:s', strtotime('-1 month', $now));
+                if($lastlogin < strtotime($newsincedate)) {
+                    $newsincedate = $user['last_login'];
+                }
+            } else {
+                $newsincedate = date('Y-m-d H:i:s', strtotime('-1 month', $now));
             }
 
             $mynewdiscussioncomments = Utils::getNewCommentsToDiscussionsIveStarted($user_id, $newsincedate);
