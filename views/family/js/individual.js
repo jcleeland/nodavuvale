@@ -287,10 +287,10 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('new-individual-type').addEventListener('change', function() {
         var selectedType = this.value;
         if(selectedType === 'existing') {
-            document.getElementById('existing-individuals').style.display = 'block';
-            document.getElementById('relationships').style.display = 'block';
+            document.getElementById('existing-individuals').style.display = '';
+            document.getElementById('relationships').style.display = '';
             document.getElementById('additional-fields').style.display = 'none';
-            document.getElementById('submit_add_relationship_btn').style.display='inline';
+            document.getElementById('submit_add_relationship_btn').style.display='';
     
             document.getElementById('relationship-form-action').value = 'link_relationship';
             document.getElementById('first_names').removeAttribute('required');
@@ -298,14 +298,14 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('additional-fields').style.display = 'none';   
         } else if(selectedType === 'new') {
             document.getElementById('existing-individuals').style.display = 'none';
-            document.getElementById('relationships').style.display = 'block';
-            document.getElementById('additional-fields').style.display = 'block';
-            document.getElementById('submit_add_relationship_btn').style.display='inline';
+            document.getElementById('relationships').style.display = '';
+            document.getElementById('additional-fields').style.display = '';
+            document.getElementById('submit_add_relationship_btn').style.display='';
     
             document.getElementById('relationship-form-action').value = 'add_relationship';
             document.getElementById('first_names').setAttribute('required', '');
             document.getElementById('last_name').setAttribute('required', '');
-            document.getElementById('additional-fields').style.display = 'block'; 
+            document.getElementById('additional-fields').style.display = ''; 
         } else {
             document.getElementById('existing-individuals').style.display = 'none';
             document.getElementById('additional-fields').style.display = 'none';    
@@ -880,6 +880,9 @@ function openModal(action, individualId, individualGender) {
     var formActionRelationship = document.getElementById('relationship');
     var relatedIndividualInput = document.getElementById('related-individual');  
     var primaryIndividualName = document.getElementById('individual_brief_name').value;
+    // extract the first word from primaryIndividualName as their FirstName
+    var primaryIndividualName = primaryIndividualName.split(' ')[0];
+
     console.log(primaryIndividualName);  
 
 
@@ -916,7 +919,19 @@ function openModal(action, individualId, individualGender) {
     var select = document.getElementById('second-parent');
     select.innerHTML = '';
 
-    document.getElementById('modal-title').innerHTML = 'Connect ' + primaryIndividualName + ' to another person';
+    //Insert the primaryIndividualName variable into any span with the class "adding_relationship_to_name"
+    var addingRelationshipToName = document.getElementsByClassName('adding_relationship_to_name');
+    for (var i = 0; i < addingRelationshipToName.length; i++) {
+        addingRelationshipToName[i].innerHTML = primaryIndividualName;
+    }
+    //Do the same for the primaryIndividualFirstName on any span with the class "adding_relationship_to_firstname"
+    var addingRelationshipToFirstName = document.getElementsByClassName('adding_relationship_to_firstname');
+    for (var i = 0; i < addingRelationshipToFirstName.length; i++) {
+        addingRelationshipToFirstName[i].innerHTML = primaryIndividualName;
+    }
+
+
+    //document.getElementById('modal-title').innerHTML = 'Connect ' + primaryIndividualName + ' to another person';
     //document.getElementById('existing-individuals').style.display = 'block';
     document.getElementById('relationships').style.display = 'block';
     document.getElementById('choose-second-parent').style.display = 'none';
