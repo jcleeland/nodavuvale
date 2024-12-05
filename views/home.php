@@ -204,8 +204,8 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                             Posted by <?= $discussion['user_first_name'] ?>&nbsp;<?= $discussion['user_last_name'] ?>
                                             <span title="<?= date('F j, Y, g:i a', strtotime($discussion['updated_at'])) ?>"><?= $web->timeSince($discussion['updated_at']); ?></span>
                                         </div>
-                                        <a href='<?= $url ?>'><b class="leading-tight text-md font-bold"><?= $discussion['title'] ?></b></a>
-                                        <p class="text-sm"><?= $web->truncateText($discussion['content'], 10, "Read more", "discussion_".$discussion['discussionId']) ?></p>
+                                        <a href='<?= $url ?>'><b class="leading-tight text-md font-bold"><?= stripslashes($discussion['title']) ?></b></a>
+                                        <p class="text-sm"><?= stripslashes($web->truncateText($discussion['content'], 10, "Read more", "discussion_".$discussion['discussionId'])) ?></p>
                                     </div>
                                 </div>
                             </div>
