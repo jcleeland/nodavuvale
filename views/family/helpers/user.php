@@ -26,14 +26,20 @@ if($user_id) {
         <?php 
         if($user['individuals_id']) { 
         ?>
-        document.getElementById('individual-options').innerHTML = '<button class="jason flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href='index.php?to=family/tree&zoom=<?php echo $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>';
-        <?php 
-        }
-        if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-            document.getElementById('individual-options').innerHTML = '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?php echo $user['first_name'] ?>&apos;s account" onclick="window.location.href='index.php?to=account&user_id=<?php echo $user['user_id'] ?>'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
-        <?php 
-        }
-        ?>
+        //Wait until the document has finished loading:
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log('Doing the buttons for individual options');
+            if(document.getElementById('individual-options')) {
+                document.getElementById('individual-options').innerHTML = '<button class="jason flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href=\'index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>\'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>';
+            }
+            <?php 
+            if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+            if(document.getElementById('individual-options')) {
+                document.getElementById('individual-options').innerHTML += '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href=\'index.php?to=account&user_id=<?= $user['user_id'] ?>\'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
+            } 
+            <?php } ?>
+        });
+        <?php } ?>
             
     </script>
 <?php 
@@ -344,18 +350,6 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
             </div>
 
 
-
-
-            <?php if ($user['about']) { ?>
-                <div class="items-center text-center w-full mb-6 border rounded-lg">
-                    <p class="text-gray-600 mb-6"><?php echo nl2br($user['about']); ?></p>
-                </div>
-            <?php } ?>
-
-
-
-
-            <div class="flex flex-wrap justify-between items-start w-full my-4">
             <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { 
                 $editclass='cursor-pointer';
                 $titlesuffix=" (Double click to change your settings)";
@@ -364,16 +358,35 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                 $titlesuffix="";
             }
             ?>
+
+            <?php if ($user['about']) { ?>
+                <div 
+                    class="items-center text-center w-full h-44 mb-6 border rounded-xl <?= $editclass ?> hover:bg-deep-green-800 hover:nv-bg-opacity-10"
+                    title="About <?= $user['first_name'] ?> <?= $titlesuffix ?>"
+                    data-field-value="id-users_about_me" 
+                    <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
+                        onDblClick="editUserField('about', 'About <?= $user['first_name'] ?>', '<?= $user['id'] ?>', event)"
+                    <?php } ?>
+                    >
+                        <div class="top-0 left-0 w-full bg-deep-green-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full">About <?= $referencename ?></div>
+                        <div class="text-gray-600 h-40 p-3 overflow-y-scroll " id="id-users_about_me"><?php echo nl2br($user['about']); ?></div>
+                </div>
+            <?php } ?>
+
+
+
+
+            <div class="flex flex-wrap justify-between items-start w-full my-4">
             <?php if ($user['location']) { ?>
                 <div 
-                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full overflow-hidden <?= $editclass ?> hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
+                    class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-xl overflow-hidden <?= $editclass ?> hover:bg-ocean-blue-800 hover:nv-bg-opacity-10"
                     title="<?= $user['first_name'] ?> lives at <?= $titlesuffix ?>"
                     data-field-value="<?= htmlspecialchars($user['location']) ?>"
                     <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-                        onDblClick="editUserField('location', 'Where <?= $user['first_name'] ?> lives', '<?= $user['id'] ?>')"  
+                        onDblClick="editUserField('location', 'Where <?= $user['first_name'] ?> lives', '<?= $user['id'] ?>', event)"  
                     <?php } ?>
                 >
-                    <div class="top-0 left-0 w-full bg-ocean-blue-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full">Location</div>
+                    <div class="top-0 left-0 w-full bg-ocean-blue-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full"><?= $referencenamepossessive ?> Location</div>
                     <div class="mx-4 mt-2 mb-2">
                         <i class="fas fa-map text-ocean-blue text-2xl"></i> <?php echo htmlspecialchars($user['location']); ?>
                     </div>
@@ -381,14 +394,14 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
             <?php } ?>
             <?php if ($user['skills']) { ?>
                 <div 
-                    class="text-gray-600 w-1/3 min-w-20 mb-6 border rounded-full overflow-hidden text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
+                    class="text-gray-600 w-1/3 min-w-20 mb-6 border rounded-xl overflow-hidden text-sm <?= $editclass ?> hover:bg-warm-red-800 hover:nv-bg-opacity-10 max-h-20 w-1/3 overflow-y-scroll"
                     title="Skills <?= $user['first_name'] ?> has<?= $titlesuffix ?>"
                     data-field-value="<?= htmlspecialchars($user['skills']) ?>"
                     <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-                        onDblClick="editUserField('skills', 'Skills <?= $user['first_name'] ?> has', '<?= $user['id'] ?>')"
+                        onDblClick="editUserField('skills', 'Skills <?= $user['first_name'] ?> has', '<?= $user['id'] ?>', event)"
                     <?php } ?>
                 >
-                    <div class="w-full bg-warm-red-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full">Skills</div>
+                    <div class="w-full bg-warm-red-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full"><?= $referencenamepossessive ?> Skills</div>
                     <div class="mx-4 mt-2 mb-2">
                         <i class="fas fa-tools text-warm-red text-2xl float-left mr-1"></i>  <?= $user['skills'] ?>
                     </div>
@@ -403,14 +416,14 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                 if ($user['languages_spoken']) { 
                     ?>
                     <div 
-                        class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-full overflow-hidden <?= $editclass ?> hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" 
+                        class="text-gray-600 w-1/3 min-w-10 mb-6 border rounded-xl overflow-hidden <?= $editclass ?> hover:bg-burnt-orange-800 hover:nv-bg-opacity-10" 
                         title="Languages <?= htmlspecialchars($user['first_name']) ?> speaks<?= $titlesuffix ?>"
                         data-field-value="<?= $languages ?>"
                         <?php if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-                            onDblClick="editUserField('languages_spoken', 'Languages spoken by <?= htmlspecialchars($user['first_name'], ENT_QUOTES, 'UTF-8') ?>', '<?= $user['id'] ?>')"
+                            onDblClick="editUserField('languages_spoken', 'Languages spoken by <?= htmlspecialchars($user['first_name'], ENT_QUOTES, 'UTF-8') ?>', '<?= $user['id'] ?>', event)"
                         <?php } ?>
                     >
-                        <div class="w-full bg-burnt-orange-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full">Languages</div>
+                        <div class="w-full bg-burnt-orange-800 nv-bg-opacity-50 text-white text-xs text-center rounded-t-full"><?= $referencenamepossessive ?> Languages</div>
                         <div class="mx-4 mt-2 mb-2">
                             <i class="fas fa-language text-burnt-orange text-2xl"></i> <?php
                                 $languages=json_decode($user['languages_spoken']);

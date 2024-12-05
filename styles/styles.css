@@ -315,6 +315,50 @@
     font-weight: 700;
 }
 
+.max-h-2xs {
+    max-height: 10rem;
+}
+
+.max-h-3xs {
+    max-height: 7.5rem;
+}
+
+.max-h-xs {
+    max-height: 20rem;
+}
+
+.max-h-sm {
+    max-height: 30rem;
+}
+
+.max-h-md {
+    max-height: 45rem;
+}
+
+.max-h-lg {
+    max-height: 60rem;
+}
+
+.max-h-xl {
+    max-height: 75rem;
+}
+
+.max-h-10 {
+    max-height: 10rem;
+}
+
+.max-h-20 {
+    max-height: 20rem;
+}
+
+.max-h-25 {
+    max-height: 25rem;
+}
+
+.max-h-30 {
+    max-height: 30rem;
+}
+
 .max-w-2xs {
     max-width: 15rem;
 }

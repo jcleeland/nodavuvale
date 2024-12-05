@@ -651,13 +651,18 @@ function userResetPassword() {
     });
 }
 
-function editUserField(fieldname, description, userId) {
+function editUserField(fieldname, description, userId, event) {
     let fieldType = "text"; // Default input type
     //See if the element which called this function has a value for data-field-value,
     // and if so, use that as the default value
     let editDefaultValue = '';
+    //Get the details of the element that called this function
+    
     if(event.target.getAttribute('data-field-value')) {
+        console.log('Found data-field-value');
         editDefaultValue = event.target.getAttribute('data-field-value');
+    } else {
+        console.log('Could not find any data to use as default value');
     }
     console.log('Default value: ' + editDefaultValue);
     // Define input types for specific fields
