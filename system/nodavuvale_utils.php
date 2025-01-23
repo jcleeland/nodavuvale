@@ -1370,6 +1370,14 @@ class Utils {
             'Story'
         ];
 
+        $response['Website'] = [
+            'Title',
+            'Date',
+            'URL',
+            'Screenshot',
+            'Story'
+        ];
+
 
         /*$response['Key Image'] = [
             'Key Image'
@@ -1424,6 +1432,9 @@ class Utils {
         $response['Origin']="text";
         $response['Arrival']="date";
         $response['Destination']="text";
+        $response['URL']="text";
+        $response['Screenshot']="file";
+
         return $response;
     }
 

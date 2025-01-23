@@ -338,6 +338,12 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                     });
                 }
                 return;
+            case 'url':
+                var inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.placeholder = 'URL';
+                inputElement.patter='https?://.+';
+                break;
             default:
                 var inputElement = document.createElement('input');
                 inputElement.type = input.split('_')[0];

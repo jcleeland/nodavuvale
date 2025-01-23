@@ -760,6 +760,10 @@ function doAction(action, individualId, actionId, event) {
                     inputs = ['individual_'+actionId];
                     values = [''];
                     break;
+                case 'url':
+                    inputs = ['url_'+actionId];
+                    values = [''];
+                    break;
                 default:
                     inputs = ['text_'+actionId];
                     values = [''];
@@ -840,7 +844,7 @@ function openEventModal(action, individualId, eventId) {
     var formActionInput = document.getElementById('event-action');
     var eventIndividualIdInput = document.getElementById('event-individual_id');
     var eventEventType = '';
-    //check if there is an item with the id 'event-type', and if so, chanbe eventType to the value of that item
+    //check if there is an item with the id 'event-type', and if so, change eventType to the value of that item
     if(document.getElementById('event-type')) {
         eventEventType = document.getElementById('event-type').value;
     }
@@ -866,6 +870,9 @@ function updateEventContents(eventType) {
     //iterate through the items with a class .event-field and, if they also have the class "eventType" show them, otherwise hide them
     var eventFields = document.querySelectorAll('.event-field');
     eventFields.forEach(function(field) {
+        //Show all the classes for the field
+        console.log(field.classList);
+
         if(field.classList.contains(eventType)) {
             field.style.display = 'block';
         } else {

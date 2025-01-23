@@ -619,12 +619,21 @@ if ($individual_id) {
                                             <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
                                                 <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this date" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo date("D, d M Y", strtotime($item['detail_value'])); ?></span>
                                             </div>
-                                        <?php else: ?>
 
+                                        <?php else: ?>
                                             <div class="float-left w-2/3">
-                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars(stripslashes($item['detail_value']))); ?></span>
+                                            <?php if (filter_var($item['detail_value'], FILTER_VALIDATE_URL)) : ?>
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
+                                                    <a href="<?= $item['detail_value'] ?>" target="_blank">
+                                                        <i class="fas fa-link"></i> Weblink
+                                                    </a>    
+                                                </span>
+                                            <?php else: ?>
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
+                                                    <?php echo nl2br(htmlspecialchars(stripslashes($item['detail_value']))); ?>
+                                                </span>
+                                            <?php endif; ?>
                                             </div>
-                                    
                                         <?php endif; ?>
                                     <?php endif; ?>
 
