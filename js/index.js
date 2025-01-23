@@ -115,6 +115,7 @@ async function uploadFileAndItem(individualId, eventType, eventDetail, fileDescr
  * );
  */
 function showCustomPrompt(title, message, inputs, values, callback) {
+    console.log('Showing custom prompt with inputs:', inputs, 'and values:', values);
     var customPrompt = document.getElementById('customPrompt');
     var customPromptTitle = document.getElementById('customPromptTitle');
     var customPromptMessage = document.getElementById('customPromptMessage');
@@ -403,13 +404,14 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     customPromptOk.onclick = function() {
         customPrompt.classList.remove('show');
-        console.log('Inputs:');
-        console.log(inputs);
+        //console.log('Inputs:');
+        //console.log(inputs);
         var inputValues = inputs.map((input, index) => {
             var inputElement = document.getElementById('customPromptInput' + index);
+            //console.log('Inspecting input element:', input);
             //if the last 4 characters of the input string are 'file' then return the file object
-            if (input.toLowerCase().slice(-4).includes('file')) {
-                console.log(input.toLowerCase().slice(-4));
+            if (input.split('_')[0].toLowerCase() === 'file') {
+                //console.log(input.toLowerCase().slice(-4));
                 return inputElement.files[0]; // Return the File object
             }
             return inputElement.value;

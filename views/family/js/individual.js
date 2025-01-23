@@ -653,6 +653,7 @@ function doAction(action, individualId, actionId, event) {
         var eventbutton = event.target.closest('button');  
     }
     console.log('Doing action:', action, 'for individual ID:', individualId, ' and action ID:', actionId, ' for event:', event);
+
     switch(action) {
         case 'delete_item':
             if (confirm('Are you sure you want to delete this item?')) {
@@ -725,11 +726,12 @@ function doAction(action, individualId, actionId, event) {
                 )}
             break;
         case 'add_sub_item':
+            console.log('Adding a sub item');
             var groupId = eventelement.getAttribute('data-group-id');
             var groupType = eventelement.getAttribute('data-group-item-type');
             var groupName = eventelement.getAttribute('data-group-event-name');
         
-            console.log(groupId);
+            console.log('Group Id: ',groupId);
             // Open the modal to add a new item
             // openModal('add_item', individualId, actionId);
             
@@ -742,26 +744,31 @@ function doAction(action, individualId, actionId, event) {
 
             switch(groupType) {
                 case 'file':
+                    console.log('Initiating settings for adding a file and description');
                     inputs = ['file_'+actionId, 'Description'];
+                    values = ['', actionId+' file'];
                     break;
                 case 'date':
                     inputs = ['date_'+actionId];
+                    values = [''];
                     break;
                 case 'textarea':
                     inputs = ['textarea_'+actionId];
+                    values = [''];
                     break;
                 case 'individual':
                     inputs = ['individual_'+actionId];
+                    values = [''];
                     break;
                 default:
                     inputs = ['text_'+actionId];
+                    values = [''];
                     break;
             }
 
 
-            showCustomPrompt('Add ' + actionId, 'Add ' + actionId + ' to this group', inputs, [''], async function(inputValues) {
+            showCustomPrompt('Add ' + actionId, 'Add ' + actionId + ' to this event', inputs, values, async function(inputValues) {
                 if (inputValues !== null) {
-
                     
                     var formData = new FormData();
                     var event_group_name = groupName;
@@ -804,10 +811,10 @@ function doAction(action, individualId, actionId, event) {
                     }
         
                     try {
+                        console.log(formData);
                         const response = await getAjax('add_file_item', formData);
                         if (response.status === 'success') {
                             // Reload the page
-                            //alert('Item has been added');
                             location.reload();
                         } else {
                             alert('Error: ' + response.message);
