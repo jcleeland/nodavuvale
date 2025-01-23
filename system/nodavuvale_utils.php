@@ -1069,17 +1069,18 @@ class Utils {
          
         if($individual_id && $individual_id != "%") {
             $sortedItems=[];
-            //echo "<pre>"; print_r($groupedItems); echo "</pre>";
             foreach($groupedItems as $key=>$group) {
                 $sortDate=date('Y-m-d');
                 $groupType=$group['item_group_name'];
                 //Iterate through the items looking for dates, and set the sortDate.
                 // If there are two dates, use the one with the $item['detail_type'] = "Started"
                 if($group) {
-                    foreach($group['items'] as $item) {
-                        if(in_array($item['detail_type'], $dateTypes) && $item['detail_type'] != 'Ended') {
-                            $sortDate=$item['items_item_value'];
-                            break;
+                    if(isset($group['items'])) {
+                        foreach($group['items'] as $item) {
+                            if(in_array($item['detail_type'], $dateTypes) && $item['detail_type'] != 'Ended') {
+                                $sortDate=$item['items_item_value'];
+                                break;
+                            }
                         }
                     }
                 }
@@ -1377,15 +1378,16 @@ class Utils {
         //ksort($response);
         
         // Other
-        $response['Other (group)'] = [
+        $response['Other-group'] = [
             'Date',
             'Title',
             'Source',
             'Photo',
+            'Reference',
             'Story'
         ];
 
-        $response['Other (single)'] = [
+        $response['Other-single'] = [
             'free'
         ];
 

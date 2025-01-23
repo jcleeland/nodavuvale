@@ -533,8 +533,7 @@ if ($individual_id) {
                             </button>
                     <?php                                 
                     } else {
-                        //echo "<pre>"; print_r($itemgroup); echo "</pre>";
-                        $reference=(isset($item_types[$itemgroup['items'][0]['detail_type']])) ? $item_types[$itemgroup['items'][0]['detail_type']] : [$itemgroup['items'][0]['detail_type']];    
+                        $reference=(isset($item_types[$itemgroup['items'][0]['detail_type']])) ? $item_types[$itemgroup['items'][0]['detail_type']] : [$itemgroup['items'][0]['detail_type']];
                         $groupTitle=$itemgroup['item_group_name'];
                         ?>
                         <div id="item_id_<?= $itemgroup['items'][0]['item_id'] ?>" class="document-item mb-4 text-center p-1 shadow-lg rounded-lg text-sm relative">
@@ -611,9 +610,9 @@ if ($individual_id) {
                                         <?php elseif($item_styles[$itemname] == "textarea") : ?>
                                     
                                             <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
-                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id'])); ?></span>
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xxs " title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo stripslashes(nl2br($web->truncateText($item['detail_value'], 50, 'Read more...', "hiddenStory_".$item['item_id']))); ?></span>
                                             </div>
-                                            <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars($item['detail_value'])) ?></div>                                                    
+                                            <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars(stripslashes($item['detail_value']))) ?></div>                                                    
 
                                         <?php elseif($item_styles[$itemname] == "date" && $item['detail_value'] && preg_match("/\d{4}-\d{2}-\d{2}/", $item['detail_value'])) : ?>
                                     
@@ -623,7 +622,7 @@ if ($individual_id) {
                                         <?php else: ?>
 
                                             <div class="float-left w-2/3">
-                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars($item['detail_value'])); ?></span>
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs" title="Double click to edit this text" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')"><?php echo nl2br(htmlspecialchars(stripslashes($item['detail_value']))); ?></span>
                                             </div>
                                     
                                         <?php endif; ?>
