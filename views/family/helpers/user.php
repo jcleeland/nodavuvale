@@ -470,7 +470,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                     <div class='w-1'></div>
                     <div class="flex-grow" style="z-index: 1000">
                         <h3 class="text-2xl whitespace-nowrap font-bold p-1 rounded" style="z-index: 1000" >
-                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50">My Controls</span>
+                            <span class="text-ocean-blue bg-white-800 nv-bg-opacity-50">Your Controls</span>
                         </h3>
                     </div>
                     <div class='w-1'></div>
@@ -597,6 +597,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                             </p>
                         </div>
                     </div>
+
             <?php
             //Build an array of divs to show missing user data
             $userdata=array(
@@ -636,7 +637,7 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                     <!-- User information -->
                     <div class="w-full text-center pt-12 font-bold">
                         <span class="border-t-2 pt-2 pb-4">
-                        Help other family members get to know you better
+                        Help us get to know you better
                         </span>
                     </div>
                     <div class="flex flex-wrap justify-around items-center text-xs sm:text-sm md:text-sm lg:text-md py-2 mx-1">

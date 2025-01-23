@@ -494,7 +494,7 @@ if ($individual_id) {
                                 ?>
 
                                 <!-- Content Section -->
-                                <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
+                                <?php $content = stripslashes(nl2br($web->truncateText($discussion['content'], '100', 'read more...', 'individualstory_'.$discussion['id'], "expand"))); ?>
                                 <div 
                                     class="discussion-item-content mt-2" 
                                     id="individualstory_<?= $discussion['id'] ?>">

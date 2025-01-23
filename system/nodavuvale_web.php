@@ -126,35 +126,35 @@ class Web {
      * 
      */
     public function truncateText($text, $wordLimit = 100, $readMoreMessage='Read more', $textDivId = 'truncatedTextDiv', $method='popup') {
-        //We need to get rid of any html tags in the text, and only look at 
-        //the text content
+        // We need to get rid of any html tags in the text, and only look at the text content
         $wordsonlytext = strip_tags($text);
-        //echo "<pre>"; print_r($text); echo "</pre>"; die();
-        //After finding the last word to show, we then
-        // need to find that in the original $text, and cut it off there
-        
-        //Now create an array of words from $wordsonlytext, splitting 
-        // by spaces or new lines
+
+        // Now create an array of words from $wordsonlytext, splitting by spaces or new lines
         $words = preg_split('/\s+/', $wordsonlytext);
-        $text=addslashes($text);
-
-        if(count($words) > $wordLimit) {
-            //Find the $wordLimit word
+        $text = addslashes($text);
+    
+        if (count($words) > $wordLimit) {
+            // Find the $wordLimit word
             $lastWord = $words[$wordLimit];
-            //Find the position of the $lastWord in the original text,
-            // remembering that it will sometimes be repeated
-            $lastWordPosition = strpos($text, $lastWord);
-
-            //Now we can cut the text off at that position
-            $output = substr($text, 0, $lastWordPosition);
-            //echo "<pre class='border-3'>"; print_r($output); echo "</pre>";
-            $output = $this->closeTags($output);
-            if($method=="popup") {
-                $output .= '<span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer text-blue" onClick="showStory(\'Story\', \''.$textDivId.'\')"> &hellip; </span>';
-            } elseif ($method=="expand") {
-                $output .= ' <span title="'.htmlspecialchars($readMoreMessage).'" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="expandStory(\''.$textDivId.'\')">more &hellip; </span>';
+            
+            // Use a regular expression to find the position of the $lastWord as a whole word
+            $pattern = '/\b' . preg_quote($lastWord, '/') . '\b/';
+            if (preg_match($pattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
+                $lastWordPosition = $matches[0][1];
+                // Now we can cut the text off at that position
+                $output = substr($text, 0, $lastWordPosition + strlen($lastWord));
+                // echo "<pre class='border-3'>"; print_r($output); echo "</pre>";
+                $output = $this->closeTags($output);
+                if ($method == "popup") {
+                    $output .= '<span title="' . htmlspecialchars($readMoreMessage) . '" class="bold cursor-pointer text-blue" onClick="showStory(\'Story\', \'' . $textDivId . '\')"> &hellip; </span>';
+                } elseif ($method == "expand") {
+                    $output .= ' <span title="' . htmlspecialchars($readMoreMessage) . '" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="expandStory(\'' . $textDivId . '\')">more &hellip; </span>';
+                }
+                return $output;
+            } else {
+                // If the word is not found, return the original text
+                return $text;
             }
-            return $output;
         } else {
             return $text;
         }
