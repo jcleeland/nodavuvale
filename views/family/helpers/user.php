@@ -35,7 +35,7 @@ if($user_id) {
             <?php 
             if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
             if(document.getElementById('individual-options')) {
-                document.getElementById('individual-options').innerHTML += '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href=\'index.php?to=account&user_id=<?= $user['user_id'] ?>\'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML();
+                document.getElementById('individual-options').innerHTML += '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href=\'index.php?to=account&user_id=<?= $user['user_id'] ?>\'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML;
             } 
             <?php } ?>
         });

@@ -10,6 +10,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     include("helpers/update_individual.php");
 }
 
+// Handle file upload for existing discussions
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files'])) {
+    $discussion_id = (int)$_POST['discussion_id'];
+    $user_id = (int)$_POST['user_id'];
+    if(!isset($discussion_id) || !isset($user_id)) {
+        echo "Discussion ID or User ID not set";
+        exit;
+    }
+
+    // Validate discussion ID and user ID
+    if ($discussion_id > 0 && $user_id > 0) {
+        // Handle file upload
+        $web->handleDiscussionFileUpload($_FILES['add_discussion_files'], $discussion_id, $user_id);
+
+        // Redirect to avoid form resubmission issues
+        ?>
+    <center>File(s) uploaded</center>
+    <script type="text/javascript">
+        window.location.href = "index.php?to=family/individual&individual_id=<?= $individual_id ?>";
+    </script>
+        <?php
+        exit;
+    }
+}
+
 //If the page is loaded with a $_GET['discussion_id'] parameter, scroll so that the top of that div is at the top of the screen
 if (isset($_GET['discussion_id'])) {
     ?>
@@ -267,7 +293,18 @@ if ($individual_id) {
     </div>
 </section>
 
-
+<!-- Gallery Modal Popup -->
+<div id="gallery-modal" class="modal">
+    <div class="modal-content w-4/5 max-h-screen my-5 overflow-y-auto">
+        <div class="cursor-pointer py-1 bg-deep-green-800 text-white">
+            <span id="slideshowClose" class="close-slideshow-btn absolute right-1 top-0 text-xl" onClick="document.getElementById('gallery-modal').style.display='none'">&times;</span>
+            <h2 id="customPromptTitle" class="text-lg font-bold text-center">Slideshow</h2>
+        </div>
+        <div id="gallery-modal-content" class="relative flex items-center justify-left overflow-x-scroll">
+            <!-- Slideshow content will go here -->
+        </div>
+    </div>
+</div>
 
 
 
@@ -342,33 +379,133 @@ if ($individual_id) {
                 <div class="grid grid-cols-1 gap-8">
                     <?php foreach($discussions as $discussion): ?>
                         <?php 
-                            $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; 
+                        // Gather any files associated with this discussion
+                        $files = $db->fetchAll("SELECT * FROM discussion_files WHERE discussion_id = ?", [$discussion['id']]);
+                        $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; 
                         ?>
                         <div class="discussion-item" id="discussion_id_<?= $discussion['id'] ?>">
                             <a href='<?= "?to=family/users&user_id=".$discussion['user_id'] ?>'>
-                                <img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md avatar-float-left object-cover mr-1 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
+                                <img 
+                                    src="<?= htmlspecialchars($avatar_path) ?>" 
+                                    alt="User Avatar" 
+                                    class="avatar-img-md avatar-float-left object-cover mr-1 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?>" 
+                                    title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">                
                             </a>
                             <div class='discussion-content'>
                                 <div class="text-sm text-gray-500 relative">
-                                    Posted by <b>
-                                        <a href='<?= "?to=family/users&user_id=".$discussion['user_id'] ?>'><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></a>
-                                    </b><br />
+                                    Posted by
+                                        <a href='<?= "?to=family/users&user_id=".$discussion['user_id'] ?>'>
+                                            <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b>
+                                        </a>
+                                    <br />
                                     <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>">
                                         <?= $web->timeSince($discussion['created_at']); ?>
                                     </span>
                                     <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
-                                        <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-10 top-2 font-normal text-xs">
+                                        <button 
+                                            type="button" 
+                                            title="Edit this story" 
+                                            onClick="editDiscussion(<?= $discussion['id'] ?>);" 
+                                            class="absolute text-gray-400 hover:text-green-800 rounded-full py-1 px-2 m-0 top-1 font-normal text-xs right-14" >
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button type="button" title="Delete this story" onClick="deleteDiscussion(<?= $discussion['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                        <button 
+                                            type="button" 
+                                            title="Delete this story" 
+                                            onClick="deleteDiscussion(<?= $discussion['id'] ?>);" 
+                                            class="absolute text-gray-400 hover:text-red-800 rounded-full py-1 px-2 m-0 top-1 font-normal text-xs right-6">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     <?php endif; ?>  
+                                        <form id="discussion-form-<?= $discussion['id'] ?>" method="POST" enctype="multipart/form-data" >                                
+                                            <label 
+                                                for="add-discussion-files-<?= $discussion['id'] ?>" 
+                                                title="Add a picture or file to this discussion" 
+                                                class="absolute text-gray-400 hover:text-green-800 py-1 px-2 m-0 top-1 font-normal text-xs cursor-pointer right-20"
+                                            >
+                                                <i class="fas fa-upload mr-2"></i>
+                                            </label>
+                                            <input type="file" id="add-discussion-files-<?= $discussion['id'] ?>" name="add_discussion_files[]" multiple class="hidden">
+                                            <input type="hidden" name="discussion_id" value="<?= $discussion['id'] ?>">
+                                            <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>">
+                                        </form>                                    
                                 </div>
-                                <h3 class="text-2xl font-bold" id="discussion_title_<?= $discussion['id'] ?>"><?= htmlspecialchars($discussion['title']) ?></h3>
-                                <?php $content = $web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand"); ?>
-                                <div class="mt-2" id="individualstory_<?= $discussion['id'] ?>"><?= stripslashes($content) ?></div>
-                                <div class="mt-2 hidden" id="fullindividualstory_<?= $discussion['id'] ?>"><?= nl2br($discussion['content']) ?></div>
+
+                                <!-- Title Section -->
+                                <div id='discussion-title-<?= $discussion['id'] ?>' class='relative'>
+                                    <h3 class="text-2xl font-bold" id="discussion_title_<?= $discussion['id'] ?>">
+                                        <?= htmlspecialchars($discussion['title']) ?>
+                                    </h3>
+                                </div>
+
+                                <!-- Photo / File Gallery -->
+                                <?php
+                                //Insert a photo / file gallery if there are any files. It should be a carousel
+                                if (!empty($files)) {
+                                    ?>
+                                    <div class='file-gallery relative flex overflow-x-auto mt-2 border rounded-lg p-2 cursor-pointer' onClick="showGalleryModal(<?= $discussion['id'] ?>);" title="View the gallery">
+                                    <?php
+                                    foreach ($files as $file) {
+                                        $file_path = $file['file_path'];
+                                        $file_name = substr($file_path, strrpos($file_path, '/') + 1);
+                                        $file_type = $file['file_type'];
+                                        $file_description=$file['file_description'] ? $file['file_description'] : $file_type." file";
+                                        $supported_image_types = [
+                                            'image/jpeg',
+                                            'image/png',
+                                            'image/gif',
+                                            'image/webp',
+                                            'image/svg+xml'
+                                        ];
+                                        ?>
+                                        <div id="discussion_file_id_<?= $file['id'] ?>" class="file-gallery-item h-28 w-20 relative rounded-lg flex flex-shrink-0 flex-col items-center justify-center bg-deep-green-800 nv-bg-opacity-10 m-2">
+                                            <?php if($file['user_id']==$_SESSION['user_id'] || $discussion['user_id']==$_SESSION['user_id'] || $is_admin): ?>
+                                                <button type="button" title="Delete this file" onClick="deleteDiscussionFile(<?= $file['id'] ?>);" class="absolute delete-image-button text-gray-300 hover:text-red-800 rounded-full py-1 px-2 m-0 -right-1 -top-1 font-normal text-sm hidden">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <?php
+                                            if (in_array($file_type, $supported_image_types)) {
+                                                ?>
+                                                <img src='<?= $file_path ?>' data-file-path='<?= $file_path ?>' title='<?= $file_name ?>' class='object-cover h-16 w-16 rounded-lg' />
+                                                <?php
+                                            } else {
+                                                // For other files, show a generic icon using the FontAwesome class based on the file type
+                                                $file_icon = $web->getFontAwesomeIcon($file_name);
+                                                ?>
+                                                <div class='bg-gray-200 text-gray-500 h-16 w-16 flex items-center justify-center'>
+                                                    <i data-file-path='<?= $file_path ?>' class='fa <?= $file_icon ?> fa-2x mb-2'></i>
+                                                </div>
+                                                <?php
+                                            }
+                                            $spanOption="";
+                                            if($file['user_id']==$_SESSION['user_id'] || $discussion['user_id']==$_SESSION['user_id'] || $is_admin) {
+                                                $spanOption="onDblClick='editDiscussionFileDescription(".$file['id'].")' title='Double-click to edit this desciption'";
+                                            }
+                                            ?>
+                                            <span id='discussion_file_description_<?= $file['id']; ?>'class='text-xxs text-gray-500 text-center overflow-y-scroll p-1 h-8' <?=$spanOption ?>><?= $file_description ?></span>
+                                        </div>
+                                        <?php
+                                    }
+                                    ?>
+                                    </div>
+                                    <?php
+                                }
+                                ?>
+
+                                <!-- Content Section -->
+                                <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
+                                <div 
+                                    class="discussion-item-content mt-2" 
+                                    id="individualstory_<?= $discussion['id'] ?>">
+                                    <?= $content ?>
+                                </div>
+                                <div 
+                                    class="discussion-item-content mt-2 hidden" 
+                                    id="fullindividualstory_<?= $discussion['id'] ?>">
+                                    <?= stripslashes(nl2br($discussion['content'])) ?>
+                                    <span style="font-family: 'times new roman', <span title=" read="" more..."="" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="shrinkStory('individualstory_<?= $discussion['id'] ?>')">less … </span>
+                                </div>
                                 <div class="discussion-reactions" data-discussion-id="<?= $discussion['id'] ?>">
                                     <svg alt="Like" class="like-image" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
                                         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

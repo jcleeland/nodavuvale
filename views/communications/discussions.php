@@ -463,26 +463,49 @@ function getCommentsForDiscussion($discussion_id) {
                 <?php
                 // Gather any files associated with this discussion
                 $files = $db->fetchAll("SELECT * FROM discussion_files WHERE discussion_id = ?", [$discussion['id']]);
+                $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; 
                 ?>
-                <?php $avatar_path=isset($discussion['avatar']) ? $discussion['avatar'] : 'images/default_avatar.webp'; ?>
                 <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative" id="discussion_id_<?= $discussion['id'] ?>">
                     <div class="discussion-item"> 
-                        <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><img src="<?= htmlspecialchars($avatar_path) ?>" alt="User Avatar" class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>"></a>
+                        <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'>
+                            <img 
+                                src="<?= htmlspecialchars($avatar_path) ?>" 
+                                alt="User Avatar" 
+                                class="avatar-img-md mr-2 avatar-float-left object-cover <?= $auth->getUserPresence($discussion['user_id']) ? "userpresent" : "userabsent"; ?>" 
+                                title="<?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?>">
+                        </a>
                         <div class='discussion-content'>
                             <!-- User Information -->
                             <div class="text-sm text-gray-500">
-                                <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'><b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b></a><br />
-                                <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>"><?= $web->timeSince($discussion['created_at']); ?></span>
+                                    <a href='?to=family/users&user_id=<?= $discussion['user_id'] ?>'>
+                                        <b><?= $discussion['first_name'] ?> <?= $discussion['last_name'] ?></b>
+                                    </a>
+                                <br />
+                                <span title="<?= date('F j, Y, g:i a', strtotime($discussion['created_at'])) ?>">
+                                    <?= $web->timeSince($discussion['created_at']); ?>
+                                </span>
                                 <?php if ($is_admin || $_SESSION['user_id'] == $discussion['user_id']): ?>
-                                    <button type="button" title="Edit this story" onClick="editDiscussion(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-green-800 rounded-full py-1 px-2 m-0 right-14 top-1 font-normal text-xs">
+                                    <button 
+                                        type="button" 
+                                        title="Edit this story" 
+                                        onClick="editDiscussion(<?= $discussion['id'] ?>);" 
+                                        class="absolute text-gray-400 hover:text-green-800 rounded-full py-1 px-2 m-0 right-14 top-1 font-normal text-xs">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button type="button" title="Delete this story" onClick="deleteDiscussion(<?= $discussion['id'] ?>);" class="absolute text-gray-400 hover:text-red-800 rounded-full py-1 px-2 m-0 right-6 top-1 font-normal text-xs">
+                                    <button 
+                                        type="button" 
+                                        title="Delete this story" 
+                                        onClick="deleteDiscussion(<?= $discussion['id'] ?>);" 
+                                        class="absolute text-gray-400 hover:text-red-800 rounded-full py-1 px-2 m-0 right-6 top-1 font-normal text-xs">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 <?php endif; ?>
                                     <form id="discussion-form-<?= $discussion['id'] ?>" method="POST" enctype="multipart/form-data" >                                
-                                        <label for="add-discussion-files-<?= $discussion['id'] ?>" title="Add a picture or file to this discussion" class="absolute text-gray-400 hover:text-gree-800 py-1 px-2 m-0 right-20 top-1 font-normal text-xs cursor-pointer">
+                                        <label 
+                                            for="add-discussion-files-<?= $discussion['id'] ?>" 
+                                            title="Add a picture or file to this discussion" 
+                                            class="absolute text-gray-400 hover:text-green-800 py-1 px-2 m-0 right-20 top-1 font-normal text-xs cursor-pointer"
+                                        >
                                             <i class="fas fa-upload mr-2"></i>
                                         </label>
                                         <input type="file" id="add-discussion-files-<?= $discussion['id'] ?>" name="add_discussion_files[]" multiple class="hidden">
@@ -508,7 +531,9 @@ function getCommentsForDiscussion($discussion_id) {
                             
                             <!-- Title Section -->
                             <div id='discussion-title-<?= $discussion['id'] ?>' class='relative'>
-                                <h3 class="text-2xl font-bold"><?= htmlspecialchars($discussion['title']) ?></h3>
+                                <h3 class="text-2xl font-bold">
+                                    <?= htmlspecialchars($discussion['title']) ?>
+                                </h3>
                             </div>
 
                             <!-- Photo / File Gallery -->
@@ -568,10 +593,14 @@ function getCommentsForDiscussion($discussion_id) {
 
                             <!-- Content Section -->
                             <?php $content = stripslashes($web->truncateText(nl2br($discussion['content']), '100', 'read more...', 'individualstory_'.$discussion['id'], "expand")); ?>
-                            <div id="individualstory_<?= $discussion['id'] ?>" class="discussion-item-content mt-2">
+                            <div 
+                                class="discussion-item-content mt-2" 
+                                id="individualstory_<?= $discussion['id'] ?>">
                                 <?= $content ?>
                             </div>
-                            <div id="fullindividualstory_<?= $discussion['id'] ?>" class="discussion-item-content mt-2 hidden">
+                            <div 
+                                class="discussion-item-content mt-2 hidden"
+                                id="fullindividualstory_<?= $discussion['id'] ?>" >
                                 <?= stripslashes(nl2br($discussion['content'])) ?>
                                 <span style="font-family: 'times new roman', <span title=" read="" more..."="" class="bold cursor-pointer text-gray-800 text-sm bg-ocean-blue-800 nv-bg-opacity-20 rounded px-1" onClick="shrinkStory('individualstory_<?= $discussion['id'] ?>')">less … </span>
                             </div>
@@ -605,6 +634,7 @@ function getCommentsForDiscussion($discussion_id) {
                                     
                                 </div>
                             </div>
+                            
                             <div class="comments mt-4">
                                 <!-- Fetch and display comments -->
                                 <?php $comments = getCommentsForDiscussion($discussion['id']); ?>

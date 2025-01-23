@@ -180,7 +180,21 @@ document.addEventListener("DOMContentLoaded", function() {
     const editGenderInput = document.getElementById('edit-gender');
     const editIsDeceasedInput = document.getElementById('edit-is_deceased');
 
+    // Handle file uploads for existing discussions
+    var discussionForms = document.querySelectorAll('form[id^="discussion-form-"]');
     
+    discussionForms.forEach(function(form) {
+        var fileInput = form.querySelector('input[type="file"]');
+        //var label = form.querySelector('label[for="' + fileInput.id + '"]');
+        
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                setTimeout(function() {
+                    form.submit();
+                }, 100);
+            }
+        });
+    });    
 
     // Function to open the "Edit" modal and populate it with the individual's data
     async function openEditModal(individualId) {
@@ -1154,4 +1168,98 @@ function editDiscussion(discussion_id) {
 function editComment(comment_id) {
     console.log('Editing comment with ID:', comment_id);
 
+}
+
+function showGalleryModal(discussionId) {
+    console.log('Showing gallery modal for discussion:', discussionId);
+    const galleryModal = document.getElementById('gallery-modal');
+    const galleryModalContent = document.getElementById('gallery-modal-content');
+    galleryModalContent.innerHTML = ''; // Clear the content
+    const files = document.querySelectorAll(`#discussion_id_${discussionId} .file-gallery-item img`);
+    files.forEach((file) => {
+        //Get the parent div and add it to the modal - note that the parent div is two parents up
+        const div = file.parentElement.cloneNode(true);
+        //show the id of the div in the console
+        //console.log(div.id);
+        //Change the id of the new div by adding "gallery_" to the beginning of the id
+        div.id = 'gallery_' + div.id;
+        //replace the h-24 and w-20
+        div.classList.remove('h-24');
+        div.classList.remove('w-20');
+        div.classList.add('h-96');
+        div.classList.add('w-80');
+        
+        //Remove the hidden class from the deleteImage buttons
+        const deleteImageButtons = div.querySelectorAll('.delete-image-button');
+        deleteImageButtons.forEach((button) => {
+            button.classList.remove('hidden');
+        });
+        //Replace the h-16 and w-16 in the img tag with h-60 and w-60
+        const img = div.querySelector('img');
+        img.classList.remove('h-16');
+        img.classList.remove('w-16');
+        img.classList.add('h-72');
+        img.classList.add('w-72');
+        //extract the "data-file-path" value from each image
+        const filePath = img.getAttribute('data-file-path');
+        //Wrap each img in an anchor tag that links to the filePath
+        const anchor = document.createElement('a');
+        console.log(anchor);
+        anchor.href = filePath;
+        anchor.target = '_blank';
+        anchor.appendChild(img);
+        div.appendChild(anchor);
+        
+
+        //Replace the text-xxs in the span tag with text-sm
+        const span = div.querySelector('span');
+        span.classList.remove('h-8');
+        span.classList.remove('text-xxs');
+        span.classList.add('text-sm');
+        span.classList.remove('p-1');
+        span.classList.add('p-2');
+        span.id='gallery_file_description_'+span.id.split('_')[3]; 
+
+        galleryModalContent.appendChild(div);
+    });
+    galleryModal.style.display='block';
+}
+
+function editDiscussionFileDescription(fileId) {
+
+    const galleryModal = document.getElementById('gallery-modal');
+    if (galleryModal.style.display === 'block') {
+        //Set the 'customModal' div's z-index to 1000000 to ensure it is on top of the gallery modal
+        originalCustomPromptZindex = document.getElementById('customPrompt').style.zIndex;
+        document.getElementById('customPrompt').style.zIndex = 1000000;
+    }
+    console.log('Editing file description for file:', fileId);
+    var currentDescription=document.getElementById('discussion_file_description_'+fileId).textContent;
+
+    //Use the showCustomPrompt function to allow the user to edit the story
+    showCustomPrompt('Edit Description', 'Edit the description here:', ['fileDescription_textarea'], [currentDescription], async function(inputValues) {
+        if (inputValues !== null) {
+            var newFileDescription = inputValues[0];
+            getAjax('update_discussion_file_description', {fileId: fileId, fileDescription: newFileDescription})
+                .then(response => {
+                    if(response.success) {
+                        document.getElementById('discussion_file_description_'+fileId).textContent = newFileDescription;
+                        //If there is a "gallery_discussion_file_description_'+fileId' element, update it as well
+                        if (document.getElementById('gallery_file_description_'+fileId)) {
+                            document.getElementById('gallery_file_description_'+fileId).textContent = newFileDescription;
+                        }
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                })
+                .catch(error => {
+                    alert('An error occurred while updating the item description: ' + error.message);
+                });
+        }
+        if (galleryModal.style.display === 'block') {
+            //Reset the 'customModal' div's z-index to its original value
+            document.getElementById('customPrompt').style.zIndex = originalCustomPromptZindex;
+        }
+    });
+    return;    
 }
