@@ -504,6 +504,12 @@ async function openStoryModal(individualId) {
         console.log(individualData);
         // Populate the form with the individual's data
         storyIndividualIdInput.value = individualId;
+        editorCSS=[
+            'styles/tailwind.min.css',
+            'styles/styles.css',
+            'styles/dTree.css',
+            'styles/flatpickr.min.css',
+        ];
 
         tinymce.init({
             selector: 'textarea#content',
@@ -512,6 +518,32 @@ async function openStoryModal(individualId) {
             toolbar_mode: 'floating',
             promotion: false,
             license_key: 'gpl',
+            content_css: editorCSS,
+            valid_elements: '*[*]',
+            content_style: `
+                .hidden { 
+                    display: block !important; 
+                    overflow: hidden; 
+                    background-color: rgba(0, 0, 0, 0.2); 
+                    opacity: 0.5; 
+                    pointer-events: none; 
+                    position: relative;
+                }
+                .hidden::before {
+                    content: "HIDDEN"; 
+                    position: absolute; 
+                    top: 15%; 
+                    left: 50%; 
+                    transform: translate(-50%) rotate(-25deg); 
+                    background-color: rgba(0,0,0,0.4); 
+                    color: rgba(255,255,255,0.5); 
+                    padding: 5px 10px; 
+                    border-radius: 1rem; 
+                    font-size: 1.5em; 
+                    font-weight: bold; 
+                    pointer-events: none;
+                }
+            `,            
             setup: function (editor) {
                 editor.on('change', function() {
                     tinymce.triggerSave();
