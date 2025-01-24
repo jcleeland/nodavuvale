@@ -137,7 +137,7 @@ class Web {
     public function truncateText($text, $wordLimit = 100, $readMoreMessage='Read more', $textDivId = 'truncatedTextDiv', $method='popup') {
         // We need to get rid of any html tags in the text, and only look at the text content
         $wordsonlytext = strip_tags($text);
-
+        
         // Now create an array of words from $wordsonlytext, splitting by spaces or new lines
         $words = preg_split('/\s+/', $wordsonlytext);
         $text = addslashes($text);
@@ -145,10 +145,15 @@ class Web {
         if (count($words) > $wordLimit) {
             // Find the $wordLimit word
             $lastWord = $words[$wordLimit];
+            //Add up the length of all the words up to the $wordLimit word
+            $startlength = 0;
+            for ($i = 0; $i < $wordLimit; $i++) {
+                $startlength += strlen($words[$i]);
+            }
             
             // Use a regular expression to find the position of the $lastWord as a whole word
             $pattern = '/\b' . preg_quote($lastWord, '/') . '\b/';
-            if (preg_match($pattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
+            if (preg_match($pattern, $text, $matches, PREG_OFFSET_CAPTURE, $startlength)) {
                 $lastWordPosition = $matches[0][1];
                 // Now we can cut the text off at that position
                 $output = substr($text, 0, $lastWordPosition + strlen($lastWord));
