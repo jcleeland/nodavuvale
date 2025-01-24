@@ -1145,15 +1145,16 @@ function editDiscussion(discussion_id) {
                         getAjax('update_discussion', {discussion_id: discussion_id, title: newTitle, content: newText})
                             .then(response => {
                                 if(response.status === 'success') {
-                                    document.getElementById('discussion_title_'+discussion_id).textContent=newTitle;
+                                    document.getElementById('individualstory_'+discussion_id).textContent=newTitle;
                                     //format newText so it replaces newlines (/n or /r or combination) with <br />
                                     newText = newText.replace(/(?:\r\n|\r|\n)/g, '<br />');
-                                    document.getElementById('discussion_text_'+discussion_id).innerHTML=newText;
+                                    document.getElementById('individualstory_'+discussion_id).innerHTML=newText;
                                 } else {
                                     alert('Error: ' + response.message);
                                 }
                             })
                             .catch(error => {
+                                console.error(error.message);
                                 alert('An error occurred while updating the discussion: ' + error.message);
                             });
                     }
