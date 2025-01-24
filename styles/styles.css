@@ -176,10 +176,11 @@
     color: var(--white);
 }
 
-.text-burnt-orange {
+.text-burnt-orange, .hover\:text-burnt-orange:hover{
     --nv-text-opacity: 1;
     color: rgba(var(--burnt-orange-red), var(--burnt-orange-green), var(--burnt-orange-blue), var(--nv-text-opacity));
 }
+
 
 .text-ocean-blue {
     color: var(--ocean-blue);

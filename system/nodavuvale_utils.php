@@ -1386,17 +1386,13 @@ class Utils {
         //ksort($response);
         
         // Other
-        $response['Other-group'] = [
+        $response['Other'] = [
             'Date',
             'Title',
             'Source',
             'Photo',
             'Reference',
             'Story'
-        ];
-
-        $response['Other-single'] = [
-            'free'
         ];
 
 

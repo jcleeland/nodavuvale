@@ -81,14 +81,13 @@ if($auth->getUserRole() == 'admin') {
             </div>
             
             <!-- Navigation Options -->
-            <nav class="hidden sm:flex flex-grow justify-end text-right space-x-4">
+            <nav class="hidden sm:flex flex-grow justify-end text-right space-x-6">
                 <?php if ($auth->isLoggedIn()) : ?>
-                <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
-                <a href="?to=family/tree" class="text-white hover:text-burnt-orange">Tree</a>
-                <span class="text-white hover:text-burnt-orange cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
-                <a href="?to=family/users" class="text-white hover:text-burnt-orange">Members</a>
-                <a href="?to=communications/discussions" class="text-white hover:text-burnt-orange">Chat</a>
-                <a href="?to=family/gallery" class="text-white hover:text-burnt-orange">Gallery</a>
+                <a href="?to=family/tree" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Tree</a>
+                <span class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
+                <a href="?to=family/users" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Members</a>
+                <a href="?to=communications/discussions" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Chat</a>
+                <a href="?to=family/gallery" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Gallery</a>
                 <?php endif; ?>
             </nav>
             
@@ -104,7 +103,6 @@ if($auth->getUserRole() == 'admin') {
             <!-- Mobile Navigation Menu -->
             <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-brown text-white z-30 text-center">
                 <?php if ($auth->isLoggedIn()) : ?>
-                <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white hover:text-burnt-orange">Tree</a>
                 <a href="" class="block px-4 py-2 text-white hover:text-burnt-orange">Find</a>
                 <a href="?to=family/users" class="block px-4 py-2 text-white hover:text-burnt-orange">Members</a>
@@ -123,8 +121,8 @@ if($auth->getUserRole() == 'admin') {
                     $initials = strtoupper($firstName[0] . $lastName[0]);
                     ?>
                     <div class="relative inline-block">
-                        <button class="ml-4 text-white hover:text-burnt-orange focus:outline-none" id="user-menu-button">
-                            <span class="inline-block w-8 h-8 bg-gray-500 rounded-full text-center leading-8" title="Logged in as <?= $firstName." ".$lastName ?>">
+                        <button class="ml-4 text-white focus:outline-none" id="user-menu-button">
+                            <span class="inline-block w-8 h-8 bg-gray-500 hover:bg-burnt-orange-800 rounded-full text-center leading-8" title="Logged in as <?= $firstName." ".$lastName ?>">
                                 <?php echo $initials; ?>
                             </span>
                         </button>
