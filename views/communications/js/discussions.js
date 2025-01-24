@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
         promotion: false,
         license_key: 'gpl',
         content_css: editorCSS,
-        valid_elements: '*[*]',
+        valid_elements: '*[*],br',
         images_upload_url: 'tinymce_image_upload.php',
         automatic_uploads: true,
         file_picker_types: 'image',
