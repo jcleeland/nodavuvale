@@ -82,11 +82,13 @@ if($auth->getUserRole() == 'admin') {
             
             <!-- Navigation Options -->
             <nav class="hidden sm:flex flex-grow justify-end text-right space-x-4">
+                <?php if ($auth->isLoggedIn()) : ?>
                 <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/tree" class="text-white hover:text-burnt-orange">Tree</a>
                 <a href="?to=family/users" class="text-white hover:text-burnt-orange">Members</a>
                 <a href="?to=communications/discussions" class="text-white hover:text-burnt-orange">Chat</a>
                 <a href="?to=family/gallery" class="text-white hover:text-burnt-orange">Gallery</a>
+                <?php endif; ?>
             </nav>
             
             <!-- Mobile Navigation Toggle Button -->
@@ -100,11 +102,13 @@ if($auth->getUserRole() == 'admin') {
             
             <!-- Mobile Navigation Menu -->
             <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-brown text-white z-30 text-center">
+                <?php if ($auth->isLoggedIn()) : ?>
                 <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white hover:text-burnt-orange">Tree</a>
                 <a href="?to=family/users" class="block px-4 py-2 text-white hover:text-burnt-orange">Members</a>
                 <a href="?to=communications/discussions" class="block px-4 py-2 text-white hover:text-burnt-orange">Chat</a>
                 <a href="?to=family/gallery" class="block px-4 py-2 text-white hover:text-burnt-orange">Gallery</a>
+                <?php endif; ?>
             </div>
             
             <!-- User Account/Login -->

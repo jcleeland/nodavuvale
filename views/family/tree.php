@@ -69,11 +69,14 @@ $individuals = $db->fetchAll("SELECT individuals.*,
                             ORDER BY last_name, first_names");
 $relationships = $db->fetchAll("SELECT * FROM relationships");
 
+/*
+// Not sure what this is for, I suspect it is redundant 
 $quickindividuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
 $quicklist=array();
 foreach($quickindividuallist as $individualperson) {
     $quicklist[$individualperson['id']] = $individualperson;
-}
+} 
+*/
 
 $rootId=isset($_SESSION['rootId']) ? $_SESSION['rootId'] : Web::getRootId();
 
@@ -84,7 +87,6 @@ include("helpers/add_relationship.php");
 
 $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSION['treeSettings']);
 
-// Insert a little button that will allow the user to "copy" the $tree_data to the clipboard just at the beginning of the next section
 
 ?>
     <div id="findOnTree" class="modal">
@@ -99,7 +101,11 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                     const individuals = [
                         <?php
                             foreach($individuals as $individual) {
-                                echo "{id: ".$individual['id'].", name: '".$individual['first_names']." ".$individual['last_name']."'},";
+                                $thisname=$individual['first_names']." ".$individual['last_name'];
+                                if($individual['birth_year'] && $individual['birth_year'] != "") {
+                                    $thisname .= " (b.".$individual['birth_year'].")";
+                                }
+                                echo "{id: ".$individual['id'].", name: '".$thisname."'},";
                             }
                         ?>
                     ];
