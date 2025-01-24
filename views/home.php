@@ -317,7 +317,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                                 </script>
                                             <?php else: ?>
                                                 <div class="text-xxs text-left px-1 pb-1">
-                                                    <b><?= $itemdetail['detail_type'] ?>:</b> <a href='<?= $itemdetail['file_path'] ?>' class='text-blue-500 hover:text-blue-700'><?= $itemdetail['file_description'] ?></a>
+                                                    <b><?= $itemdetail['detail_type'] ?>:</b> <a href='<?= $itemdetail['file_path'] ?>' class='text-blue-500 hover:text-blue-700'><?= stripslashes($itemdetail['file_description']) ?></a>
                                                 </div>
                                             <?php endif; ?>
                                         <?php else: ?>
@@ -335,7 +335,14 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                                                 </script>
                                                             <?php endif; ?>
                                                         <?php else: ?>
-                                                            <?= $web->truncateText($itemdetail['detail_value'], 15); ?>
+                                                            <?php //if the string is a URL, make it a clickable link ?>
+                                                            <?php if (filter_var($itemdetail['detail_value'], FILTER_VALIDATE_URL)): ?>
+                                                                <a href="<?= $itemdetail['detail_value'] ?>" target="_blank">
+                                                                    <i class="fas fa-link"></i> Weblink
+                                                                </a>    
+                                                            <?php else: ?>
+                                                                <?= stripslashes($web->truncateText($itemdetail['detail_value'], 15)); ?>
+                                                            <?php endif; ?>
                                                         <?php endif; ?>
                                                     <?php endif ?>
                                                     </div>

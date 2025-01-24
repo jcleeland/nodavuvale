@@ -93,11 +93,12 @@ if(!isset($rootId)) {
 $is_admin = $auth->getUserRole() === 'admin';
 
 //Gather a list of individuals for the add relationship modal
-$individuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
+/* $individuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
 $individuals=array();
 foreach($individuallist as $individualperson) {
     $individuals[$individualperson['id']] = $individualperson;
 }
+*/
 
 include("helpers/add_relationship.php");
 

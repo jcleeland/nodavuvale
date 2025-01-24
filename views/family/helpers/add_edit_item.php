@@ -223,11 +223,7 @@ if (isset($_GET['item_id'])) {
                                     $fieldinputs[$field] = "<div class='$class'><label for='{$field}_display'>$field</label><input type='text' placeholder='Find another individual..' id='{$field}_name' name='{$field}_name' class='w-full border rounded-lg p-2 mb-2' oninput='showSuggestions(this.value)'><div id='{$field}_suggestions' class='autocomplete-suggestions'></div></div>";
                                     ?>
                                     <script type='text/javascript'>
-                                    const individuals = [
-                                        <?php foreach($individuals as $ind): ?>
-                                            { id: <?= $ind['id'] ?>, name: "<?= $ind['first_names'] . ' ' . $ind['last_name'] ?>" },
-                                        <?php endforeach; ?>
-                                    ];
+
 
                                     function showSuggestions(value) {
                                         const suggestionsContainer = document.getElementById('<?= $field ?>_suggestions');
@@ -240,7 +236,7 @@ if (isset($_GET['item_id'])) {
                                         filteredIndividuals.forEach(ind => {
                                             const suggestion = document.createElement('div');
                                             suggestion.className = 'autocomplete-suggestion';
-                                            suggestion.textContent = ind.name;
+                                            suggestion.innerHTML = ind.name;
                                             suggestion.onclick = () => selectSuggestion(ind);
                                             suggestionsContainer.appendChild(suggestion);
                                         });
@@ -248,7 +244,14 @@ if (isset($_GET['item_id'])) {
 
                                     function selectSuggestion(individual) {
                                         const input = document.getElementById('<?= $field ?>_name');
-                                        input.value = individual.name;
+                                        // Create a temporary DOM element to parse the HTML
+                                        const tempElement = document.createElement('div');
+                                        tempElement.innerHTML = individual.name;
+                                        const textContent = tempElement.textContent || tempElement.innerText || '';
+
+                                        // Assign the text content to the input value
+                                        input.value = textContent;                                        
+
                                         const hiddenInput = document.createElement('input');
                                         hiddenInput.type = 'hidden';
                                         hiddenInput.name = '<?= $field ?>';

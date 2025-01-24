@@ -98,6 +98,23 @@ if((isset($_POST['action']) && $_POST['action'] == 'register' && (isset($_GET['t
     exit;
 }
 
+$individuals=array();
+// If the user is logged in, fill the array with individuals
+if ($auth->isLoggedIn()) {
+    $individuals = $db->fetchAll("SELECT individuals.*, 
+                                    COALESCE(
+                                        (SELECT files.file_path 
+                                            FROM file_links 
+                                            JOIN files ON file_links.file_id = files.id 
+                                            JOIN items ON items.item_id = file_links.item_id 
+                                            WHERE file_links.individual_id = individuals.id 
+                                            AND items.detail_type = 'Key Image'
+                                            LIMIT 1), 
+                                        '') AS keyimagepath
+                                FROM individuals
+                                ORDER BY last_name, first_names");
+    //echo "<pre>"; print_r($individuals); echo "</pre>";
+}
 // Include the header
 include('views/header.php');
 

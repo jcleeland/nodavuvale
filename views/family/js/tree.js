@@ -462,38 +462,6 @@ function findNodeForIndividualId(id) {
 
 function viewTreeSearch() {
     document.getElementById('findOnTree').style.display = 'block';
-
-    /**
-    //When the select with the name "findOnTree" changes, zoom to the selected individual
-    document.querySelector('select[name="findOnTree"]').addEventListener('change', function() {
-        //hide the div
-        document.getElementById('findOnTree').style.display = 'none';
-        findNodeForIndividualId(this.value)
-            .then(nodeId => {
-                //Now remove the characters "node" from the front of the nodeId
-                nodeId = nodeId.replace("node", "");
-                //Now make sure it's a number not a string
-                nodeId = parseInt(nodeId);
-                console.log('Found node: ' + nodeId);
-                tree.zoomToNode(nodeId, 2, 1500);
-                // Delay the highlighting feature by 500ms to ensure it runs after the zoom is complete
-                setTimeout(function() {
-                    // Now make the div's parent element briefly grow and then shrink
-                    var node = document.getElementById("node" + nodeId);
-                    var parent = node.parentNode;
-                    parent.style.transition = "all 0.5s";
-                    parent.style.transformOrigin = "bottom left";
-                    parent.style.transform = "scale(1.2)";
-                    setTimeout(function() {
-                        parent.style.transform = "scale(1)";
-                    }, 600);
-                }, 600);
-            })
-            .catch(error => {
-                console.error(error);
-            });
-    });    
-    */
 }
 
 

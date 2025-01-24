@@ -48,19 +48,28 @@ class Web {
     /**
      * Returns the HTML & javascript for the individual lookup
      */
+
     public static function showFindIndividualLookAhead($individuals=array(), $fieldName="findindividual_lookup", $submitFieldName="findindividual_connect_to", $label="Connect to Existing Individual") {    
         if(empty($individuals)) {
             return "NO PEOPLE!";
         }
-        $lookahead="";
+        $lookahead = "";
         $lookahead .= '<label for="'.$fieldName.'" class="block text-gray-700">'.$label.'</label>'."\n";
-        $lookahead .= '<input type="text" name="'.$fieldName.'" class="findindividual_lookup w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";
-        $lookahead .= '<select name="'.$submitFieldName.'" class="findindividual_connect_to w-full px-4 py-2 border rounded-lg mt-2" size="5" style="display: none;">'."\n";
-        $lookahead .= '     <option value="">Select someone...</option>'."\n";
+        $lookahead .= '<input type="text" id="'.$fieldName.'" name="'.$fieldName.'" class="findindividual_lookup w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";
+        $lookahead .= '<div id="'.$submitFieldName.'_dropdown" class="findindividual_connect_to w-full px-4 py-2 border rounded-lg mt-2" style="display: none; max-height: 200px; overflow-y: auto;">'."\n";
         foreach ($individuals as $indi):
-            $lookahead .= '     <option value="'.$indi['id'].'">'.$indi['first_names'].' '.$indi['last_name'].'</option>'."\n";
+            $thisname = $indi['first_names']." ".$indi['last_name'];
+            if($indi['birth_year'] && $indi['birth_year'] != "") {
+                $thisname .= " (b.".$indi['birth_year'].")";
+            }
+            $imageTag = '';
+            if($indi['keyimagepath'] && $indi['keyimagepath'] != "") {
+                $imageTag = '<img src="'.$indi['keyimagepath'].'" class="w-8 h-8 object-cover rounded-full inline-block mr-2">';
+            }
+            $lookahead .= '<div class="dropdown-item flex items-center p-2 cursor-pointer" data-value="'.$indi['id'].'">'.$imageTag.'<span>'.$thisname.'</span></div>'."\n";
         endforeach;
-        $lookahead .= '</select>'."\n";
+        $lookahead .= '</div>'."\n";
+        $lookahead .= '<input type="hidden" name="'.$submitFieldName.'" id="'.$submitFieldName.'">'."\n";
         return($lookahead);
     }
     /**

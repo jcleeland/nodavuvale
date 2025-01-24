@@ -51,22 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     include("helpers/update_individual.php");
 }
 
+// $individuals is now gathered in the index.php file so it's available everywhere
 
-
-
-// Fetch all confirmed individuals
-$individuals = $db->fetchAll("SELECT individuals.*, 
-                                COALESCE(
-                                    (SELECT files.file_path 
-                                        FROM file_links 
-                                        JOIN files ON file_links.file_id = files.id 
-                                        JOIN items ON items.item_id = file_links.item_id 
-                                        WHERE file_links.individual_id = individuals.id 
-                                        AND items.detail_type = 'Key Image'
-                                        LIMIT 1), 
-                                    '') AS keyimagepath
-                            FROM individuals
-                            ORDER BY last_name, first_names");
 $relationships = $db->fetchAll("SELECT * FROM relationships");
 
 /*
@@ -98,17 +84,6 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
             <div class="modal-body">
                 <label for='lookuptree_display'>Find someone</label><input type='text' placeholder='Find someone on the tree' id='lookuptree_name' name='lookuptree_name' class='w-full border rounded-lg p-2 mb-2' oninput='showSuggestions(this.value)'><div id='lookuptree_suggestions' class='autocomplete-suggestions'></div></div>
                 <script type='text/javascript'>
-                    const individuals = [
-                        <?php
-                            foreach($individuals as $individual) {
-                                $thisname=$individual['first_names']." ".$individual['last_name'];
-                                if($individual['birth_year'] && $individual['birth_year'] != "") {
-                                    $thisname .= " (b.".$individual['birth_year'].")";
-                                }
-                                echo "{id: ".$individual['id'].", name: '".$thisname."'},";
-                            }
-                        ?>
-                    ];
 
                     function showSuggestions(value) {
                         const suggestionsContainer = document.getElementById('lookuptree_suggestions');
@@ -121,7 +96,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                         filteredIndividuals.forEach(ind => {
                             const suggestion = document.createElement('div');
                             suggestion.className = 'autocomplete-suggestion';
-                            suggestion.textContent = ind.name;
+                            suggestion.innerHTML = ind.name;
                             suggestion.onclick = () => selectSuggestion(ind);
                             suggestionsContainer.appendChild(suggestion);
                         });
@@ -129,7 +104,15 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
 
                     function selectSuggestion(individual) {
                         const input = document.getElementById('lookuptree_name');
-                        input.value = individual.name;
+
+                        // Create a temporary DOM element to parse the HTML
+                        const tempElement = document.createElement('div');
+                        tempElement.innerHTML = individual.name;
+                        const textContent = tempElement.textContent || tempElement.innerText || '';
+
+                        // Assign the text content to the input value
+                        input.value = textContent;
+                        
                         const hiddenInput = document.createElement('input');
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'lookuptree';

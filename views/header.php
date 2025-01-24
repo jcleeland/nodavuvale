@@ -85,6 +85,7 @@ if($auth->getUserRole() == 'admin') {
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="index.php" class="text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/tree" class="text-white hover:text-burnt-orange">Tree</a>
+                <span class="text-white hover:text-burnt-orange cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
                 <a href="?to=family/users" class="text-white hover:text-burnt-orange">Members</a>
                 <a href="?to=communications/discussions" class="text-white hover:text-burnt-orange">Chat</a>
                 <a href="?to=family/gallery" class="text-white hover:text-burnt-orange">Gallery</a>
@@ -105,6 +106,7 @@ if($auth->getUserRole() == 'admin') {
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="index.php" class="block px-4 py-2 text-white hover:text-burnt-orange">Home</a>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white hover:text-burnt-orange">Tree</a>
+                <a href="" class="block px-4 py-2 text-white hover:text-burnt-orange">Find</a>
                 <a href="?to=family/users" class="block px-4 py-2 text-white hover:text-burnt-orange">Members</a>
                 <a href="?to=communications/discussions" class="block px-4 py-2 text-white hover:text-burnt-orange">Chat</a>
                 <a href="?to=family/gallery" class="block px-4 py-2 text-white hover:text-burnt-orange">Gallery</a>
@@ -140,6 +142,86 @@ if($auth->getUserRole() == 'admin') {
             </div>
         </div>
     </header>
+
+
+    <div id="findFamily" class="modal relative">
+        <div class="modal-content modal-top w-3/4 min-w-xs max-h-screen my-5 top-20">
+            <div class="modal-header">
+                <span id="findFamilyClose" class="close-story-btn" onclick="document.getElementById('findFamily').style.display='none';">&times;</span>
+                <h2 id="findFamilyTitle" class="text-xl font-bold mb-4 text-center">Find family</h2>
+            </div>
+            <div class="modal-body">
+                <label for='lookupfamily_display'>
+                    Find someone
+                </label>
+                <input 
+                    type='text' 
+                    placeholder='Find someone in the family' 
+                    id='lookupfamily_name' 
+                    name='lookupfamily_name' 
+                    class='w-full border rounded-lg p-2 mb-2' 
+                    oninput='showFamilySuggestions(this.value)'>
+                <div id='lookupfamily_suggestions' class='autocomplete-suggestions'></div>
+            </div>
+                <script type='text/javascript'>
+                    const individuals = [
+                        <?php
+                            foreach($individuals as $individual) {
+                                $thisname=$individual['first_names']." ".$individual['last_name'];
+                                if($individual['birth_year'] && $individual['birth_year'] != "") {
+                                    $thisname .= " (b.".$individual['birth_year'].")";
+                                }
+                                if($individual['keyimagepath'] && $individual['keyimagepath'] != "") {
+                                    $thisname = '<img src="'.$individual['keyimagepath'].'" class="w-8 h-8 object-cover rounded-full inline-block mr-2">'.$thisname;
+                                } else {
+                                    $thisname = '<img src="images/default_avatar.webp" class="w-8 h-8 object-cover rounded-full inline-block mr-2">'.$thisname;
+                                }
+                                echo "{id: ".$individual['id'].", name: '".$thisname."'},";
+                            }
+                        ?>
+                    ];
+
+                    function showFamilySuggestions(value) {
+                        const suggestionsContainer = document.getElementById('lookupfamily_suggestions');
+                        suggestionsContainer.innerHTML = '';
+                        if (value.length === 0) {
+                            return;
+                        }
+
+                        const filteredIndividuals = individuals.filter(ind => ind.name.toLowerCase().includes(value.toLowerCase()));
+                        filteredIndividuals.forEach(ind => {
+                            const suggestion = document.createElement('div');
+                            suggestion.className = 'autocomplete-suggestion';
+                            suggestion.innerHTML = ind.name;
+                            suggestion.onclick = () => selectFamilySuggestion(ind);
+                            suggestionsContainer.appendChild(suggestion);
+                        });
+                    }
+
+                    function selectFamilySuggestion(individual) {
+                        const input = document.getElementById('lookupfamily_name');
+
+                        // Create a temporary DOM element to parse the HTML
+                        const tempElement = document.createElement('div');
+                        tempElement.innerHTML = individual.name;
+                        const textContent = tempElement.textContent || tempElement.innerText || '';
+
+                        // Assign the text content to the input value
+                        input.value = textContent;
+
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'lookupfamily';
+                        hiddenInput.value = individual.id;
+                        input.parentNode.appendChild(hiddenInput);
+                        document.getElementById('lookupfamily_suggestions').innerHTML = '';
+                        window.location.href = '?to=family/individual&individual_id=' + individual.id;
+                    }
+                    </script>
+                <br />&nbsp;<br />
+            </div>
+        </div>
+    </div>      
 
     <script>
         document.getElementById('nav-toggle').addEventListener('click', function() {
