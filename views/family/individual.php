@@ -177,12 +177,15 @@ if ($individual_id) {
     // Fetch associated files (photos and documents)
     $photos = Utils::getFiles($individual_id, 'image');
 
-    // Fetch the line of descendancy
+    // Fetch this line of descendancy
     $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $individual_id);  
+
 
     if($_SESSION['individuals_id']) {
         $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
         $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
+        //Fetch the users line of descendancy
+        $userdescendancy=Utils::getLineOfDescendancy(Web::getRootId(), $_SESSION['individuals_id']);
     } else {
         $commonAncestor=[];
         $relationshipLabel="";
@@ -313,34 +316,67 @@ if ($individual_id) {
     <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
             <?php
+                //Find out whether the $descendancy array or the $userdescendancy array is longer and use that as the loop count
+                $descendancycount=count($descendancy);
+                $userdescendancycount=count($userdescendancy);
+                if($descendancycount>$userdescendancycount) {
+                    $loopcount=$descendancycount;
+                } else {
+                    $loopcount=$userdescendancycount;
+                }
                 $commonancestorclass="bg-burnt-orange-800";
                 $commonancestortitle="";
-
+                $generationCount=0;
                 $ancestorInCommon=true; //We start assuming a common ancestor
-            ?>            
-            <?php foreach($descendancy as $index => $descendant): ?>
-                <?php
-                    if($commonAncestor) {
-                        if($ancestorInCommon) {
-                            $commonancestorclass="border-b-2 border-burnt-orange-800 nv-border-opacity-50 bg-burnt-orange-800";
-                            $commonancestortitle="Common Ancestor";
-                        } else {
-                            $commonancestorclass="bg-burnt-orange-800";
-                            $commonancestortitle="";
-                        }
-                        if($descendant[1]==$commonAncestor['common_ancestor_id']) {
-                            $ancestorInCommon=false; //Now that we've found the common ancestor, we can stop highlighting
-                        }
-
+            ?>
+            <?php
+            //Use a for loop to iterate through the descendancy arrays
+            for($index=0; $index<$loopcount; $index++) {
+                // THe individual descendants always show, unless they don't exist
+                $individualclass=isset($descendancy[$index]) ? "" : "hidden";
+                // The user descendants only show if they are DIFFERENT to the individual descendant, or they don't exist
+                $userclass="";
+                if(isset($descendancy[$index]) && $descendancy[$index][1]==$userdescendancy[$index][1]) {
+                    $userclass="hidden";
+                } 
+                // The user class only
+                //If we have a common ancestor, we need to highlight the common ancestor and the user's line of descendancy
+                if($commonAncestor) {
+                    if($ancestorInCommon) {
+                        $commonancestorclass="border-b-2 border-burnt-orange-800 nv-border-opacity-50 bg-burnt-orange-800";
+                        $commonancestortitle="Common Ancestor";
+                    } else {
+                        $commonancestorclass="bg-burnt-orange-800";
+                        $commonancestortitle="";
                     }
+                    if(isset($descendancy[$index]) && $descendancy[$index][1]==$commonAncestor['common_ancestor_id']) {
+                        $ancestorInCommon=false; //Now that we've found the common ancestor, we can stop highlighting
+                    }
+                }
                 ?>
-                <div class="<?= $commonancestorclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
-                    <a href='?to=family/individual&individual_id=<?= $descendant[1] ?>'><?= $descendant[0] ?></a>
+                <div class="flex flex-col items-center">
+                    <div class="<?= $commonancestorclass ?> <?= $individualclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
+                        <?php if(isset($descendancy[$index]))  : ?>
+                        <a href='?to=family/individual&individual_id=<?= $descendancy[$index][1] ?>'><?= $descendancy[$index][0] ?></a>
+                        <?php endif; ?>
+                    </div>
+                    <div class="<?= $commonancestorclass ?> <?= $userclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
+                        <?php if(isset($userdescendancy[$index]))  : ?>
+                        <a href='?to=family/individual&individual_id=<?= $userdescendancy[$index][1] ?>'><?= $userdescendancy[$index][0] ?></a>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <?php if ($index < count($descendancy) - 1): ?>
-                    <i class="fas fa-arrow-right mx-2"></i> <!-- FontAwesome arrow icon -->
+                <?php if ($index < $loopcount): ?>
+                    <div class="flex flex-col items-center">
+                        <div class="<?= $individualclass ?> h-8 p-1 sm:p-2 my-1 sm:my-2">
+                            <i class="fas fa-arrow-right mx-2"></i> <!-- FontAwesome arrow icon -->
+                        </div>
+                        <div class="<?= $userclass ?> h-8 p-1 sm:p-2 my-1 sm:my-2">
+                            <i class="fas fa-arrow-right mx-2"></i> <!-- FontAwesome arrow icon -->
+                        </div>
+                    </div>
                 <?php endif; ?>
-            <?php endforeach; ?>
+            <?php } ?>
         </div>
     </section>
 <?php endif; ?>

@@ -101,13 +101,13 @@ if($auth->getUserRole() == 'admin') {
             </div>
             
             <!-- Mobile Navigation Menu -->
-            <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-brown text-white z-30 text-center">
+            <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-deep-green text-white z-30 text-center">
                 <?php if ($auth->isLoggedIn()) : ?>
-                <a href="?to=family/tree" class="block px-4 py-2 text-white hover:text-burnt-orange">Tree</a>
-                <a href="" class="block px-4 py-2 text-white hover:text-burnt-orange">Find</a>
-                <a href="?to=family/users" class="block px-4 py-2 text-white hover:text-burnt-orange">Members</a>
-                <a href="?to=communications/discussions" class="block px-4 py-2 text-white hover:text-burnt-orange">Chat</a>
-                <a href="?to=family/gallery" class="block px-4 py-2 text-white hover:text-burnt-orange">Gallery</a>
+                <a href="?to=family/tree" class="block px-4 py-2 text-white">Tree</a>
+                <span class="block text-white hover:bg-burnt-orange-800 px-4 py-2" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>
+                <a href="?to=family/users" class="block px-4 py-2 text-white">Members</a>
+                <a href="?to=communications/discussions" class="block px-4 py-2 text-white">Chat</a>
+                <a href="?to=family/gallery" class="block px-4 py-2 text-white">Gallery</a>
                 <?php endif; ?>
             </div>
             
