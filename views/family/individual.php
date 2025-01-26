@@ -332,18 +332,10 @@ if ($individual_id) {
             <?php
             //Use a for loop to iterate through the descendancy arrays
             for($index=0; $index<$loopcount; $index++) {
-                // THe individual descendants always show, unless they don't exist
-                $individualclass=isset($descendancy[$index]) ? "" : "hidden";
-                // The user descendants only show if they are DIFFERENT to the individual descendant, or they don't exist
-                $userclass="";
-                if(isset($descendancy[$index]) && $descendancy[$index][1]==$userdescendancy[$index][1]) {
-                    $userclass="hidden";
-                } 
-                // The user class only
                 //If we have a common ancestor, we need to highlight the common ancestor and the user's line of descendancy
-                if($commonAncestor) {
-                    if($ancestorInCommon) {
-                        $commonancestorclass="border-b-2 border-burnt-orange-800 nv-border-opacity-50 bg-burnt-orange-800";
+                if($commonAncestor) { //$commonAncestor will only exist if the user & the individual shown have a common ancestor
+                    if($ancestorInCommon) { //commonAncestor is true until we reach the common ancestor
+                        $commonancestorclass="border-b-2 border-burnt-orange-800 nv-border-opacity-50 bg-burnt-orange-800 font-bold";
                         $commonancestortitle="Common Ancestor";
                     } else {
                         $commonancestorclass="bg-burnt-orange-800";
@@ -354,28 +346,48 @@ if ($individual_id) {
                     }
                 }
                 ?>
-                <div class="flex flex-col items-center">
-                    <div class="<?= $commonancestorclass ?> <?= $individualclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
-                        <?php if(isset($descendancy[$index]))  : ?>
-                        <a href='?to=family/individual&individual_id=<?= $descendancy[$index][1] ?>'><?= $descendancy[$index][0] ?></a>
-                        <?php endif; ?>
-                    </div>
-                    <div class="<?= $commonancestorclass ?> <?= $userclass ?> nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
-                        <?php if(isset($userdescendancy[$index]))  : ?>
-                        <a href='?to=family/individual&individual_id=<?= $userdescendancy[$index][1] ?>'><?= $userdescendancy[$index][0] ?></a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php if ($index < $loopcount): ?>
+                <?php if ($index != 0 && $index < $loopcount): ?>
                     <div class="flex flex-col items-center">
-                        <div class="<?= $individualclass ?> h-8 p-1 sm:p-2 my-1 sm:my-2">
-                            <i class="fas fa-arrow-right mx-2"></i> <!-- FontAwesome arrow icon -->
+                        <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                            <?php if(isset($descendancy[$index])) : ?>
+                            <i class='fas fa-arrow-right mx-2'></i>
+                            <?php else: ?>
+                            &nbsp;
+                            <?php endif; ?>
                         </div>
-                        <div class="<?= $userclass ?> h-8 p-1 sm:p-2 my-1 sm:my-2">
-                            <i class="fas fa-arrow-right mx-2"></i> <!-- FontAwesome arrow icon -->
+                        <?php if(isset($userdescendancy[$index]) && !(isset($descendancy[$index]) && ($descendancy[$index][1] == $userdescendancy[$index][1]))): ?>
+                            <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                            <i class='fas fa-arrow-right mx-2'></i>
                         </div>
+                        <?php elseif (!isset($userdescendancy[$index])): ?>
+                            <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                            &nbsp;
+                        </div>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
+                <?php endif; ?>                
+                <div class="flex flex-col items-center">
+                    <?php if(isset($descendancy[$index])) : ?>
+                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-50 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
+                            <?php if(isset($descendancy[$index]))  : ?>
+                            <a href='?to=family/individual&individual_id=<?= $descendancy[$index][1] ?>'><?= $descendancy[$index][0] ?></a>
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="p-1 sm:p-2 my-1 sm:my-2">
+                            &nbsp;
+                        </div>
+                    <?php endif; ?>
+                    <?php if(isset($userdescendancy[$index]) && !(isset($descendancy[$index]) && ($descendancy[$index][1] == $userdescendancy[$index][1])))  : ?>
+                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
+                            <a href='?to=family/individual&individual_id=<?= $userdescendancy[$index][1] ?>'><?= $userdescendancy[$index][0] ?></a>
+                        </div>
+                    <?php elseif(!isset($userdescendancy[$index])): ?>
+                        <div class="p-1 sm:p-2 my-1 sm:my-2">
+                            &nbsp;
+                        </div>
+                    <?php endif; ?>
+                </div>
             <?php } ?>
         </div>
     </section>
