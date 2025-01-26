@@ -324,8 +324,8 @@ if ($individual_id) {
 
 
 <?php if($descendancy): ?>
-    <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
+    <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8 text-center max-w-screen overflow-x-auto">
+        <div class="inline-flex flex-nowrap text-xxs sm:text-sm px-4 mx-auto">
             <?php
                 //Find out whether the $descendancy array or the $userdescendancy array is longer and use that as the loop count
                 $descendancycount=count($descendancy);
@@ -367,20 +367,20 @@ if ($individual_id) {
                 <?php if ($index != 0 && $index < $loopcount): ?>
                 <div class="flex flex-col items-center">
                     <?php if(isset($descendancy[$index])) : ?>
-                    <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                    <div class="h-8 p-2 my-2">
                         <i class='fas fa-arrow-right mx-2'></i>
                     </div>
                     <?php elseif(!$userdescendant): ?>
-                        <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                        <div class="h-8 p-2 my-2">
                         &nbsp;
                     </div>                    
                     <?php endif; ?>
                     <?php if(isset($userdescendancy[$index]) && !(isset($descendancy[$index]) && ($descendancy[$index][1] == $userdescendancy[$index][1]))): ?>
-                        <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                    <div class="h-8 p-2 my-2">
                         <i class='fas fa-arrow-right mx-2'></i>
                     </div>
                     <?php elseif (!isset($userdescendancy[$index])): ?>
-                        <div class="h-8 p-1 sm:p-2 my-1 sm:my-2">
+                    <div class="h-8 p-2 my-2">
                         &nbsp;
                     </div>
                     <?php endif; ?>
@@ -390,21 +390,21 @@ if ($individual_id) {
                 <!-- DESCENDANT COMPARISON -->
                 <div class="flex flex-col items-center">
                     <?php if(isset($descendancy[$index])) : ?>
-                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-50 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
+                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-50 text-center p-2 my-2 rounded-lg cursor-pointer nowrap" title="<?= $commonancestortitle ?>">
                             <a href='?to=family/individual&individual_id=<?= $descendancy[$index][1] ?>'><?= $descendancy[$index][0] ?></a>
                         </div>
                     <?php elseif(!$userdescendant): ?>
-                        <div class="p-1 sm:p-2 my-1 sm:my-2">
+                        <div class="p-2 my-2">
                             &nbsp;
                         </div>
                     <?php elseif(isset($userdescendancy[$index])): ?>
                     <?php endif; ?>
                     <?php if(isset($userdescendancy[$index]) && !(isset($descendancy[$index]) && ($descendancy[$index][1] == $userdescendancy[$index][1])))  : ?>
-                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg cursor-pointer" title="<?= $commonancestortitle ?>">
+                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-20 text-center p-2 my-2 rounded-lg cursor-pointer nowrap" title="<?= $commonancestortitle ?>">
                             <a href='?to=family/individual&individual_id=<?= $userdescendancy[$index][1] ?>'><?= $userdescendancy[$index][0] ?></a>
                         </div>
                     <?php elseif(!isset($userdescendancy[$index])): ?>
-                        <div class="p-1 sm:p-2 my-1 sm:my-2">
+                        <div class="p-2 my-2">
                             &nbsp;
                         </div>
                     <?php endif; ?>
