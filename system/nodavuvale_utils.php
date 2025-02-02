@@ -786,12 +786,18 @@ class Utils {
                 FROM relationships 
                 JOIN individuals ON relationships.individual_id_1 = individuals.id 
                 LEFT JOIN file_links ON file_links.individual_id=individuals.id 
-                LEFT JOIN files ON file_links.file_id=files.id 
+                LEFT JOIN (
+                    SELECT files.file_path, file_links.individual_id
+                    FROM files
+                    INNER JOIN file_links ON files.id = file_links.file_id
+                    INNER JOIN items ON file_links.item_id = items.item_id
+                    WHERE items.detail_type = 'Key Image'
+                ) as files ON files.individual_id = ?,                
                 LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
                 WHERE relationships.individual_id_2 = ? 
                 AND relationships.relationship_type = 'child'
                 AND individuals.id != ?";
-            $otherparent = $db->fetchAll($pquery, [$child['id'], $individual_id]);
+            $otherparent = $db->fetchAll($pquery, [$child['id'], $individual_id, $individual_id]);
             if($otherparent){
                 foreach($otherparent as $op) {
                     $spouses[$op['id']]=$op;
