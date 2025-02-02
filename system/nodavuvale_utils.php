@@ -720,6 +720,7 @@ class Utils {
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
             WHERE relationships.individual_id_1 = ? 
             AND relationships.relationship_type = 'child'
+            ORDER BY individuals.birth_year, individuals.first_names
         ";
         $children = $db->fetchAll($query, [$individual_id]);
         
@@ -767,13 +768,10 @@ class Utils {
         //Then find implicit spouses as identified by the 'child' relationship type
         //First find any children of this person
         $cquery = "
-            SELECT distinct individuals.*, files.file_path as keyimagepath,
+            SELECT distinct individuals.id, 
                 relationships.id as relationshipId
             FROM relationships 
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
-            LEFT JOIN file_links ON file_links.individual_id=individuals.id 
-            LEFT JOIN files ON file_links.file_id=files.id 
-            LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
             WHERE relationships.individual_id_1 = ? 
             AND relationships.relationship_type = 'child'";
         $children = $db->fetchAll($cquery, [$individual_id]);
@@ -792,12 +790,11 @@ class Utils {
                     INNER JOIN file_links ON files.id = file_links.file_id
                     INNER JOIN items ON file_links.item_id = items.item_id
                     WHERE items.detail_type = 'Key Image'
-                ) as files ON files.individual_id = ?,                
-                LEFT JOIN items ON items.item_id=file_links.item_id AND items.detail_type='Key Image'
+                ) as files ON files.individual_id = individuals.id
                 WHERE relationships.individual_id_2 = ? 
                 AND relationships.relationship_type = 'child'
                 AND individuals.id != ?";
-            $otherparent = $db->fetchAll($pquery, [$child['id'], $individual_id, $individual_id]);
+            $otherparent = $db->fetchAll($pquery, [$child['id'], $individual_id]);
             if($otherparent){
                 foreach($otherparent as $op) {
                     $spouses[$op['id']]=$op;
