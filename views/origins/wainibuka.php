@@ -24,11 +24,11 @@
         According to Norman Macdonald's obituary, sometime around the late 1910s Norman and Mary "took up land" at the Wainibuka. 
         Along with their son Neil, they ran a dairy farm in a property on the river at Wailevu.
     </p>
-    <p>
+    <p class="text-lg leading-relaxed mb-6">
         When Mary died in 1941 she was buried further up-stream at Navasau where descendants still live today. Norman, and probably Neil, then
         moved back to Suva where Norman died in 1946.
     </p>
-    <p>
+    <p class="text-lg leading-relaxed mb-6">
         In Normans obituary, it is noted that his son Ronald Macdonald still lived at Wainibuka. Ronald had many children, including Neil Macdonald Senior who 
         lives at Navasau along with his wife Mili. 
     </p>

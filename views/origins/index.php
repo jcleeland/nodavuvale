@@ -18,28 +18,28 @@
     
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <!-- Nataleira Section -->
-        <div class="p-6 bg-white shadow-lg rounded-lg cursor-pointer" onClick="window.location='?to=family/tree';">
+        <div class="p-6 bg-white shadow-lg rounded-lg cursor-pointer" onClick="window.location='?to=origins/nataleira';">
             <h3 class="text-2xl font-bold">Nataleira</h3>
             <p class="mt-2">The village of Nataleira and family roots</p>
             <a href="?to=origins/nataleira" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>    
 
         <!-- Macdonalds -->
-        <div class="p-6 bg-white shadow-lg rounded-lg">
+        <div class="p-6 bg-white shadow-lg rounded-lg cursor-pointer" onClick="window.location='?to=origins/macdonalds';">
             <h3 class="text-2xl font-bold">Macdonald</h3>
             <p class="mt-2">Our Scottish roots, from the Macdonald Clan and Resolis Scotlan.</p>
             <a href="?to=origins/macdonalds" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>
 
         <!-- Wainibuka Valley -->
-        <div class="p-6 bg-white shadow-lg rounded-lg">
+        <div class="p-6 bg-white shadow-lg rounded-lg cursor-pointer" onClick="window.location='?to=origins/wainibuka';">
             <h3 class="text-2xl font-bold">Wainibuka Valley</h3>
             <p class="mt-2">Our Fijian roots, from the Wainibuka Valley</p>
             <a href="?to=origins/wainibuka" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>
         
         <!-- Boehms -->
-        <div class="p-6 bg-white shadow-lg rounded-lg">
+        <div class="p-6 bg-white shadow-lg rounded-lg cursor-pointer" onClick="window.location='?to=origins/boehms';">
             <h3 class="text-2xl font-bold">Boehm</h3>
             <p class="mt-2">Our German roots - from Bavaria to the South Pacific.</p>
             <a href="?to=origins/boehms" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
