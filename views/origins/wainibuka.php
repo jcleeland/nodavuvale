@@ -5,7 +5,7 @@
         <p class="text-xl max-w-xl mx-auto leading-relaxed">
             The Macdonalds of Wainibuka Valley
         </p>
-        <a href="?to=origins/" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+        <a href="?to=origins/" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition" title="Return to the Origins page">
             Origins
         </a>        
     </div>

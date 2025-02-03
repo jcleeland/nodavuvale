@@ -3,9 +3,9 @@
     <div class="container hero-content mx-auto text-center text-white">
         <h1 class="text-5xl font-bold mb-4">The Boehms</h1>
         <p class="text-xl max-w-xl mx-auto leading-relaxed">
-            The Boehms of Bavaira
+            The Boehms of Bavaria
         </p>
-        <a href="?to=origins/" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+        <a href="?to=origins/" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition" title="Return to the Origins page">
             Origins
         </a>        
     </div>
@@ -36,7 +36,7 @@
         activism, left Germany for the US during this time.
     </p>
     <p class="text-lg leading-relaxed mb-6">
-        There is some evidence to suggest that Leonard was Jewish, or at least of Jewish descent. The name "Boehm" is a common Jewish surname, and many descendants
+        There is some evidence to suggest that Leonard was Jewish, or at least of Jewish descent. The name "Boehm" is a common Jewish surname, and many of his descendants
         have traces of Sephardic Jewish DNA. It is possible that Leonard was fleeing persecution in Bavaria, which was known for its anti-semitism. Many Jews emigrated
         to the US during the 1840s and 1850s to escape persecution.
     </p>
@@ -57,7 +57,7 @@
         of <a href='?to=family/individual&individual_id=1'>Losana Nataleira</a> - one of the sisters of the village chiefs at the time.
     </p>
     <p class="text-lg leading-relaxed mb-6">
-        And this was the origin of our families ties to Fiji. Leonard and Soli (Losana) had 5 children, including <a href='?to=family/individual&individual_id=3'>Louisa</a>,
+        And this was the origin of our families ties to Fiji. Leonard and Soli (Losana) had 6 children; <a href='?to=family/individual&individual_id=3'>Louisa</a>,
         <a href='?to=family/individual&individual_id=5'>Mathilda</a>, <a href='?to=family/individual&individual_id=4'>Wilhelm</a>, 
         <a href='?to=family/individual&individual_id=7'>Caroline</a>, <a href='?to=family/individual&individual_id=2'>Mary</a>, and <a href='?to=family/individual&individual_id=8'>Harry</a>.
     </p>
