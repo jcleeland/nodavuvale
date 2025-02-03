@@ -41,6 +41,23 @@
         to the US during the 1840s and 1850s to escape persecution.
     </p>
     <h2 class="font-bold text-xl leading-relaxed mb-6">
+        Jewish history and the Boehm name
+    </h2>
+    <p class="text-lg leading-relaxed mb-6">
+        In 1492, King Ferdinand and Queen Isabella of Spain issued the Alhambra Decree, which ordered the expulsion of Jews from Spain.
+        Many of those who left Spain settled in Germany, where they were welcomed by the Holy Roman Emperor, Maximilian I. However, the situation for 
+        Jews in Germany was still precarious, with periods of tolerance interspersed with periods of persecution. By the 19th century, many Jews in Bavaria 
+        faced significant restrictions on their rights and livelihoods, prompting further emigration.
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        The name "Boehm" is a common Jewish surname, derived from "Bohemia" the modern day Czech Republic. It is possible that Leonard's 
+        ancestors were Jewish, and that they adopted the name "Boehm" as a way of preserving their identity while living in a predominantly Christian society. 
+        During the Napoleonic era, Jews were required to take legal surnames.
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        So there is a strong possiblity that Leonard was Jewish, or at least had a very strong Jewish heritage.
+    </p>
+    <h2 class="font-bold text-xl leading-relaxed mb-6">
         The South Pacific and the Cotton Boom
     </h2>
     <p class="text-lg leading-relaxed mb-6">
