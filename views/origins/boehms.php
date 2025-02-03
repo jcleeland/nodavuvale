@@ -21,6 +21,7 @@
         Bavarian Roots
     </h2>
     <p class="text-lg leading-relaxed mb-6">
+        <img src="images/leonard_boehm.png" alt="Leonard Boehm" class="float-right h-64 image-cover w-auto mx-4 mb-4 rounded-lg shadow-lg">
         <a href='?to=family/individual&individual_id=9'>Leonard Boehm</a> was born in Weissenhorn, Bayner in Bavaria somewhere between in 1826 and 1834. A US customs card 
         from November 11, 1853 states that a man by the name "Leonhard Boehm" arrived in New Orleans at the age of 20, having departed from Le Havre, France. 
         The card lists his place of birth as "Baviere, Germany", his nationality as "German", and his occupation as "farmer". 
@@ -78,9 +79,13 @@
         keepers of history at Nataleira, Leonard was introduced to the Chief and found good favour with him. This relationship led him to be offered the hand
         of <a href='?to=family/individual&individual_id=1'>Losana Nataleira</a> - one of the sisters of the village chiefs at the time.
     </p>
+    <h2 class="font-bold text-xl leading-relaxed mb-6">
+        The start of our family
+    </h2>
     <p class="text-lg leading-relaxed mb-6">
-        And this was the origin of our families ties to Fiji. Leonard and Soli (Losana) had 6 children; <a href='?to=family/individual&individual_id=3'>Louisa</a>,
+        And this was the origin of our family's ties to Fiji. Leonard and Soli (Losana) had 6 children; <a href='?to=family/individual&individual_id=3'>Louisa</a>,
         <a href='?to=family/individual&individual_id=5'>Mathilda</a>, <a href='?to=family/individual&individual_id=4'>Wilhelm</a>, 
         <a href='?to=family/individual&individual_id=7'>Caroline</a>, <a href='?to=family/individual&individual_id=2'>Mary</a>, and <a href='?to=family/individual&individual_id=8'>Harry</a>.
     </p>
+    <img src='images/the_diaspora.JPG' title='The Diaspora' alt='The Diaspora' class='w-full h-auto rounded-lg shadow-lg mb-6'>
 </section>
