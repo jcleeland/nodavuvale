@@ -53,7 +53,7 @@
         maintenance and productivity of the gardens. The head gardener would have been responsible for the cultivation of fruit, vegetables, herbs and flowers, as well as the
         management of greenhouses and the supervision of other gardeners and labourers.
     </p>
-    <p class="text-lg leading-relaxed mb-6"> 
+    <p class="text-lg leading-relaxed mb-6">
         An article in the <i>Press and Journal</i> in April 1900 noted that he was honoured after his death with an honourary degree of <i>Doctor of Divinity</i>, stating 
         "The older inhabitants of Resolis who remember Dr Macdonald’s father, not only as a skilful horticulturist, but latterly as the genial farmer of Woodside, 
         on the Newhall estate, will be gratified to learn of the honour conferred on the minister of Strachur. Mrs Ross, Newmills Farm, Resolis, is the last local 
