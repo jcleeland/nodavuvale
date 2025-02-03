@@ -54,10 +54,11 @@
         management of greenhouses and the supervision of other gardeners and labourers.
     </p>
     <p class="text-lg leading-relaxed mb-6"> 
-        An article in the <i>Press and Journal</i> in April 1900 noted that he was honoured
-        after his death with an honourary degree of D.D. stating "The older inhabitants of Resolis who remember Dr Macdonald’s father, not only as a skilful horticulturist, 
-        but latterly as the genial farmer of Woodside, on the Newhall estate, will be gratified to learn of the honour conferred on the minister of Strachur. Mrs Ross, 
-        Newmills Farm, Resolis, is the last local survivor of this well-known family."
+        An article in the <i>Press and Journal</i> in April 1900 noted that he was honoured after his death with an honourary degree of <i>Doctor of Divinity</i>, stating 
+        "The older inhabitants of Resolis who remember Dr Macdonald’s father, not only as a skilful horticulturist, but latterly as the genial farmer of Woodside, 
+        on the Newhall estate, will be gratified to learn of the honour conferred on the minister of Strachur. Mrs Ross, Newmills Farm, Resolis, is the last local 
+        survivor of this well-known family." This degree was typically awarded to recognise a person's significan contributions to the church or community and indicates
+        the respect and esteem in which he was held.
     </p>
     <p class="text-lg leading-relaxed mb-6">
         Hugh married Christina Ferguson, and together they had at least 4 children. Hugh passed away in 1860, and Christina in 1864.
