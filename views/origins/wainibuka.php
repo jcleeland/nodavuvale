@@ -21,7 +21,15 @@
         Norman and Neil's Dairy Farm
     </h2>
     <p class="text-lg leading-relaxed mb-6">
-        <img src="images/macdonald_tartan.png" alt="Macdonald Tartan" class="float-left h-28 image-cover w-auto mx-4 mb-4 rounded-lg shadow-lg">
-        Norman and Neil Macdonald were dairy farmers in the Wainibuka Valley, Fiji in a property on the river at Wailevu.
+        According to Norman Macdonald's obituary, sometime around the late 1910s Norman and Mary "took up land" at the Wainibuka. 
+        Along with their son Neil, they ran a dairy farm in a property on the river at Wailevu.
+    </p>
+    <p>
+        When Mary died in 1941 she was buried further up-stream at Navasau where descendants still live today. Norman, and probably Neil, then
+        moved back to Suva where Norman died in 1946.
+    </p>
+    <p>
+        In Normans obituary, it is noted that his son Ronald Macdonald still lived at Wainibuka. Ronald had many children, including Neil Macdonald Senior who 
+        lives at Navasau along with his wife Mili. 
     </p>
 </section>
