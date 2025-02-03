@@ -3,7 +3,7 @@
     <div class="container hero-content mx-auto text-center text-white">
         <h1 class="text-5xl font-bold mb-4">The Macdonalds</h1>
         <p class="text-xl max-w-xl mx-auto leading-relaxed">
-            Discover the rich history and cultural heritage of the Macdonald Clan
+            The origins of the Macdonald family connection to Fiji
         </p>
         <a href="?to=origins/" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
             Origins
@@ -12,7 +12,7 @@
 </section>
 
 
-<section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
+<section class="container content mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <h1 class="text-4xl font-bold mb-6">The Macdonalds: A Legacy of Resilience and Migration</h1>
     <p class="text-lg leading-relaxed mb-6">
         The Macdonald surname carries a rich tapestry of history, migration, and resilience. For the descendants of Norman and Mary Macdonald in Fiji, understanding this legacy offers a profound connection to their ancestral roots.
@@ -23,6 +23,12 @@
     <p class="text-lg leading-relaxed mb-6">
         <img src="images/macdonald_tartan.png" alt="Macdonald Tartan" class="float-left h-28 image-cover w-auto mx-4 mb-4 rounded-lg shadow-lg">
         The Macdonalds, or Clan Donald, trace their lineage to the western Highlands and Islands of Scotland. Their progenitor, Somerled, a 12th-century warlord of both Norse and Celtic descent, established a dynasty that would wield significant influence over these regions. His descendants became known as the Lords of the Isles, commanding vast territories along Scotland's western seaboard.
+    </p>
+    <p class="text-lg leading-relaxed mb-2">
+        There is a rich history of stories and myths that surround the Macdonald Clan.
+    </p>
+    <p class="text-lg leading-relaxed mb-6 text-center">
+        <button onClick='window.location.href="?to=origins/macdonaldstories"' class="mt-8 inline-block px-6 py-3 bg-fiji-green text-white rounded-lg hover:nv-bg-opacity-50 hover:bg-warm-fiji-green transition">Read more about the legends of Clan Macdonald</button>
     </p>
 
     <h2 class="font-bold text-xl leading-relaxed mb-6">

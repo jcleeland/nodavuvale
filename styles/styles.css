@@ -39,6 +39,24 @@
     --individual-item-height: 120px;
 }
 
+section.content a {
+    background-color: rgba(var(--link-rgb), 0.1) !important;
+    padding-left: 3px;
+    padding-right: 3px;
+    border-radius: 5px;
+}
+
+section.content a:hover {
+    background-color: rgba(var(--link-rgb), 0.2) !important;
+}
+
+/* Define --link-rgb dynamically badsed on current text color */
+section.content a {
+    --link-rgb: 107, 66, 38; /* Default to brown(Change this dynamically using JavaScript if needed) */
+    color: rgb(var(--link-rgb));
+}
+
+
 .discussion-item-content a {
     text-decoration: underline !important;
     text-decoration-style: dashed !important;
@@ -58,15 +76,15 @@
     --nv-bg-opacity: 0.1 !important;
 }
 
-.nv-bg-opacity-20 {
+.nv-bg-opacity-20, .hover\:nv-bg-opacity-20:hover {
     --nv-bg-opacity: 0.2 !important;
 }
 
-.nv-bg-opacity-50 {
+.nv-bg-opacity-50, .hover\:nv-bg-opacity-50:hover {
     --nv-bg-opacity: 0.5 !important;
 }
 
-.nv-bg-opacity-90 {
+.nv-bg-opacity-90, .hover\:nv-bg-opacity-90:hover {
     --nv-bg-opacity: 0.9 !important;
 }
 
@@ -131,6 +149,15 @@
 
 .bg-warm-red {
     background-color: var(--warm-red);
+}
+
+.bg-fiji-green {
+    background-color: var(--fiji-green);
+}
+
+.bg-warm-fiji-green, .hover\:bg-warm-fiji-green:hover {
+    --nv-bg-opacity: 1;
+    background-color: rgba(var(--fiji-green-red), var(--fiji-green-green), var(--fiji-green-blue), var(--nv-bg-opacity));
 }
 
 /* Text Colors */

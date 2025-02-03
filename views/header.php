@@ -114,7 +114,7 @@ if($auth->getUserRole() == 'admin') {
             </div>
             
             <!-- User Account/Login -->
-            <div class="text-right">
+            <div class="text-right pb-1">
                 <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] !== ""): ?>
                     <?php
                     // Assuming you have the user's first and last name stored in the session
