@@ -30,27 +30,32 @@
         Emigration to the US
     </h2>
     <p class="text-lg leading-relaxed mb-6">
-        Leonard's parents were likely farmers, given his age when he arrived in New Orleans. The 1840s and 1850s were marked by agricultural failures in Europe (including
-        the "Great European Famine" of 1846-1852) which may have prompted Leonard to seek a new life in the US. Germany also experienced a series of revolutions in 1848
-        although Bavaria's king Ludwig I was able to suppress the revolutionaries. Many young men, especially liberals, intellectuals and those involved in political
+        Leonard's parents were likely farmers, given his age when he arrived in New Orleans. The 1840s and 1850s were marked by agricultural failures in Europe 
+        (the <a href='https://www.rte.ie/history/the-great-irish-famine/2022/0127/1276178-the-hungry-forties-in-europe/' target='_blank'>"hungry forties"</a>) which may 
+        have prompted Leonard to seek a new life in the US. 
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        Germany also experienced a series of <a href='https://en.wikipedia.org/wiki/German_revolutions_of_1848%E2%80%931849' target='_blank'>revolutions</a> in 1848
+        although Bavaria's <a href='https://en.wikipedia.org/wiki/Ludwig_I_of_Bavaria' target='_blank'>King Ludwig I</a> was able to suppress the revolutionaries. Many young men, especially liberals, intellectuals and those involved in political
         activism, left Germany for the US during this time.
     </p>
-    <p class="text-lg leading-relaxed mb-6">
-        There is some evidence to suggest that Leonard was Jewish, or at least of Jewish descent. The name "Boehm" is a common Jewish surname, and many of his descendants
-        have traces of Sephardic Jewish DNA. It is possible that Leonard was fleeing persecution in Bavaria, which was known for its anti-semitism. Many Jews emigrated
-        to the US during the 1840s and 1850s to escape persecution.
-    </p>
     <h2 class="font-bold text-xl leading-relaxed mb-6">
-        Jewish history and the Boehm name
+        Jewish history and the name 'Boehm'
     </h2>
     <p class="text-lg leading-relaxed mb-6">
-        In 1492, King Ferdinand and Queen Isabella of Spain issued the Alhambra Decree, which ordered the expulsion of Jews from Spain.
+        There is some evidence to suggest that Leonard was Jewish, or at least of Jewish descent. The name "Boehm" is a common Jewish surname, and many of his descendants
+        have traces of Sephardic Jewish DNA. So it is also possible that Leonard was fleeing persecution in Bavaria, which was 
+        <a href='https://en.wikipedia.org/wiki/History_of_the_Jews_in_Germany#1815%E2%80%931918'>known for its anti-semitism</a>. Many Jews emigrated
+        to the US during the 1840s and 1850s to escape persecution.
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        In 1492, King Ferdinand and Queen Isabella of Spain issued the <a href='https://en.wikipedia.org/wiki/Alhambra_Decree' target='_blank'>Alhambra Decree</a>, which ordered the expulsion of Jews from Spain.
         Many of those who left Spain settled in Germany, where they were welcomed by the Holy Roman Emperor, Maximilian I. However, the situation for 
         Jews in Germany was still precarious, with periods of tolerance interspersed with periods of persecution. By the 19th century, many Jews in Bavaria 
         faced significant restrictions on their rights and livelihoods, prompting further emigration.
     </p>
     <p class="text-lg leading-relaxed mb-6">
-        The name "Boehm" is a common Jewish surname, derived from "Bohemia" the modern day Czech Republic. It is possible that Leonard's 
+        The name "Boehm" is derived from "Bohemia" - which is now the modern day nation of the Czech Republic. It is possible that Leonard's 
         ancestors were Jewish, and that they adopted the name "Boehm" as a way of preserving their identity while living in a predominantly Christian society. 
         During the Napoleonic era, Jews were required to take legal surnames.
     </p>
