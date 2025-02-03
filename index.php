@@ -74,6 +74,10 @@ $pagePath = 'views/' . $page . '.php';
 // Extract the directory from the requested page (e.g., 'family' from 'views/family/tree.php')
 $path_parts = explode('/', $page);
 $requested_directory = $path_parts[0]; // Get the first part of the path (e.g., 'family')
+// If there are two forward slashes in the path, then the requested directory is the the first AND second arts
+if (count($path_parts) > 1) {
+    $requested_directory = $path_parts[0] . '/' . $path_parts[1];
+}
 
 // Check if the requested page is in a restricted directory and if the user is not logged in
 if (in_array($requested_directory, $restricted_paths) && !$auth->isLoggedIn()) {

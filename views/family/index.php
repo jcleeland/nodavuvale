@@ -29,6 +29,13 @@
             <a href="?to=family/users" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
         </div>
 
+        <!-- Origins -->
+        <div class="p-6 bg-white shadow-lg rounded-lg">
+            <h3 class="text-2xl font-bold">Origins</h3>
+            <p class="mt-2">Discover the stories of our ancestors and the origins of our family.</p>
+            <a href="?to=origins/" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Start Exploring</a>
+        </div>
+
         <!-- Family Stories Section -->
         <div class="p-6 bg-white shadow-lg rounded-lg">
             <h3 class="text-2xl font-bold">Family Stories</h3>

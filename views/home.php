@@ -397,9 +397,9 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-8">
             <!-- About Section -->
             <div class="p-6 bg-white shadow-lg rounded-lg">
-                <h3 class="text-2xl font-bold">About Nataleira</h3>
-                <p class="mt-2">Learn about the rich history and culture of Nataleira.</p>
-                <a href="?to=about/aboutnataleira.php" class="mt-4 inline-block text-ocean-blue hover:text-burnt-orange">About Nataleira</a>
+                <h3 class="text-2xl font-bold">Origins</h3>
+                <p class="mt-2">Learn about the rich history and culture of our shared ancestors.</p>
+                <a href="?to=origins/" class="mt-4 inline-block text-ocean-blue hover:text-burnt-orange">Origins</a>
             </div>
 
             <!-- Login/Register Section -->

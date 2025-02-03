@@ -82,6 +82,7 @@ if($auth->getUserRole() == 'admin') {
             
             <!-- Navigation Options -->
             <nav class="hidden sm:flex flex-grow justify-end text-right space-x-6">
+                <a href='?to=origins/' class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Origins</a>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Tree</a>
                 <span class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
@@ -102,6 +103,7 @@ if($auth->getUserRole() == 'admin') {
             
             <!-- Mobile Navigation Menu -->
             <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-deep-green text-white z-30 text-center">
+                <a href='?to=origins/' class="block px-4 py-2 text-white">Origins</a>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white">Tree</a>
                 <span class="block text-white hover:bg-burnt-orange-800 px-4 py-2" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>
