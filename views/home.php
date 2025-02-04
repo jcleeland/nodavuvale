@@ -272,7 +272,6 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             <?php if(empty($changes['items'])): ?>
                                 <div class="text-center text-gray-500">No new items at the moment.</div>
                             <?php endif; ?>
-                            <pre class="text-xs"><?= print_r($changes['items']) ?></pre>
                             <?php
                             foreach ($changes['items'] as $key=>$itemgroup) :
                                 //echo "<pre>$key<br />"; print_r($changes['items'][$key]); echo "</pre>";
