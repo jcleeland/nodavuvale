@@ -373,9 +373,14 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                             <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>&tab=mediatab&file_id=<?= $file['id'] ?>'><?= $file['file_description'] ?>
                             saved to <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>'><?= $file['tree_first_name'] ." ".$file['tree_last_name'] ?></a><br />
                             <?php if ($file['file_type'] == 'image'): ?>
-                                <img src='<?= $file['file_path'] ?>' class='w-full h-auto rounded' />
+                                <img src='<?= $file['file_path'] ?>' class='w-full h-auto rounded mt-2' />
                             <?php else: ?>
-                                <a href='<?= $file['file_path'] ?>' class='text-blue-500 hover:text-blue-700'>Download</a>
+                                <?php $iconClass=$web->getFontawesomeIconClassForFile($file['file_format']); ?>
+                                <div class="w-full h-auto rounded mt-2">
+                                    <a href='<?= $file['file_path'] ?>' class='text-blue-500 hover:text-blue-700'>
+                                    <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
+                                    Download</a>
+                                </div>
                             <?php endif; ?>
                             <span class="text-xxs">Added by <?= $file['user_first_name'] . " " . $file['user_last_name'] ?></span>
                             </div>

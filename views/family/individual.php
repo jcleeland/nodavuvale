@@ -1013,69 +1013,7 @@ if ($individual_id) {
                         </button>
                         <div class="pt-4 leading-none overflow-hidden">
                             <a href="<?php echo $document['file_path']; ?>" target="_blank" class="hover:text-blue-800" title="<?= $document['original_file_name'] ?>">
-                                <?php
-                                // Determine the icon based on the file format
-                                $iconClass = '';
-                                switch ($document['file_format']) {
-                                    case 'pdf':
-                                        $iconClass = 'fas fa-file-pdf';
-                                        break;
-                                    case 'docx':
-                                    case 'doc':
-                                        $iconClass = 'fas fa-file-word';
-                                        break;
-                                    case 'xls':
-                                    case 'xlsx':
-                                        $iconClass = 'fas fa-file-excel';
-                                        break;
-                                    case 'ppt':
-                                    case 'pptx':
-                                        $iconClass = 'fas fa-file-powerpoint';
-                                        break;
-                                    case 'jpg':
-                                    case 'jpeg':
-                                    case 'png':
-                                    case 'gif':
-                                    case 'bmp':
-                                    case 'svg':
-                                    case 'webp':
-                                        $iconClass = 'fas fa-file-image';
-                                        break;
-                                    case 'mp3':
-                                    case 'wav':
-                                    case 'ogg':
-                                        $iconClass = 'fas fa-file-audio';
-                                        break;
-                                    case 'mp4':
-                                    case 'avi':
-                                    case 'mov':
-                                    case 'wmv':
-                                        $iconClass = 'fas fa-file-video';
-                                        break;
-                                    case 'zip':
-                                    case 'rar':
-                                    case 'tar':
-                                    case 'gz':
-                                        $iconClass = 'fas fa-file-archive';
-                                        break;
-                                    case 'html':
-                                    case 'css':
-                                    case 'js':
-                                    case 'php':
-                                    case 'py':
-                                    case 'java':
-                                    case 'c':
-                                    case 'cpp':
-                                        $iconClass = 'fas fa-file-code';
-                                        break;
-                                    case 'txt':
-                                        $iconClass = 'fas fa-file-alt';
-                                        break;
-                                    default:
-                                        $iconClass = 'fas fa-file';
-                                        break;
-                                }
-                                ?>
+                                <?php $iconClass = $web->getFontawesomeIconClassForFile($document['file_type']); ?>
                                 <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
                                 <span class="text-xs"><?= $document['original_file_name'] ?></span>
                             </a>
