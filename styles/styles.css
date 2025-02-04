@@ -147,7 +147,7 @@ section.content a {
     background-color: rgba(var(--warm-red-red), var(--warm-red-green), var(--warm-red-blue), var(--nv-bg-opacity));
 }
 
-.bg-warm-red {
+.bg-warm-red, .hover\:bg-warm-red:hover {
     background-color: var(--warm-red);
 }
 

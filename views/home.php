@@ -85,6 +85,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
 
     <!-- Changes and Updates Section -->
     <section class="container mx-auto py-12 px-4 sm:px-3 xs:px-2 lg:px-8 pt-10">
+        <!--<pre class="text-xs"><?= print_r($changes) ?></pre>-->
         <h3 class="text-2xl font-bold">
             <i class="fas fa-bell" title="Changes and updates since <?= date("l, d F Y", strtotime($changes['last_view'])) ?>" onclick="toggleDateSelect()"></i> 
             Recent changes
@@ -127,269 +128,292 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         </script>
         <div id="recentchanges" class="relative pt-6 xs:pt-1">
             <div class="tabs absolute -top-0 text-lg gap-2">
-                <div class="active tab px-4 py-2 h-11 border-top" data-tab="visitorstab">
-                    <span class="hidden sm:inline">Visitors</span>
+                <div class="active tab px-4 py-2 h-11 border-top relative" data-tab="visitorstab">
+                    <span class="hidden sm:inline">
+                        Visitors
+                        <?php if(count($changes['visitors']) > 0): ?>
+                            <span class="absolute -top-1 -right-1 text-xs text-white bg-burnt-orange-800 nv-bg-opacity-50 rounded-full px-1 py-0" title="<?= count($changes['visitors']) ?> visitor to show" ><?= count($changes['visitors']) ?></span>
+                        <?php endif; ?>
+                    </span>
                     <span class="sm:hidden" title="Visitors"><i class="fas fa-heart"></i></span>
                 </div>
-                <div class="tab px-4 py-2 h-11" data-tab="discussionstab">
-                    <span class="hidden sm:inline">Chats</span>
+                <div class="tab px-4 py-2 h-11 relative" data-tab="discussionstab">
+                    <span class="hidden sm:inline">
+                        Chats
+                        <?php if(count($changes['discussions']) > 0): ?>
+                            <span class="absolute -top-1 -right-1 text-xs text-white bg-burnt-orange-800 nv-bg-opacity-50 rounded-full px-1 py-0" title="<?= count($changes['discussions']) ?> new discussions" ><?= count($changes['discussions']) ?></span>
+                        <?php endif; ?>
+                    </span>
                     <span class="sm:hidden" title="Chats"><i class="fas fa-comments"></i></span>
                 </div>
-                <div class="tab px-4 py-2 h-11" data-tab="individualstab">
-                    <span class="hidden sm:inline">Tree</span>
+                <div class="tab px-4 py-2 h-11 relative" data-tab="individualstab">
+                    <span class="hidden sm:inline">
+                        Tree
+                        <?php if(count($changes['individuals']) > 0): ?>
+                            <span class="absolute -top-1 -right-1 text-xs text-white bg-burnt-orange-800 nv-bg-opacity-50 rounded-full px-1 py-0" title="<?= count($changes['individuals']) ?> new people in the tree" ><?= count($changes['individuals']) ?></span>
+                        <?php endif; ?>
+                    </span>
                     <span class="sm:hidden" title="Family"><i class="fas fa-users"></i></span>
                 </div>
-                <div class="tab px-4 py-2 h-11" data-tab="eventstab">
-                    <span class="hidden sm:inline">Events</span>
+                <div class="tab px-4 py-2 h-11 relative" data-tab="eventstab">
+                    <span class="hidden sm:inline">
+                        Life Events
+                        <?php if(count($changes['items']) > 0): ?>
+                            <span class="absolute -top-1 -right-1 text-xs text-white bg-burnt-orange-800 nv-bg-opacity-50 rounded-full px-1 py-0" title="<?= count($changes['items']) ?> life events added" ><?= count($changes['items']) ?></span>
+                        <?php endif; ?>
+                    </span>
                     <span class="sm:hidden" title="Events"><i class="fas fa-calendar-alt"></i></span>
                 </div>
-                <div class="tab px-4 py-2 h-11" data-tab="filestab">
-                    <span class="hidden sm:inline">Media</span>
+                <div class="tab px-4 py-2 h-11 relative" data-tab="filestab">
+                    <span class="hidden sm:inline">
+                        Media
+                        <?php if(count($changes['files']) > 0): ?>
+                            <span class="absolute -top-1 -right-1 text-xs text-white bg-burnt-orange-800 nv-bg-opacity-50 rounded-full px-1 py-0" title="<?= count($changes['files']) ?> media items added" ><?= count($changes['files']) ?></span>
+                        <?php endif; ?>
+                    </span>
                     <span class="sm:hidden" title="Media"><i class="fas fa-photo-video"></i></span>
                 </div>
             </div>
             <div class="grid grid-cols-1 gap-8">          
-            <!-- Recent Changes Section -->
-            <div class="p-6 bg-white shadow-lg rounded-lg mt-8 h-64 overflow-y-auto">
-                <div class="grid grid-cols-1 gap-8">
+                <!-- Recent Changes Section -->
+                <div class="p-6 bg-white shadow-lg rounded-lg mt-8 h-64 overflow-y-auto">
+                    <div class="grid grid-cols-1 gap-8">
 
 
-                <div class="tab-content active" id="visitorstab">
-                        <div class="flex flex-wrap justify-center">
-                        <?php if(empty($changes['visitors'])): ?>
-                            <div class="text-center text-gray-500">No <span title="family">vuvale</span> online at the moment.</div>
-                        <?php endif; ?>
-                        <?php foreach ($changes['visitors'] as $visitor): ?>
-                            <?php
-                            // if strtotime($visitor['last_view']) is less then 10 minutes ago, then show the visitor as online
-                            $activityclass = strtotime($visitor['last_view']) > strtotime('-10 minutes') ? 'useronline' : 'useroffline';
-                            $lastViewTime = strtotime($visitor['last_view']);
-                            $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['a gole mail', 'dropped by', 'popped in for a bit', 'stopped in', 'checked things out', 'visited us', 'a mai sikova', 'hungout', 'was here', 'made a visit', 'looked around'];
-                            $timeprefix = $timeprefixOptions[array_rand($timeprefixOptions)];
-                            ?>
-                                <div class="text-left w-64 m-2 p-1 border rounded-xl shadow-xl <?= $activityclass ?>"> 
-                                <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover ".($auth->getUserPresence($visitor['user_id']) ? 'userpresent' : 'userabsent')); ?></a>
-                                    <div class='visitors-content text-center pr-1'>
-                                        <div>
-                                            <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><b><?= $visitor['first_name'] ?>&nbsp;<?= $visitor['last_name'] ?></b></a> <?= $timeprefix ?> 
-                                            <?= $web->timeSince($visitor['last_view']); ?>.
+                        <div class="tab-content active" id="visitorstab">
+                            <div class="flex flex-wrap justify-center">
+                            <?php if(empty($changes['visitors'])): ?>
+                                <div class="text-center text-gray-500">No <span title="family">vuvale</span> online at the moment.</div>
+                            <?php endif; ?>
+                            <?php foreach ($changes['visitors'] as $visitor): ?>
+                                <?php
+                                // if strtotime($visitor['last_view']) is less then 10 minutes ago, then show the visitor as online
+                                $activityclass = strtotime($visitor['last_view']) > strtotime('-10 minutes') ? 'useronline' : 'useroffline';
+                                $lastViewTime = strtotime($visitor['last_view']);
+                                $timeprefixOptions = $lastViewTime > strtotime('-10 minutes') ? ['is visiting', 'is here', 'is online'] : ['a gole mail', 'dropped by', 'popped in for a bit', 'stopped in', 'checked things out', 'visited us', 'a mai sikova', 'hungout', 'was here', 'made a visit', 'looked around'];
+                                $timeprefix = $timeprefixOptions[array_rand($timeprefixOptions)];
+                                ?>
+                                    <div class="text-left w-64 m-2 p-1 border rounded-xl shadow-xl <?= $activityclass ?>"> 
+                                    <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><?php echo $web->getAvatarHTML($visitor['user_id'], "md", "mt-1 ml-1 pt-0 pl-0 avatar-float-left object-cover ".($auth->getUserPresence($visitor['user_id']) ? 'userpresent' : 'userabsent')); ?></a>
+                                        <div class='visitors-content text-center pr-1'>
+                                            <div>
+                                                <a href='?to=family/users&user_id=<?= $visitor['user_id'] ?>'><b><?= $visitor['first_name'] ?>&nbsp;<?= $visitor['last_name'] ?></b></a> <?= $timeprefix ?> 
+                                                <?= $web->timeSince($visitor['last_view']); ?>.
+                                            </div>
+                                        </div>
+                                    </div>
+                            <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="discussionstab">
+                            <div class="flex flex-wrap justify-center">
+                            <?php if(empty($changes['discussions'])): ?>
+                                <div class="text-center text-gray-500">No new discussions at the moment.</div>
+                            <?php endif; ?>
+                            <?php foreach ($changes['discussions'] as $discussion): ?>
+                                <div class='border shadow-xl float-left rounded px-0 pt-0 pb-2 m-2 max-w-48 text-center relative max-w-xs leading-tight bg-gray-800 bg-opacity-10'>
+                                    <div class="w-full text-xs pt-0 pt-1 pb-1 ml-0 mr-0 mt-0 bg-brown rounded-t text-white">
+                                    <?php if($discussion['individual_id']) {
+                                        echo "New ".$discussion['change_type']." in <b>Family Tree Chat:</b>";
+                                        $url="?to=family/individual&individual_id=".$discussion['individual_id']."&discussion_id=".$discussion['discussionId'];
+                                    } else {
+                                        echo "<b>General Chat:</b> New ".$discussion['change_type'];
+                                        $url="?to=communications/discussions&discussion_id=".$discussion['discussionId'];
+                                    }
+                                    ?>
+                                    </div>
+                                    <div class="text-left max-w-sm mt-2"> 
+                                    <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "mt-1 ml-1 mr-2 pt-0 pl-0 avatar-float-left object-cover"); ?>
+                                        <div class='discussion-content text-left pr-1'>
+                                            <div class="text-xs italic text-gray-500">
+                                                Posted by <?= $discussion['user_first_name'] ?>&nbsp;<?= $discussion['user_last_name'] ?>
+                                                <span title="<?= date('F j, Y, g:i a', strtotime($discussion['updated_at'])) ?>"><?= $web->timeSince($discussion['updated_at']); ?></span>
+                                            </div>
+                                            <a href='<?= $url ?>'><b class="leading-tight text-md font-bold"><?= stripslashes($discussion['title']) ?></b></a>
+                                            <p class="text-sm"><?= stripslashes($web->truncateText($discussion['content'], 10, "Read more", "discussion_".$discussion['discussionId'])) ?></p>
                                         </div>
                                     </div>
                                 </div>
-                        <?php endforeach; ?>
+                            <?php endforeach; ?>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="tab-content" id="discussionstab">
-                        <div class="flex flex-wrap justify-center">
-                        <?php if(empty($changes['discussions'])): ?>
-                            <div class="text-center text-gray-500">No new discussions at the moment.</div>
-                        <?php endif; ?>
-                        <?php foreach ($changes['discussions'] as $discussion): ?>
-                            <div class='border shadow-xl float-left rounded px-0 pt-0 pb-2 m-2 max-w-48 text-center relative max-w-xs leading-tight bg-gray-800 bg-opacity-10'>
-                                <div class="w-full text-xs pt-0 pt-1 pb-1 ml-0 mr-0 mt-0 bg-brown rounded-t text-white">
-                                <?php if($discussion['individual_id']) {
-                                    echo "New ".$discussion['change_type']." in <b>Family Tree Chat:</b>";
-                                    $url="?to=family/individual&individual_id=".$discussion['individual_id']."&discussion_id=".$discussion['discussionId'];
+
+
+                        <div class="tab-content active" id="individualstab">
+                            <div class="flex flex-wrap justify-center" id="family-tree">
+                            <?php if(empty($changes['individuals'])): ?>
+                                <div class="text-center text-gray-500">No new family members at the moment.</div>
+                            <?php endif; ?>
+                            <?php foreach ($changes['individuals'] as $individual): ?>
+                            <?php $keyImagePath=$individual['keyimagepath'] ? $individual['keyimagepath'] : "images/default_avatar.webp"; ?>
+                                <div class="relative text-left w-64 h-12 m-2 p-1 border rounded-xl shadow-xl leading-none treegender_<?= $individual['gender'] ?> rounded">
+                                    <div class='cursor-pointer text-lg w-full text-left' title='See details for <?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id=<?= $individual['individualId'] ?>&apos;'>    
+                                        <img src='<?= $keyImagePath ?>' class='avatar-img-sm avatar-float-left border object-cover mt-0.5 ml-0 pt-0 pl-0 mr-2' title='<?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>'>
+                                        <b>
+                                            <?= explode(" ", $individual['tree_first_name'])[0] ?> <?= $individual['tree_last_name'] ?>
+                                        </b>
+                                        <div class="absolute w-64 pr-5 bottom-0 p-1 ml-8 italic break-words leading-none text-left">
+                                            <span class="text-xxs">Added by <?= $individual['user_first_name'] ?> - <?= date("D, d M  g:ia", strtotime($individual['updated']) ) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                            </div>
+                        </div>
+
+
+
+                        
+                        <div class="tab-content" id="eventstab">
+                            <div class="flex flex-wrap justify-center">
+                            <?php $itemlist=array(); //Set up the final item list to show all items according to their type/group ?>
+                            <?php if(empty($changes['items'])): ?>
+                                <div class="text-center text-gray-500">No new items at the moment.</div>
+                            <?php endif; ?>
+                            <pre class="text-xs"><?= print_r($changes['items']) ?></pre>
+                            <?php
+                            foreach ($changes['items'] as $key=>$itemgroup) :
+                                //echo "<pre>$key<br />"; print_r($changes['items'][$key]); echo "</pre>";
+                                //echo "<hr /><hr /><pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
+                                if(isset($itemgroup['items']) && is_array($itemgroup['items']) && count($itemgroup['items']) > 0):
+                                    //echo "<pre>"; print_r($itemgroup); echo "</pre>";
+                                    $groupTitle=$key;
+                                    foreach($itemgroup['items'] as $item) {
+                                        if(!isset($item['unique_id'])) {
+                                            echo "<br /><br /><pre>"; print_r($item); echo "</pre>";
+                                            echo "UNIQUE_ID: ".$item['unique_id']."<br />";  
+                                        // $item['unique_id']=$item['item_id'];
+                                        }
+
+                                        $guid=$item['unique_id'];
+                                        $giid=$item['item_id'];
+                                        $itemlist['group_'.$guid][$giid]=$item;
+                                        $itemlist['group_'.$item['unique_id']]['privacy']=$itemgroup['privacy'];
+                                        $itemlist['group_'.$guid]['group_identifier']=$key;
+                                    }
+                                    
+                                else:
+                                    //$groupTitle=$key;
+                                    //echo "<pre>ITEMLIST<br />"; print_r($itemlist); echo "</pre>";
+                                    foreach($itemgroup as $item) {
+                                        //echo "<br /><hr /><pre>ITEM"; print_r($item); echo "</pre>";
+                                        //echo "item_".$item['item_id']."<br />";
+                                        $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
+                                        $itemlist['item_'.$item['item_id']]['privacy']=$itemgroup['privacy'];
+                                    }
+                                endif; 
+
+
+                            endforeach;
+                                
+                            foreach($itemlist as $itemgroup) {
+                                $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/5 mx-auto";
+                                $firstItem=reset($itemgroup);
+                                //echo "<pre>"; print_r($itemgroup); echo "</pre>";
+                                $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
+                                $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
+                                $itemprivacy=$itemgroup['privacy']=="private" ? "private" : "public";
+                                //echo "<pre class='text-xxs'>"; print_r($itemgroup); echo "</pre>";
+                                //$itemprivacy=$firstItem['public'] ? "public" : "private";
+                                if($itemprivacy == 'private') {
+                                    $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
                                 } else {
-                                    echo "<b>General Chat:</b> New ".$discussion['change_type'];
-                                    $url="?to=communications/discussions&discussion_id=".$discussion['discussionId'];
+                                    $privacystamp="";
                                 }
                                 ?>
-                                </div>
-                                <div class="text-left max-w-sm mt-2"> 
-                                <?php echo $web->getAvatarHTML($discussion['user_id'], "md", "mt-1 ml-1 mr-2 pt-0 pl-0 avatar-float-left object-cover"); ?>
-                                    <div class='discussion-content text-left pr-1'>
-                                        <div class="text-xs italic text-gray-500">
-                                            Posted by <?= $discussion['user_first_name'] ?>&nbsp;<?= $discussion['user_last_name'] ?>
-                                            <span title="<?= date('F j, Y, g:i a', strtotime($discussion['updated_at'])) ?>"><?= $web->timeSince($discussion['updated_at']); ?></span>
-                                        </div>
-                                        <a href='<?= $url ?>'><b class="leading-tight text-md font-bold"><?= stripslashes($discussion['title']) ?></b></a>
-                                        <p class="text-sm"><?= stripslashes($web->truncateText($discussion['content'], 10, "Read more", "discussion_".$discussion['discussionId'])) ?></p>
+                                <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>&tab=generaltab&item_group_id=<?= $itemgroup['group_identifier'] ?>"'>
+                                    <div class="item_header p-1 h-12 rounded mb-1 bg-deep-green text-white break-words text-center items-center center text-sm">
+                                        <b>
+                                            <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?>
+                                        </b>
+                                        <?= str_replace("Key Image", "Pic", $groupTitle) ?> 
+                                        <?= $privacystamp ?>
                                     </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        </div>
-                    </div>
-
-
-
-                    <div class="tab-content active" id="individualstab">
-                        <div class="flex flex-wrap justify-center" id="family-tree">
-                        <?php if(empty($changes['individuals'])): ?>
-                            <div class="text-center text-gray-500">No new family members at the moment.</div>
-                        <?php endif; ?>
-                        <?php foreach ($changes['individuals'] as $individual): ?>
-                        <?php $keyImagePath=$individual['keyimagepath'] ? $individual['keyimagepath'] : "images/default_avatar.webp"; ?>
-                            <div class="relative text-left w-64 h-12 m-2 p-1 border rounded-xl shadow-xl leading-none treegender_<?= $individual['gender'] ?> rounded">
-                                <div class='cursor-pointer text-lg w-full text-left' title='See details for <?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>' onclick='window.location.href=&apos;?to=family/individual&amp;individual_id=<?= $individual['individualId'] ?>&apos;'>    
-                                    <img src='<?= $keyImagePath ?>' class='avatar-img-sm avatar-float-left border object-cover mt-0.5 ml-0 pt-0 pl-0 mr-2' title='<?= $individual['tree_first_name'] . " " . $individual['tree_last_name'] ?>'>
-                                    <b>
-                                        <?= explode(" ", $individual['tree_first_name'])[0] ?> <?= $individual['tree_last_name'] ?>
-                                    </b>
-                                    <div class="absolute w-64 pr-5 bottom-0 p-1 ml-8 italic break-words leading-none text-left">
-                                        <span class="text-xxs">Added by <?= $individual['user_first_name'] ?> - <?= date("D, d M  g:ia", strtotime($individual['updated']) ) ?></span>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        </div>
-                    </div>
-
-
-
-                    
-                    <div class="tab-content" id="eventstab">
-                        <div class="flex flex-wrap justify-center">
-                        <?php $itemlist=array(); //Set up the final item list to show all items according to their type/group ?>
-                        <?php
-                        if(empty($changes['items'])): ?>
-                            <div class="text-center text-gray-500">No new items at the moment.</div>
-                        <?php endif; 
-
-                        //echo "<pre>ITEMGROUP<br />"; print_r($changes['items']); echo "</pre>";
-                        
-                        foreach ($changes['items'] as $key=>$itemgroup) :
-                            //echo "<pre>$key<br />"; print_r($changes['items'][$key]); echo "</pre>";
-                            //echo "<hr /><hr /><pre>ITEMGROUP<br />"; print_r($itemgroup); echo "</pre>";
-                            if(isset($itemgroup['items']) && is_array($itemgroup['items']) && count($itemgroup['items']) > 0):
-                                //echo "<pre>"; print_r($itemgroup); echo "</pre>";
-                                $groupTitle=$key;
-                                foreach($itemgroup['items'] as $item) {
-                                    if(!isset($item['unique_id'])) {
-                                        echo "<br /><br /><pre>"; print_r($item); echo "</pre>";
-                                        echo "UNIQUE_ID: ".$item['unique_id']."<br />";  
-                                       // $item['unique_id']=$item['item_id'];
-                                    }
-
-                                    $guid=$item['unique_id'];
-                                    $giid=$item['item_id'];
-                                    $itemlist['group_'.$guid][$giid]=$item;
-                                    $itemlist['group_'.$item['unique_id']]['privacy']=$itemgroup['privacy'];
-                                    $itemlist['group_'.$guid]['group_identifier']=$key;
-                                }
-                                
-                            else:
-                                //$groupTitle=$key;
-                                //echo "<pre>ITEMLIST<br />"; print_r($itemlist); echo "</pre>";
-                                foreach($itemgroup as $item) {
-                                    //echo "<br /><hr /><pre>ITEM"; print_r($item); echo "</pre>";
-                                    //echo "item_".$item['item_id']."<br />";
-                                    $itemlist['item_'.$item['item_id']][$item['item_id']]=$item;
-                                    $itemlist['item_'.$item['item_id']]['privacy']=$itemgroup['privacy'];
-                                }
-                            endif; 
-
-
-                        endforeach;
-                            
-                        foreach($itemlist as $itemgroup) {
-                            $imgclasses=count($itemgroup) > 1 ? "w-1/4 float-right mx-1" : "w-2/5 mx-auto";
-                            $firstItem=reset($itemgroup);
-                            //echo "<pre>"; print_r($itemgroup); echo "</pre>";
-                            $itemidentifier=$firstItem['unique_id']."_".$firstItem['item_id'];
-                            $groupTitle=!empty($firstItem['item_group_name']) ? $firstItem['item_group_name'] : $firstItem['detail_type'];
-                            $itemprivacy=$itemgroup['privacy']=="private" ? "private" : "public";
-                            //echo "<pre class='text-xxs'>"; print_r($itemgroup); echo "</pre>";
-                            //$itemprivacy=$firstItem['public'] ? "public" : "private";
-                            if($itemprivacy == 'private') {
-                                $privacystamp="<div class='relative' title='The owner of this information has asked for it to be kept private'><div class='stamp stamp-red-double cursor-info'>Private</div></div>";
-                            } else {
-                                $privacystamp="";
-                            }
-                            ?>
-                            <div class='document-item m-2 mb-4 text-center items-center cursor-pointer shadow-lg rounded-lg text-xs sm:text-sm relative w-36 break-words' onClick='window.location.href="?to=family/individual&individual_id=<?=$firstItem['individualId'] ?>&tab=generaltab&item_group_id=<?= $itemgroup['group_identifier'] ?>"'>
-                                <div class="item_header p-1 h-12 rounded mb-1 bg-deep-green text-white break-words text-center items-center center text-sm">
-                                    <b>
-                                        <?= explode(" ", $firstItem['tree_first_names'])[0] . " " . $firstItem['tree_last_name'] ?>
-                                    </b>
-                                    <?= str_replace("Key Image", "Pic", $groupTitle) ?> 
-                                    <?= $privacystamp ?>
-                                </div>
-                                <div id="eventid_<?= $itemidentifier ?>" class="item_body relative break-words text-gray leading-none bg-cream m-0.5 h-12 overflow-y-scroll overflow-y-hidden">
-                                    <?php foreach ($itemgroup as $key=>$itemdetail) : ?>
-                                        <?php if(!empty($itemdetail['file_id'])): ?>
-                                            <?php if ($itemdetail['file_type'] == 'image'): ?>
-                                                <script>
-                                                    var eventElement=document.getElementById('eventid_<?= $itemidentifier ?>');
-                                                    eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['file_path'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>"+eventElement.innerHTML;
-                                                </script>
-                                            <?php else: ?>
-                                                <div class="text-xxs text-left px-1 pb-1">
-                                                    <b><?= $itemdetail['detail_type'] ?>:</b> <a href='<?= $itemdetail['file_path'] ?>' class='text-blue-500 hover:text-blue-700'><?= stripslashes($itemdetail['file_description']) ?></a>
-                                                </div>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                                <?php if(!empty($itemdetail['detail_value'])): ?>
-                                                    <div class="text-xxs text-left px-1 pb-1 leading-tight" title="<?= $itemdetail['item_id'] ?>">
-                                                        <b><?= $itemdetail['detail_type'] ?>:</b>
-                                                    <?php if($itemdetail['detail_type'] != "Private") : ?>
-                                                        <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
-                                                            <a href='?to=family/individual&individual_id=<?=$itemdetail['individual_name_id'] ?>'><?= $itemdetail['individual_name'] ?></a>
-                                                        <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
-                                                            <?php if($itemdetail['detail_type'] == "Photo"): ?>
-                                                                <script>
-                                                                    var eventElement = document.getElementById('eventid_<?= $itemidentifier ?>');
-                                                                    eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['detail_value'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>" + eventElement.innerHTML;
-                                                                </script>
-                                                            <?php endif; ?>
-                                                        <?php else: ?>
-                                                            <?php //if the string is a URL, make it a clickable link ?>
-                                                            <?php if (filter_var($itemdetail['detail_value'], FILTER_VALIDATE_URL)): ?>
-                                                                <a href="<?= $itemdetail['detail_value'] ?>" target="_blank">
-                                                                    <i class="fas fa-link"></i> Weblink
-                                                                </a>    
-                                                            <?php else: ?>
-                                                                <?= stripslashes($web->truncateText($itemdetail['detail_value'], 15)); ?>
-                                                            <?php endif; ?>
-                                                        <?php endif; ?>
-                                                    <?php endif ?>
+                                    <div id="eventid_<?= $itemidentifier ?>" class="item_body relative break-words text-gray leading-none bg-cream m-0.5 h-12 overflow-y-scroll overflow-y-hidden">
+                                        <?php foreach ($itemgroup as $key=>$itemdetail) : ?>
+                                            <?php if(!empty($itemdetail['file_id'])): ?>
+                                                <?php if ($itemdetail['file_type'] == 'image'): ?>
+                                                    <script>
+                                                        var eventElement=document.getElementById('eventid_<?= $itemidentifier ?>');
+                                                        eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['file_path'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>"+eventElement.innerHTML;
+                                                    </script>
+                                                <?php else: ?>
+                                                    <div class="text-xxs text-left px-1 pb-1">
+                                                        <b><?= $itemdetail['detail_type'] ?>:</b> <a href='<?= $itemdetail['file_path'] ?>' class='text-blue-500 hover:text-blue-700'><?= stripslashes($itemdetail['file_description']) ?></a>
                                                     </div>
                                                 <?php endif; ?>
-                                        <?php endif; ?>
+                                            <?php else: ?>
+                                                    <?php if(!empty($itemdetail['detail_value'])): ?>
+                                                        <div class="text-xxs text-left px-1 pb-1 leading-tight" title="<?= $itemdetail['item_id'] ?>">
+                                                            <b><?= $itemdetail['detail_type'] ?>:</b>
+                                                        <?php if($itemdetail['detail_type'] != "Private") : ?>
+                                                            <?php if($item_styles[$itemdetail['detail_type']] == "individual") : ?>
+                                                                <a href='?to=family/individual&individual_id=<?=$itemdetail['individual_name_id'] ?>'><?= $itemdetail['individual_name'] ?></a>
+                                                            <?php elseif($item_styles[$itemdetail['detail_type']] == "file"): ?>
+                                                                <?php if($itemdetail['detail_type'] == "Photo"): ?>
+                                                                    <script>
+                                                                        var eventElement = document.getElementById('eventid_<?= $itemidentifier ?>');
+                                                                        eventElement.innerHTML = "<img class='<?= $imgclasses ?> rounded object-cover' src='<?= $itemdetail['detail_value'] ?>' alt='<?= $itemdetail['detail_value'] ?>'/>" + eventElement.innerHTML;
+                                                                    </script>
+                                                                <?php endif; ?>
+                                                            <?php else: ?>
+                                                                <?php //if the string is a URL, make it a clickable link ?>
+                                                                <?php if (filter_var($itemdetail['detail_value'], FILTER_VALIDATE_URL)): ?>
+                                                                    <a href="<?= $itemdetail['detail_value'] ?>" target="_blank">
+                                                                        <i class="fas fa-link"></i> Weblink
+                                                                    </a>    
+                                                                <?php else: ?>
+                                                                    <?= stripslashes($web->truncateText($itemdetail['detail_value'], 15)); ?>
+                                                                <?php endif; ?>
+                                                            <?php endif; ?>
+                                                        <?php endif ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                            <?php endif; ?>
 
-                                    <?php endforeach; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div style='clear: both'></div>
+                                    <div style='height: 15px;'></div>
+                                    <div class="item_footer absolute bottom-1 w-full p-0 italic break-words leading-none text-ocean-blue">
+                                        <span class="text-xxs">By <?= $firstItem['first_name'] ?> - <?= date("D d M g:ia", strtotime($firstItem['updated'])) ?></span>
+                                    </div>                                    
+
                                 </div>
-                                <div style='clear: both'></div>
-                                <div style='height: 15px;'></div>
-                                <div class="item_footer absolute bottom-1 w-full p-0 italic break-words leading-none text-ocean-blue">
-                                    <span class="text-xxs">By <?= $firstItem['first_name'] ?> - <?= date("D d M g:ia", strtotime($firstItem['updated'])) ?></span>
-                                </div>                                    
-
+                            <?php } ?>
                             </div>
-                        <?php } ?>
                         </div>
-                    </div>
 
 
-                    <div class="tab-content" id="filestab">
-                        <div class="flex flex-wrap justify-center">
-                        <?php if(empty($changes['files'])): ?>
-                            <div class="text-center text-gray-500">No new media files at the moment.</div>
-                        <?php endif; ?>
-                        <?php foreach ($changes['files'] as $file): ?>
-                            <div class='border rounded p-2 m-2 text-center text-wrap w-48 shadow-xl text-sm'>
-                            <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>&tab=mediatab&file_id=<?= $file['id'] ?>'><?= $file['file_description'] ?>
-                            saved to <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>'><?= $file['tree_first_name'] ." ".$file['tree_last_name'] ?></a><br />
-                            <?php if ($file['file_type'] == 'image'): ?>
-                                <img src='<?= $file['file_path'] ?>' class='w-full h-auto rounded mt-2' />
-                            <?php else: ?>
-                                <?php $iconClass=$web->getFontawesomeIconClassForFile($file['file_format']); ?>
-                                <div class="w-full h-auto rounded mt-2">
-                                    <a href='<?= $file['file_path'] ?>' class='text-blue-500 hover:text-blue-700'>
-                                    <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
-                                    Download</a>
-                                </div>
+                        <div class="tab-content" id="filestab">
+                            <div class="flex flex-wrap justify-center">
+                            <?php if(empty($changes['files'])): ?>
+                                <div class="text-center text-gray-500">No new media files at the moment.</div>
                             <?php endif; ?>
-                            <span class="text-xxs">Added by <?= $file['user_first_name'] . " " . $file['user_last_name'] ?></span>
+                            <?php foreach ($changes['files'] as $file): ?>
+                                <div class='border rounded p-2 m-2 text-center text-wrap w-48 shadow-xl text-sm'>
+                                <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>&tab=mediatab&file_id=<?= $file['id'] ?>'><?= $file['file_description'] ?>
+                                saved to <a href='?to=family/individual&individual_id=<?= $file['individualId'] ?>'><?= $file['tree_first_name'] ." ".$file['tree_last_name'] ?></a><br />
+                                <?php if ($file['file_type'] == 'image'): ?>
+                                    <img src='<?= $file['file_path'] ?>' class='w-full h-auto rounded mt-2' />
+                                <?php else: ?>
+                                    <?php $iconClass=$web->getFontawesomeIconClassForFile($file['file_format']); ?>
+                                    <div class="w-full h-auto rounded mt-2">
+                                        <a href='<?= $file['file_path'] ?>' class='text-blue-500 hover:text-blue-700'>
+                                        <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
+                                        Download</a>
+                                    </div>
+                                <?php endif; ?>
+                                <span class="text-xxs">Added by <?= $file['user_first_name'] . " " . $file['user_last_name'] ?></span>
+                                </div>
+                            <?php endforeach; ?>
                             </div>
-                        <?php endforeach; ?>
                         </div>
                     </div>
-                </div>
-            </div>            
-
+                </div>            
+            </div>
         </div>
     </section>
 
