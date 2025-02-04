@@ -11,43 +11,119 @@
     </div>
 </section>
 
-
 <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <h1 class="text-4xl font-bold mb-6">Nataleira: The Heart of Our Heritage</h1>
+    <h1 class="text-4xl font-bold mb-6">Nataleira: The History of a Village</h1>
     
     <p class="text-lg leading-relaxed mb-6">
-        Nestled on the eastern coast of Viti Levu, Fiji’s largest island, lies the village of Nataleira. This small, tranquil settlement holds immense cultural and historical significance for the descendants of Soli Nataleira and the wider community. For generations, Nataleira has been more than just a geographical location— it is the spiritual heart of our ancestry, where the values of kinship, leadership, and connection to the land have been nurtured and passed down through time.
+        The village of Nataleira, on the eastern coast of Viti Levu, stands as a testament to the history 
+        and resilience of the Navunisea people. Its foundation was not a single event, but a journey 
+        shaped by movement, loyalty, and the deep traditions of Fijian life. 
+    </p>
+    <h2 class="font-bold text-xl leading-relaxed mb-6">
+        The Journey of Nataleira
+    </h2>
+    <p class="text-lg leading-relaxed mb-6">
+        The ancestors of Nataleira’s people once lived inland, in the highlands of Tokaimalo. As 
+        generations passed, they moved across the land, from Nagaralase to Navesi, carrying their 
+        customs and their identity with them. 
     </p>
     
-    <h2 class="text-3xl font-bold mb-4">A Village Steeped in Tradition</h2>
     <p class="text-lg leading-relaxed mb-6">
-        Nataleira is a village deeply rooted in traditional Fijian customs. Historically, it was a place where the chiefly leadership system played a central role in guiding village life, maintaining harmony, and ensuring the well-being of its people. The village’s social fabric was built on strong family ties, communal living, and a symbiotic relationship with the natural environment.
+        Their journey was not one of exile, but of loyalty. They served under Ratu o Dawasamu, and in 
+        recognition of their service, he gifted them the land that would become Nataleira. This was not 
+        merely a practical decision—it was an act of trust and gratitude. The land, with its rich soil 
+        and connection to the sea, became the foundation of a people’s home. Over time, Nataleira was 
+        shaped by those who lived upon it. They cultivated the land, fished in the waters, and built a 
+        society where communal responsibility and tradition were paramount. 
+    </p>
+    
+    <p class="text-lg leading-relaxed mb-6">
+        <img src="images/nataleira_entrance.jpg" alt="The entrance to Nataleira village" class="float-right h-64 image-cover w-auto mx-4 mb-4 rounded-lg shadow-lg">
+        In Fijian society, the land is more than a resource; it is identity. Nataleira is not just a 
+        settlement but a home to generations, a place where ancestors are honored and where customs 
+        are preserved through storytelling, ceremony, and daily life. Knowledge is passed from elders 
+        to children—not in books, but through lived experience. Each person has a role in maintaining 
+        the balance of the village, whether as a fisher, a farmer, a navigator, or a guardian of tradition. 
+    </p>
+    
+    <p class="text-lg leading-relaxed mb-6">
+        Like many Fijian villages, Nataleira’s people lived in close connection with the land and sea. 
+        The ocean was a source of sustenance, trade, and exploration. The land provided crops, yaqona, 
+        and materials for traditional crafts. The seasons dictated daily life, and the relationships 
+        between clans and extended families reinforced the bonds that held the village together. This 
+        was a world where kinship was more than blood—it was responsibility, respect, and collective 
+        survival. 
+    </p>
+    
+    <h2 class="font-bold text-xl leading-relaxed mb-6">
+        Nataleira and the Outside World
+    </h2>
+    <p class="text-lg leading-relaxed mb-6">
+        European contact with Fiji increased during the late 18th and early 19th centuries, as traders, 
+        whalers, and explorers arrived on its shores. By the mid-19th century, European colonial 
+        interests began to shape the islands, bringing new economic systems, political pressures, 
+        and social change. While Fiji remained largely self-governed under traditional leadership, 
+        external influences grew, particularly through commerce and the establishment of new power 
+        structures. The introduction of foreign goods and trade altered daily life in Nataleira, 
+        as villagers engaged with new materials and technologies while maintaining their deep-rooted 
+        customs.
     </p>
     <p class="text-lg leading-relaxed mb-6">
-        The people of Nataleira have long practiced subsistence farming, fishing, and traditional crafts, with their daily lives intricately connected to the land and sea. The village is surrounded by lush greenery and the pristine waters of the Pacific, offering a reminder of the deep respect Fijians have for the natural world. These traditional ways of living have shaped the identity of Nataleira, creating a strong sense of belonging and continuity among its people.
+        A Christian missionary by the name of Vanisi Racule, from the Delai clan, came to Nataleira, 
+        bringing a new faith that was embraced. The teachings of Christianity were absorbed into 
+        Fijian and Nataleiran culture rather than replacing it. The people of Nataleira, like many 
+        across Fiji, adapted while preserving their ancestral identity. Oral history continued to be 
+        the primary way of remembering the past, ensuring that while faith evolved, the connection 
+        to tradition remained. 
     </p>
-
-    <h2 class="text-3xl font-bold mb-4">A Witness to Change</h2>
+    
+    <h2 class="font-bold text-xl leading-relaxed mb-6">
+        The Life of Losana Nataleira
+    </h2>
     <p class="text-lg leading-relaxed mb-6">
-        Like many villages across Fiji, Nataleira has witnessed profound changes over the past two centuries. The arrival of European missionaries and settlers in the mid-1800s brought with them new religions, customs, and economic pressures that altered the traditional way of life. Despite these influences, Nataleira has retained much of its cultural identity, serving as a bastion of Fijian customs and values.
+        Among those born into this world was Losana Soli, a woman of Nataleira whose life was 
+        shaped by the village and its customs. She was the sister of Mereani, Miriama, and Vika, 
+        all daughters of Ratu Joseva Rokomatu. 
     </p>
-    <p class="text-lg leading-relaxed mb-6">
-        The village stands as a testament to the resilience of Fijian communities in the face of external forces. While the world around it has modernized, Nataleira remains a place where ancient customs still hold sway, and where the past and present coexist in harmony. The people of Nataleira have adapted to change while preserving the core of their culture, ensuring that the legacy of their ancestors continues to thrive.
+    <p class="text-lg leading-relaxed mb-6">    
+        As a woman of the Navunisea clan, she would have 
+        been expected to uphold the responsibilities of her lineage, contributing to the well-being 
+        of the village and maintaining the relationships that connected Nataleira to its chiefly 
+        leadership. Her daily life would have been shaped by communal duties, from tending to the 
+        land and sea to participating in the ceremonies that reinforced the bonds of kinship and 
+        tradition.
     </p>
-
-    <h2 class="text-3xl font-bold mb-4">The Heart of Our Family’s Story</h2>
-    <p class="text-lg leading-relaxed mb-6">
-        For the descendants of Soli Nataleira, the village of Nataleira represents much more than a homeland. It is the place where our family’s story begins, where our ancestors lived, led, and built the foundations of the family we are part of today. Whether we live in Fiji or have settled abroad, Nataleira remains a touchstone—an anchor that connects us to our roots and reminds us of the values and traditions that shape our identity.
+    <p class="text-lg leading-relaxed mb-6"> 
+        Marriage within Fijian society was often an arrangement that reflected alliances 
+        and honor, and when Boehm sought a wife, Losana was given to him in marriage. In keeping 
+        with Fijian custom, where names carry deep meaning, she became known as Soli, 
+        meaning 'gift'—a reflection of both her new role and the enduring traditions of Nataleira. 
     </p>
-    <p class="text-lg leading-relaxed mb-6">
-        This website serves to strengthen that connection, enabling descendants near and far to remain bonded to the village that plays such a central role in our family history. Through our shared stories, genealogy, and contributions, we keep Nataleira alive in our hearts and minds, ensuring that its legacy is passed on to future generations.
+    <p class="text-lg leading-relaxed mb-6"> 
+        She was part of a family deeply connected to the land and its traditions, descended from 
+        generations who had lived in Nataleira since its founding. Her family carried the 
+        responsibilities of maintaining village customs, participating in ceremonial events, 
+        and upholding the relationships that bound Nataleira to neighboring villages and its 
+        chiefly leadership. 
     </p>
-
-    <h2 class="text-3xl font-bold mb-4">Preserving the Legacy of Nataleira</h2>
-    <p class="text-lg leading-relaxed mb-6">
-        Today, Nataleira stands as both a physical village and a symbol of our heritage. While many descendants may live far from the village, our connection to Nataleira remains unwavering. By contributing to this site, sharing stories, and learning more about our collective past, we honor the legacy of our ancestors and the traditions that have shaped us.
+    <p class="text-lg leading-relaxed mb-6">        
+        Raised within this close-knit society, Losana was surrounded by 
+        the oral histories of her ancestors and the expectations that came with being part of 
+        such a lineage. The values of kinship, respect, and service to the community were 
+        instilled in her from an early age, shaping the way she engaged with the world around her. 
+        She grew up immersed in the traditions of her people, surrounded by the knowledge and practices 
+        of her ancestors. Her life, like those before her, was woven into the fabric of Nataleira’s 
+        history. 
     </p>
+    
     <p class="text-lg leading-relaxed mb-6">
-        Nataleira is more than just a place on the map—it is the heart of our family's story, and its legacy lives on through us.
+        Nataleira remained a place of continuity even as the world beyond it changed. Colonial 
+        governance reshaped Fiji, but the village endured, carrying with it the resilience of those 
+        who first settled there. The land gifted by Ratu o Dawasamu remained sacred, a reminder that 
+        Nataleira’s people were not simply inhabitants, but caretakers of a legacy passed through 
+        generations. 
+    </p>
+    <p class="text-lg leading-relaxed mb-6 text-center">
+        <img src="images/natileira_welcomes_macdonalds.jpg" alt="Nataleira welcomes the Macdonalds" class="w-auto image-cover w-auto mx-4 mb-4 rounded-lg shadow-lg">
     </p>
 </section>
