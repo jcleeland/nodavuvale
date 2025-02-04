@@ -415,6 +415,10 @@ function triggerPhotoUpload(individualId) {
     document.getElementById('photoUpload').click();
 }
 
+function triggerDocumentUpload(individualId) {
+    document.getElementById('documentUpload').click();
+}
+
 function triggerEditItemDescription(id) {
     console.log('Triggering edit item description for: ' + id);
     var currentDescription=document.getElementById(id).textContent;
@@ -573,8 +577,8 @@ async function uploadPhoto(individualId) {
                             console.log(response);
                             console.log(response.status);
                             if (response.status === 'success') {
-                                // Reload the page
-                                //location.reload();
+                                // Reload the page, to show the newly uploaded photo (and also stop accidental re-uploads)
+                                location.reload();
                             } else {
                                 alert('Error: ' + response.message);
                             }
@@ -588,6 +592,59 @@ async function uploadPhoto(individualId) {
     }    
 }
 
+async function uploadDocument(individualId) {
+    var fileInput = document.getElementById('documentUpload');
+    var file = fileInput.files[0]; // Get the selected file
+    console.log('Starting the upload document process');
+    if (file) {
+        // Prepare the data for uploading
+        var fileName = file.name;
+        var formData = new FormData();
+        formData.append('file', file);  // Append the selected file
+        formData.append('method', 'add_file_item');  // Method for your ajax.php
+        
+        var events = []; //This isn't an event, just a file upload
+        var event_group_name = null;   //This isn't an event group either, just a file upload
+        var fileDescriptionDefault = "Document for " + document.getElementById('individual_brief_name').value;
+
+        // Show the custom prompt
+        showCustomPrompt(
+            'Add Document Description',
+            'Please enter a description for this document:<br /><span class="text-sm">' + fileName+ '</span>',
+            ['Description'],
+            [fileDescriptionDefault],
+            function(inputValues) {
+                if (inputValues !== null) {
+                    var fileDescription = inputValues[0];
+
+                    formData.append('data', JSON.stringify({
+                        individual_id: individualId,
+                        events: events,
+                        event_group_name: event_group_name,
+                        file_description: fileDescription,  // Description for the file
+                    }));
+
+                    // Perform the AJAX call using getAjax
+                    getAjax('add_file_item', formData)
+                        .then(response => {
+                            // Convert response from JSON to object
+                            console.log(response);
+                            console.log(response.status);
+                            if (response.status === 'success') {
+                                // Reload the page to show the newly uploaded document (and also stop accidental re-uploads)
+                                location.reload();
+                            } else {
+                                alert('Error: ' + response.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('An error occurred while uploading the document: ' + error.message);
+                        });
+                }
+            }
+        );
+    }
+}
 // Handle the keyImage file selection and upload
 async function uploadKeyImage(individualId) {
     var fileInput = document.getElementById('keyPhotoUpload');
@@ -744,6 +801,22 @@ function doAction(action, individualId, actionId, event) {
                             //location.reload();
                         } else {
                             alert('Error - photo has not been deleted: ' + response.message);
+                        }
+                    }
+                )}
+            break;
+        case 'delete_document':
+            if(confirm('Are you sure you want to delete this document?')) {
+                getAjax('delete_file', {individualId: individualId, fileId: actionId})
+                    .then(response => {
+                        if (response.status === 'success') {
+                            // Reload the page
+                            alert('Document has been deleted');
+                            //Remove div containing document
+                            document.getElementById('file_id_'+actionId).remove();
+                            //location.reload();
+                        } else {
+                            alert('Error - document has not been deleted: ' + response.message);
                         }
                     }
                 )}

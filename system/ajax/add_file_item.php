@@ -40,6 +40,10 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
     $file_type = $data['file']['type'];
     $file_type = explode('/', $file_type);
     $file_type = $file_type[0];
+    if($file_type !== 'image' && $file_type !== 'document') {
+        $file_type = 'document';
+    }
+    $response['log'][] = 'File type detected as '.$file_type;
     $upload_dir = 'uploads/' . ($file_type === 'image' ? 'images/' : 'documents/');
     
     // Generate a unique file name and save the file
@@ -162,7 +166,7 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
 
 
 else if(!isset($_FILES['file'])) {
-    
+    $response['log'][] = 'No file detected in the $_FILES array';
     try {
         // Begin transaction
         $db->beginTransaction();
@@ -174,7 +178,8 @@ else if(!isset($_FILES['file'])) {
          * in the same format for this script to process.
          */
         $response['POSTData']=json_encode($_POST);
-
+        $response['log'][] = "POST data received: ".json_encode($_POST);
+        
         $item_id = null;  // Initialize the item_id to null in case there's no event
         
         if (!empty($events) && is_array($events)) {

@@ -1163,7 +1163,11 @@ class Utils {
         
         // Fetch files using the updated query
         $query = "
-            SELECT files.*, file_links.item_id, users.first_name, users.last_name
+            SELECT files.*, file_links.item_id, users.first_name, users.last_name, 
+            SUBSTRING(
+                SUBSTRING_INDEX(files.file_path, '/', -1),
+                LOCATE('_', SUBSTRING_INDEX(files.file_path, '/', -1)) + 1
+            ) AS original_file_name
             FROM files 
             JOIN file_links ON files.id = file_links.file_id 
             LEFT JOIN users ON files.user_id = users.id

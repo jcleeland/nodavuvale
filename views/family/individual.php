@@ -177,6 +177,8 @@ if ($individual_id) {
     // Fetch associated files (photos and documents)
     $photos = Utils::getFiles($individual_id, 'image');
 
+    $documents = Utils::getFiles($individual_id, 'document');
+
     // Fetch this line of descendancy
     $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $individual_id);  
 
@@ -203,7 +205,7 @@ if ($individual_id) {
 
     //echo "<pre>"; print_r($commonAncestor); echo "</pre>";
     
-    $documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
+    //$documents = $db->fetchAll("SELECT * FROM files WHERE individual_id = ? AND file_type = 'document'", [$individual_id]);
 
     $items = Utils::getItems($individual_id);
     
@@ -970,9 +972,9 @@ if ($individual_id) {
                 </button>
                 <input type="file" id="photoUpload" style="display: none;" onchange="uploadPhoto('<?= $individual['id'] ?>')">
             </h3>
-            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            <div class="file-list grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6 bg-white shadow-lg rounded-lg justify-items-center relative">
             <?php foreach ($photos as $photo): ?>
-                    <div id="file_id_<?= $photo['id'] ?>" class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg relative">
+                    <div id="file_id_<?= $photo['id'] ?>" class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg relative max-w-3xs">
                         <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_photo', '<?= $individual['id'] ?>', '<?= $photo['id'] ?>');">
                             <i class="fas fa-trash"></i>
                         </button>                    
@@ -996,21 +998,94 @@ if ($individual_id) {
         <div class="text-center p-2">
             <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                 Documents
-                <button class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a document about <?= $individual['first_name'] ?>">
+                <button onclick="triggerDocumentUpload()" class="absolute text-white bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 z-10 font-normal text-sm" title="Add a document about <?= $individual['first_name'] ?>">
                     <i class="fas fa-plus"></i> <!-- FontAwesome icon -->
-                </button>  
+                </button>
+                <input type="file" id="documentUpload" style="display: none;" onchange="uploadDocument('<?= $individual['id'] ?>')">
             </h3>
-            <div class="document-list grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
+            <div class="document-list grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6 p-6 bg-white shadow-lg rounded-lg justify-items-center relative mb-12">
             
 
                 <?php foreach ($documents as $document): ?>
-                    <div class="document-item mb-4 text-center p-1 shadow-lg rounded-lg">
-                        <a href="<?php echo $document['file_path']; ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
-                            View Document
-                        </a>
+                    <div id = "file_id_<?= $document['id'] ?>" class="document-item mb-4 text-center pt-1 px-1 pb-4 shadow-lg rounded-lg relative max-w-3xs">
+                        <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_document', '<?= $individual['id'] ?>', '<?= $document['id'] ?>');">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <div class="pt-4 leading-none">
+                            <a href="<?php echo $document['file_path']; ?>" target="_blank" class="hover:text-blue-800" title="<?= $document['original_file_name'] ?>">
+                                <?php
+                                // Determine the icon based on the file format
+                                $iconClass = '';
+                                switch ($document['file_format']) {
+                                    case 'pdf':
+                                        $iconClass = 'fas fa-file-pdf';
+                                        break;
+                                    case 'docx':
+                                    case 'doc':
+                                        $iconClass = 'fas fa-file-word';
+                                        break;
+                                    case 'xls':
+                                    case 'xlsx':
+                                        $iconClass = 'fas fa-file-excel';
+                                        break;
+                                    case 'ppt':
+                                    case 'pptx':
+                                        $iconClass = 'fas fa-file-powerpoint';
+                                        break;
+                                    case 'jpg':
+                                    case 'jpeg':
+                                    case 'png':
+                                    case 'gif':
+                                    case 'bmp':
+                                    case 'svg':
+                                    case 'webp':
+                                        $iconClass = 'fas fa-file-image';
+                                        break;
+                                    case 'mp3':
+                                    case 'wav':
+                                    case 'ogg':
+                                        $iconClass = 'fas fa-file-audio';
+                                        break;
+                                    case 'mp4':
+                                    case 'avi':
+                                    case 'mov':
+                                    case 'wmv':
+                                        $iconClass = 'fas fa-file-video';
+                                        break;
+                                    case 'zip':
+                                    case 'rar':
+                                    case 'tar':
+                                    case 'gz':
+                                        $iconClass = 'fas fa-file-archive';
+                                        break;
+                                    case 'html':
+                                    case 'css':
+                                    case 'js':
+                                    case 'php':
+                                    case 'py':
+                                    case 'java':
+                                    case 'c':
+                                    case 'cpp':
+                                        $iconClass = 'fas fa-file-code';
+                                        break;
+                                    case 'txt':
+                                        $iconClass = 'fas fa-file-alt';
+                                        break;
+                                    default:
+                                        $iconClass = 'fas fa-file';
+                                        break;
+                                }
+                                ?>
+                                <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
+                                <span class="text-xs"><?= $document['original_file_name'] ?></span>
+                            </a>
+                        </div>
                         <?php if (!empty($document['file_description'])): ?>
-                            <p class="mt-1 text-sm text-gray-600"><?php echo $document['file_description']; ?></p>
+                            <p id = "document_<?= $document['id'] ?>" class="mt-2 text-xs text-gray-600" title="Double click to edit this description" onDblClick="triggerEditFileDescription('document_<?= $document['id'] ?>')"><?php echo $document['file_description']; ?></p>
                         <?php endif; ?>
+                        <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
+                            <i class="fas fa-info-circle" title="Added by <?= $document['first_name'] ?> <?= $document['last_name'] ?> on <?= date("d M Y", strtotime($document['upload_date'])); ?>"></i>
+                        </button>                        
                     </div>
                 <?php endforeach; ?>
             </div>
