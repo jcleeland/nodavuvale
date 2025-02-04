@@ -83,7 +83,7 @@
         The start of our family
     </h2>
     <p class="text-lg leading-relaxed mb-6">
-        And this was the origin of our family's ties to Fiji. Leonard and Soli (Losana) had 6 children; <a href='?to=family/individual&individual_id=3'>Louisa</a>,
+        So this is how our Bavarian ancestry ties to our Fijian ancestry. Leonard and Soli (Losana) had 6 children; <a href='?to=family/individual&individual_id=3'>Louisa</a>,
         <a href='?to=family/individual&individual_id=5'>Mathilda</a>, <a href='?to=family/individual&individual_id=4'>Wilhelm</a>, 
         <a href='?to=family/individual&individual_id=7'>Caroline</a>, <a href='?to=family/individual&individual_id=2'>Mary</a>, and <a href='?to=family/individual&individual_id=8'>Harry</a>.
     </p>
