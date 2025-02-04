@@ -1011,7 +1011,7 @@ if ($individual_id) {
                         <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_document', '<?= $individual['id'] ?>', '<?= $document['id'] ?>');">
                             <i class="fas fa-trash"></i>
                         </button>
-                        <div class="pt-4 leading-none">
+                        <div class="pt-4 leading-none overflow-hidden">
                             <a href="<?php echo $document['file_path']; ?>" target="_blank" class="hover:text-blue-800" title="<?= $document['original_file_name'] ?>">
                                 <?php
                                 // Determine the icon based on the file format
