@@ -298,6 +298,88 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                 return;
 
             case 'individual':
+                var inputContainer = document.createElement('div');
+                inputContainer.className = 'w-full';
+            
+                // Create input field for name search
+                var inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.id = 'customPromptInput' + index + '_name';
+                inputElement.className = 'w-full p-2 border rounded mb-2';
+                inputElement.placeholder = 'Find another individual..';
+                
+                // Create hidden input to store the selected individual ID
+                var hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = 'customPromptInput' + index;
+                hiddenInput.name = 'customPromptInput' + index;
+            
+                // Create a div to show suggestions
+                var suggestionsContainer = document.createElement('div');
+                suggestionsContainer.id = 'customPromptInput' + index + '_suggestions';
+                suggestionsContainer.className = 'autocomplete-suggestions absolute bg-white shadow-md border rounded w-full z-50';
+            
+                inputContainer.appendChild(inputElement);
+                inputContainer.appendChild(hiddenInput);
+                inputContainer.appendChild(suggestionsContainer);
+                customPromptInputs.appendChild(inputContainer);
+            
+                // If a value exists, populate the input field
+                if (values[index]) {
+                    var selectedIndividual = individuals.find(ind => ind.id == values[index]);
+                    if (selectedIndividual) {
+                        inputElement.value = selectedIndividual.name;
+                        hiddenInput.value = selectedIndividual.id;
+                    }
+                }
+            
+                inputElement.addEventListener('input', function () {
+                    const searchValue = inputElement.value.toLowerCase();
+                    suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+                
+                    if (searchValue.length === 0) {
+                        return;
+                    }
+                
+                    // Filter individuals based on input
+                    const filteredIndividuals = individuals.filter(ind => ind.name.toLowerCase().includes(searchValue));
+                    filteredIndividuals.forEach(ind => {
+                        const suggestion = document.createElement('div');
+                        suggestion.className = 'autocomplete-suggestion p-2 flex items-center gap-2 hover:bg-gray-200 cursor-pointer';
+                        
+                        // Create a temporary div to parse and safely inject HTML
+                        const tempElement = document.createElement('div');
+                        tempElement.innerHTML = ind.name; // This might contain an <img> tag
+                
+                        // Extract the HTML content
+                        const htmlContent = tempElement.innerHTML;
+                
+                        // Set the HTML content correctly inside the suggestion box
+                        suggestion.innerHTML = htmlContent;
+                
+                        suggestion.onclick = function () {
+                            selectSuggestion(ind);
+                        };
+                
+                        suggestionsContainer.appendChild(suggestion);
+                    });
+                });
+                
+                function selectSuggestion(individual) {
+                    const tempElement = document.createElement('div');
+                    tempElement.innerHTML = individual.name; // Parse and extract text safely
+                
+                    const textContent = tempElement.textContent || tempElement.innerText || ''; // Get only text content
+                
+                    inputElement.value = textContent; // Store only the text, not the HTML
+                    hiddenInput.value = individual.id;
+                    suggestionsContainer.innerHTML = ''; // Hide suggestions
+                }
+                
+            
+                return;
+                
+            case 'individual2':
                 var inputElement = document.createElement('select');
                 inputElement.id = 'customPromptInput' + index;
                 inputElement.className = 'w-full p-2 border rounded mb-2';
@@ -410,11 +492,11 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     customPromptOk.onclick = function() {
         customPrompt.classList.remove('show');
-        //console.log('Inputs:');
-        //console.log(inputs);
+        console.log('Inputs:');
+        console.log(inputs);
         var inputValues = inputs.map((input, index) => {
             var inputElement = document.getElementById('customPromptInput' + index);
-            //console.log('Inspecting input element:', input);
+            console.log('Inspecting input element:', input);
             //if the last 4 characters of the input string are 'file' then return the file object
             if (input.split('_')[0].toLowerCase() === 'file') {
                 //console.log(input.toLowerCase().slice(-4));
@@ -422,6 +504,7 @@ function showCustomPrompt(title, message, inputs, values, callback) {
             }
             return inputElement.value;
         });
+        console.log('Returning input values:', inputValues);
         callback(inputValues);
     };
 

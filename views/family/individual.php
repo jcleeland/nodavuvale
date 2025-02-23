@@ -813,7 +813,9 @@ if ($individual_id) {
                                         <?php if($item_styles[$itemname] == "individual") : ?>
                                     
                                             <div class="float-left w-2/3">
-                                                <a href="index.php?to=family/individual&individual_id=<?= $item['individual_name_id'] ?>" class="text-blue-600 hover:text-blue-800"><?= $item['individual_name'] ?></a>
+                                                <a href="index.php?to=family/individual&individual_id=<?= $item['individual_name_id'] ?>" class="text-blue-600 hover:text-blue-800">
+                                                    <?= $item['individual_name'] ?? 'Spouse' ?>
+                                                </a>
                                             </div>
 
                                         <?php elseif($item_styles[$itemname] == "textarea") : ?>

@@ -899,8 +899,8 @@ function doAction(action, individualId, actionId, event) {
                             individual_id: individualId,
                             events: [{event_type: actionId, event_detail: itemDetails, item_identifier: groupId}],
                             event_group_name: event_group_name
-                        }));
-
+                            }));
+                            
                     }
                     
 
