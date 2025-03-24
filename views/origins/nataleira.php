@@ -76,10 +76,50 @@
         the primary way of remembering the past, ensuring that while faith evolved, the connection 
         to tradition remained. 
     </p>
-    
+
+    <h2 class="font-bold text-xl leading-relaxed mb-6">Nataleira Today</h2>
+    <p class="text-lg leading-relaxed mb-6">
+        Nataleira is made up of approximately 106 families with an estimated 439 individuals. <sup><a href='https://www.fijitimes.com.fj/severe-water-crisis/' class='underline' target='_blank'>1</a></sup>.
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        <img src='images/nataleira_chief_simione_botu.jpeg' alt='Simione Botu, Chief of Nataleira' class='float-left h-48 image-cover w-auto mx-4 mb-4 rounded-lg shadow-lg'>
+        The Chief of Nataleira is Simione Botu <sup><a href='https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://en.unesco.org/inclusivepolicylab/system/files/teams/document/2018/7/Loss%2520and%2520Damage%2520Fiji_0_0_0_0_0.pdf&ved=2ahUKEwjruojszKGMAxXcm2MGHaWdNxg4FBAWegQIExAB&usg=AOvVaw2lMYswCtOEZGJ7irVFenrJ' target='_blank'>4</a></sup>.
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        Previous chiefs include Marika Dakuwaqa <sup><a href='https://www.unitedcaribbean.com/fijirevival.html' target='_blank'>2</a></sup> 
+        and Malakai Rokomatu <sup><a href='https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.mfat.govt.nz/assets/Aid-Prog-docs/Evaluations/2009/Octagon-Leadership-and-Community-Development-Programme-Review.pdf&ved=2ahUKEwiNuf3fyaGMAxXJfGwGHUETGGUQFnoECCUQAQ&usg=AOvVaw18gNiTHZGu3wsdLt35q4WD' target='_blank'>3</a></sup>.
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        Most of the villagers are Methodist and the village has a church.
+    </p>
+    <p class="text-lg leading-relaxed mb-6"> 
+        According to a report by <i>The Octagon Group</i>, the village is one 
+        of the more wealthy villages in the Dawasamu district; with "plentiful land, cash income from backpacker's bures, cash income from people working outside the village, one family has a vehicle, and some families have generators."
+    </p>
+    <h3 class="font-bold text-lg leading-relaxed mb-6">Eco-Tourism</h3>
+    <p class="text-lg leading-relaxed mb-6">
+        In 2002 the village established their own eco-tourism project "<a href='https://www.facebook.com/nataleiecolodge/' target='_blank'>Natalei Eco Lodge</a>". They ran it until 2007. <br /><br />
+        In February 2010 the village decided to rejuvinate the business and requested "<a href='https://sustainabletourismint.com/natalie/' target='_blank'>Sustainable Tourism Internation Ltd</a>" to take over management.<br />
+        <ul class="mb-6 hover:bg-gray-200 rounded-lg ml-6 pl-2">
+            <li><a href='https://www.nzherald.co.nz/travel/room-check-sustainable-comfort-and-simplicity-in-the-heart-of-fijis-rural-wilderness/RIUWAGAHEJD6ZKGJKM3SAQWEYE/' target='_blank'>Travel review</a></li>
+        </ul>
+    </p>
+    <h3 class="font-bold text-lg leading-relaxed mb-6">Challenges for the Village</h3>
+    <p class="text-lg leading-relaxed mb-6">
+        Climate change, especially in the form of rising sea levels, is a concern for the village. Sea level has risen by about 6mm per year since 1993, leading to salwater inundation of coastal plantations. 
+    </p>
+    <p class="text-lg leading-relaxed mb-6">
+        Sea level rise has impacted crops significantly, with the village losing its mango dina crops (they don't fruit anymore) and peanut crops impacted by the shrinking of the beach areas requiring them to be planted further waway from the village.
+    </p>    
+    <p class="text-lg leading-relaxed mb-6">
+        Beach erosion is quite visible, coconut trees near the beaches are being washed away, and the likelihood of being flooded from storm 
+        surges or floods (or both at the same time) is very high. 
     <h2 class="font-bold text-xl leading-relaxed mb-6">
         The Life of Losana Nataleira
     </h2>
+    <p class="text-lg leading-relaxed mb-6">
+        <i>Extract from The Fiji Times Article</i>
+    </p>
     <p class="text-lg leading-relaxed mb-6">
         Among those born into this world was Losana Soli, a woman of Nataleira whose life was 
         shaped by the village and its customs. She was the sister of Mereani, Miriama, and Vika, 
