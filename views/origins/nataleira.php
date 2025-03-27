@@ -101,7 +101,8 @@
         In 2002 the village established their own eco-tourism project "<a href='https://www.facebook.com/nataleiecolodge/' target='_blank'>Natalei Eco Lodge</a>". They ran it until 2007. <br /><br />
         In February 2010 the village decided to rejuvinate the business and requested "<a href='https://sustainabletourismint.com/natalie/' target='_blank'>Sustainable Tourism Internation Ltd</a>" to take over management.<br />
         <ul class="mb-6 hover:bg-gray-200 rounded-lg ml-6 pl-2">
-            <li><a href='https://www.nzherald.co.nz/travel/room-check-sustainable-comfort-and-simplicity-in-the-heart-of-fijis-rural-wilderness/RIUWAGAHEJD6ZKGJKM3SAQWEYE/' target='_blank'>Travel review</a></li>
+            <li><a href='https://www.nzherald.co.nz/travel/room-check-sustainable-comfort-and-simplicity-in-the-heart-of-fijis-rural-wilderness/RIUWAGAHEJD6ZKGJKM3SAQWEYE/' target='_blank'>NZ Herald Travel review</a></li>
+            <li><a href='https://www.fijitimes.com.fj/eco-friendly-getaway/' target='_blank'>Fiji Times Review</a></li>
         </ul>
     </p>
     <h3 class="font-bold text-lg leading-relaxed mb-6">Challenges for the Village</h3>
