@@ -7,7 +7,11 @@
 @ uses Database class
 @ uses Auth class
 */
-
+//Check to see if the parent admin page has loaded, and if not then "require" it first
+if (!isset($admin_page) || !$admin_page) {
+    $admin_backload=true;
+    require_once('views/admin/index.php');
+}
 // Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the form data

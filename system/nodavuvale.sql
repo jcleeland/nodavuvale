@@ -3,16 +3,22 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 18, 2024 at 11:58 PM
--- Server version: 8.2.0
--- PHP Version: 8.2.13
+-- Generation Time: Sep 05, 2025 at 01:11 AM
+-- Server version: 8.3.0
+-- PHP Version: 8.2.18
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
 --
--- Database: `nataleira`
+-- Database: `nodavuvale`
 --
 
 -- --------------------------------------------------------
@@ -21,6 +27,7 @@ SET time_zone = "+00:00";
 -- Table structure for table `comment_reactions`
 --
 
+DROP TABLE IF EXISTS `comment_reactions`;
 CREATE TABLE IF NOT EXISTS `comment_reactions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `comment_id` int DEFAULT NULL,
@@ -38,6 +45,7 @@ CREATE TABLE IF NOT EXISTS `comment_reactions` (
 -- Table structure for table `discussions`
 --
 
+DROP TABLE IF EXISTS `discussions`;
 CREATE TABLE IF NOT EXISTS `discussions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
@@ -46,7 +54,10 @@ CREATE TABLE IF NOT EXISTS `discussions` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_sticky` tinyint(1) DEFAULT '0',
+  `is_event` tinyint DEFAULT '0',
   `is_news` tinyint(1) DEFAULT '0',
+  `event_date` timestamp NULL DEFAULT NULL,
+  `event_location` varchar(255) COLLATE utf8mb3_unicode_ci DEFAULT NULL,
   `individual_id` int DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`)
@@ -58,6 +69,7 @@ CREATE TABLE IF NOT EXISTS `discussions` (
 -- Table structure for table `discussion_comments`
 --
 
+DROP TABLE IF EXISTS `discussion_comments`;
 CREATE TABLE IF NOT EXISTS `discussion_comments` (
   `id` int NOT NULL AUTO_INCREMENT,
   `discussion_id` int NOT NULL,
@@ -73,9 +85,29 @@ CREATE TABLE IF NOT EXISTS `discussion_comments` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `discussion_files`
+--
+
+DROP TABLE IF EXISTS `discussion_files`;
+CREATE TABLE IF NOT EXISTS `discussion_files` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `discussion_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `file_description` tinytext CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci,
+  `file_path` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
+  `file_type` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
+  `uploaded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `discussion_id` (`discussion_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `discussion_reactions`
 --
 
+DROP TABLE IF EXISTS `discussion_reactions`;
 CREATE TABLE IF NOT EXISTS `discussion_reactions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `discussion_id` int DEFAULT NULL,
@@ -90,27 +122,10 @@ CREATE TABLE IF NOT EXISTS `discussion_reactions` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `discussion_files`
---
-
-CREATE TABLE IF NOT EXISTS `discussion_files` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `discussion_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `file_description` tinytext COLLATE utf8mb3_unicode_ci,
-  `file_path` varchar(255) COLLATE utf8mb3_unicode_ci NOT NULL,
-  `file_type` varchar(50) COLLATE utf8mb3_unicode_ci NOT NULL,
-  `uploaded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `discussion_id` (`discussion_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `files`
 --
 
+DROP TABLE IF EXISTS `files`;
 CREATE TABLE IF NOT EXISTS `files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `file_type` enum('image','document') CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
@@ -128,6 +143,7 @@ CREATE TABLE IF NOT EXISTS `files` (
 -- Table structure for table `file_links`
 --
 
+DROP TABLE IF EXISTS `file_links`;
 CREATE TABLE IF NOT EXISTS `file_links` (
   `id` int NOT NULL AUTO_INCREMENT,
   `file_id` int NOT NULL,
@@ -145,6 +161,7 @@ CREATE TABLE IF NOT EXISTS `file_links` (
 -- Table structure for table `individuals`
 --
 
+DROP TABLE IF EXISTS `individuals`;
 CREATE TABLE IF NOT EXISTS `individuals` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nodavuvale_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -170,6 +187,7 @@ CREATE TABLE IF NOT EXISTS `individuals` (
 --
 -- Triggers `individuals`
 --
+DROP TRIGGER IF EXISTS `before_insert_individuals`;
 DELIMITER $$
 CREATE TRIGGER `before_insert_individuals` BEFORE INSERT ON `individuals` FOR EACH ROW BEGIN
     IF NEW.nodavuvale_id IS NULL THEN
@@ -185,6 +203,7 @@ DELIMITER ;
 -- Table structure for table `individuals_privacy`
 --
 
+DROP TABLE IF EXISTS `individuals_privacy`;
 CREATE TABLE IF NOT EXISTS `individuals_privacy` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int DEFAULT NULL,
@@ -200,6 +219,7 @@ CREATE TABLE IF NOT EXISTS `individuals_privacy` (
 -- Table structure for table `items`
 --
 
+DROP TABLE IF EXISTS `items`;
 CREATE TABLE IF NOT EXISTS `items` (
   `item_id` int NOT NULL AUTO_INCREMENT,
   `detail_type` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
@@ -217,6 +237,7 @@ CREATE TABLE IF NOT EXISTS `items` (
 -- Table structure for table `item_groups`
 --
 
+DROP TABLE IF EXISTS `item_groups`;
 CREATE TABLE IF NOT EXISTS `item_groups` (
   `id` int NOT NULL AUTO_INCREMENT,
   `item_identifier` int NOT NULL,
@@ -231,6 +252,7 @@ CREATE TABLE IF NOT EXISTS `item_groups` (
 -- Table structure for table `item_links`
 --
 
+DROP TABLE IF EXISTS `item_links`;
 CREATE TABLE IF NOT EXISTS `item_links` (
   `id` int NOT NULL AUTO_INCREMENT,
   `individual_id` int NOT NULL,
@@ -244,6 +266,7 @@ CREATE TABLE IF NOT EXISTS `item_links` (
 -- Table structure for table `relationships`
 --
 
+DROP TABLE IF EXISTS `relationships`;
 CREATE TABLE IF NOT EXISTS `relationships` (
   `id` int NOT NULL AUTO_INCREMENT,
   `individual_id_1` int NOT NULL,
@@ -261,6 +284,7 @@ CREATE TABLE IF NOT EXISTS `relationships` (
 -- Table structure for table `site_settings`
 --
 
+DROP TABLE IF EXISTS `site_settings`;
 CREATE TABLE IF NOT EXISTS `site_settings` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
@@ -277,6 +301,7 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
 -- Table structure for table `users`
 --
 
+DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `individuals_id` int DEFAULT NULL,
@@ -287,6 +312,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   `avatar` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
   `relative_name` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
   `relationship` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
+  `location` varchar(255) COLLATE utf8mb3_unicode_ci DEFAULT NULL,
+  `skills` text COLLATE utf8mb3_unicode_ci,
+  `languages_spoken` json DEFAULT NULL,
+  `about` text COLLATE utf8mb3_unicode_ci,
   `approved` tinyint(1) DEFAULT '0',
   `role` enum('unconfirmed','member','admin','deleted') CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT 'unconfirmed',
   `show_presence` tinyint DEFAULT '1',
@@ -308,3 +337,7 @@ ALTER TABLE `relationships`
   ADD CONSTRAINT `relationships_ibfk_1` FOREIGN KEY (`individual_id_1`) REFERENCES `individuals` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `relationships_ibfk_2` FOREIGN KEY (`individual_id_2`) REFERENCES `individuals` (`id`) ON DELETE CASCADE;
 COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

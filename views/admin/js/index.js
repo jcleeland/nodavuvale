@@ -253,3 +253,17 @@ function emailUserLoginDetails(userId) {
         });
     }
 }
+
+function toggleDropdown(id) {
+  const menu = document.getElementById('dropdown-' + id);
+  // hide all other dropdowns
+  document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+    if (el !== menu) el.classList.add('hidden');
+  });
+  menu.classList.toggle('hidden');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[id^="dropdown-"]') && !e.target.closest('button[onclick^="toggleDropdown"]')) {
+    document.querySelectorAll('[id^="dropdown-"]').forEach(el => el.classList.add('hidden'));
+  }
+});

@@ -7,6 +7,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
+//Check to see if the parent admin page has loaded, and if not then "require" it first
+if (!isset($admin_page) || !$admin_page) {
+    $admin_backload=true;
+    require_once('views/admin/index.php');
+}
+
 //Process for deleting orphaned files
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['files'])) {
@@ -110,7 +116,7 @@ foreach ($files as $file) {
     </div>
 </section>
 <section class="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
-    <form method="post">
+    <form method="post" target="_self">
         <div class="flex justify-between items-center">
             <h1 class="text-4xl font-bold mb-6">Orphaned Files</h1>
             <?php if(count($orphanedFiles) > 0) { ?>
@@ -127,7 +133,7 @@ foreach ($files as $file) {
                         foreach ($orphanedFiles as $orphanedFile) {
                             echo "<li class='flex justify-start items-center space-x-4 m-1'><div>";
                             echo "<input type='checkbox' id='delfile$i' name='files[]' value='{$orphanedFile}'></div>";
-                            echo "<label for='delfile$i'><img src='{$orphanedFile}' class='object-cover rounded-lg w-24 h-24'></label>";
+                            echo "<label for='delfile$i'><img src='{$orphanedFile}' class='object-cover rounded-lg w-24 h-24' alt='{$orphanedFile}'></label>";
                             //echo "{$orphanedFile}";
                             echo "</li>";
                             $i++;

@@ -3,6 +3,7 @@
 // This page is only accessible to users with the 'admin' role
 // If a user without the 'admin' role tries to access this page, they will be redirected to the home page
 require 'vendor/autoload.php';
+$admin_page = true;
 $is_logged_in = isset($_SESSION['user_id']);
 $is_admin = $auth->getUserRole() === 'admin';
 
@@ -34,6 +35,10 @@ if (!$is_logged_in || !$is_admin) {
 
 <?php
 // Check if a section has been requested
-$section = isset($_GET['section']) ? $_GET['section'] : 'site';
+if(!isset($admin_backload) ||!$admin_backload) {
+    $section = isset($_GET['section']) ? $_GET['section'] : 'site';
+    require_once('views/admin/' . $section . '.php');
+} 
+//$section = isset($_GET['section']) ? $_GET['section'] : 'site';
 //load the section (add .php to the section name)
-include('views/admin/' . $section . '.php');
+

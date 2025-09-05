@@ -213,7 +213,12 @@ class Database {
         $tables = [];
         
         // Use a simple regex to capture CREATE TABLE and everything inside parentheses
-        preg_match_all('/CREATE TABLE `(.+?)` \(([\s\S]+?)\)\s*ENGINE=[^;]+;/', $fileContents, $matches, PREG_SET_ORDER);
+        preg_match_all(
+            '/CREATE TABLE(?: IF NOT EXISTS)? `([^`]+)`\s*\((.*?)\)\s*\)[^;]*;/s',
+            $fileContents,
+            $matches,
+            PREG_SET_ORDER
+        );
     
         // Step 4: Process each CREATE TABLE block
         foreach ($matches as $match) {

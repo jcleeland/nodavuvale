@@ -4,7 +4,11 @@
  *   Check to see if the database matches the current schema (located in settings/nodavuvale.sql)
  *   using the functions in the Database class
  */
-
+    //Check to see if the parent admin page has loaded, and if not then "require" it first
+    if (!isset($admin_page) || !$admin_page) {
+        $admin_backload=true;
+        require_once('views/admin/index.php');
+    }
     $currentSchema = $db->getCurrentDatabaseSchema();
     $nodavuvaleSchema = $db->getNodavuvaleSchema();
     // Perform actions based on the form submission
