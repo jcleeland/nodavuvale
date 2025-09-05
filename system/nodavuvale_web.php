@@ -232,6 +232,7 @@ class Web {
                 <button class="edit-btn absolute right-1 top-1 px-1 bg-gray-800 bg-opacity-20 rounded-full" data-individual-id="'. $individual['id'] .'" title="Edit '. $individual['pref_name'] .'">&#9998;</button>';
         $card .= '
             </div>';
+        //$card .= "<pre>"; print_r($individual); echo "</pre>";
         
         return $card;
     }

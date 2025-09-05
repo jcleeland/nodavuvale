@@ -124,13 +124,22 @@ function editUser(userId) {
     document.getElementById('editRole').value = user.role;
     document.getElementById('editApproved').value = user.approved;
     if(user.individuals_id) {
-        const selectElement = document.querySelector('select[name="individuals_id"]');
-        selectElement.value = user.individuals_id;
-        console.log('User select is now: ' + selectElement.value);
+        //see if the select with the name "individuals_id" exists
+        //Look for an html hidden input with the id "individuals_id" and update its value to be user.individuals_id
+        const hiddenInput = document.getElementById('individuals_id');
+        if (hiddenInput) {
+            hiddenInput.value = user.individuals_id;
+        }
+
+        console.log('User select is now: ' + hiddenInput.value);
     
         // Dispatch a change event to trigger the event listener
-        const event = new Event('change', { bubbles: true });
-        selectElement.dispatchEvent(event);
+        // - Find a div with the class "dropdown-item" and the data-value attribute equal to user.individuals_id and "click" it
+        const dropdownItem = document.querySelector(`.dropdown-item[data-value="${user.individuals_id}"]`);
+        if (dropdownItem) {
+            dropdownItem.click();
+        }
+
     } else {
         const inputElement=document.querySelector('input[name="editIndividualsId"]');
         inputElement.value = user.first_name;

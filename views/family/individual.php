@@ -188,6 +188,9 @@ if ($individual_id) {
         $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
         //Fetch the users line of descendancy
         $userdescendancy=Utils::getLineOfDescendancy(Web::getRootId(), $_SESSION['individuals_id']);
+        if(!isset($userdescendancy)) {
+            $userdescendancy=[];
+        }
     } else {
         $commonAncestor=[];
         $relationshipLabel="";
@@ -331,7 +334,12 @@ if ($individual_id) {
             <?php
                 //Find out whether the $descendancy array or the $userdescendancy array is longer and use that as the loop count
                 $descendancycount=count($descendancy);
-                $userdescendancycount=count($userdescendancy);
+                if(isset($userdescendancy)) {
+                    $userdescendancycount=count($userdescendancy);
+                } else {
+                    $userdescendancycount=0;
+                }
+                
                 if($descendancycount>$userdescendancycount) {
                     $loopcount=$descendancycount;
                 } else {
@@ -911,6 +919,24 @@ if ($individual_id) {
             </div>
 
             <!-- Display Children -->
+            <?php
+                $childrenGroupedByOtherParent = [];
+
+                // Loop through each child
+                foreach ($children as $child) {
+                    // If there are other parents, take the first one as the grouping key
+                    if (!empty($child['other_parents'])) {
+                        $other = $child['other_parents'][0]; // Assuming only one other parent matters for display
+                        $key = $other['id'];
+                        $childrenGroupedByOtherParent[$key]['parent'] = $other;
+                        $childrenGroupedByOtherParent[$key]['children'][] = $child;
+                    } else {
+                        // Ungrouped children (no other parent)
+                        $childrenGroupedByOtherParent['no_other_parent']['parent'] = null;
+                        $childrenGroupedByOtherParent['no_other_parent']['children'][] = $child;
+                    }
+                }
+            ?>
             <div class="text-center p-2">
                 <h3 class="text-2xl font-bold mt-8 mb-4 relative">
                     <span title="<?= count($children) ?> children">Children</span>
@@ -921,11 +947,40 @@ if ($individual_id) {
                 <?php if (empty($children)): ?>
                     
                 <?php else: ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
-                    <?php foreach ($children as $child): ?>
-                        <?= $web->individual_card($child, $showrelationshipoption=true, $relationshiptype='child') ?>
-                    <?php endforeach; ?>
-                </div>
+                    <div class="p-6 bg-white shadow-lg rounded-lg grid-scrollable-3 place-items-center relative">
+                        <?php foreach ($childrenGroupedByOtherParent as $group): ?>
+                            <div class="w-full mb-10 relative">
+
+                                <?php if ($group['parent']): ?>
+                                    <h4 class="flex items-center gap-2 text-lg font-semibold text-gray-700 mb-0 absolute -top-3 left-4 bg-white px-2 z-10">
+                                        With 
+                                        <a href="?to=family/individual&individual_id=<?= urlencode($group['parent']['id']) ?>" class="flex items-center gap-2 hover:underline">
+                                            <?php if (!empty($group['parent']['keyimagepath'])): ?>
+                                                <img src="<?= htmlspecialchars($group['parent']['keyimagepath']) ?>" alt="Key image" class="w-6 h-6 object-cover rounded-full border border-gray-400">
+                                            <?php else: ?>
+                                                <img src="images/default_avatar.webp" alt="Default Avatar" class="w-6 h-6 object-cover rounded-full border border-gray-400">
+                                            
+                                            <?php endif; ?>                                        
+                                            <?= htmlspecialchars($group['parent']['first_names'] . ' ' . $group['parent']['last_name']) ?>
+                                        </a>
+                                    </h4>
+
+
+                                <?php else: ?>
+                                    <h4 class="text-lg font-semibold text-gray-700 italic mb-0 absolute -top-3 left-4 bg-white px-2 z-10">
+                                        Children with no known other parent
+                                    </h4>
+                                <?php endif; ?>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-300 pt-6">
+                                    <?php foreach ($group['children'] as $child): ?>
+                                        <?= $web->individual_card($child, $showrelationshipoption=true, $relationshiptype='child') ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
                 <?php endif; ?>
             </div>
 

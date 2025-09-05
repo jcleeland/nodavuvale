@@ -9,6 +9,7 @@
  * This software is provided as-is, without any warranty or guarantee of any kind.
  */
 session_name('nodavuvale_app_session');
+session_name('NODAVUVALESESSID');
 session_start();
 
 /**
@@ -59,10 +60,12 @@ if (!is_dir('uploads/discussions')) {
 }
 
 // Define restricted directories
-$restricted_paths = ['family', 'village', 'communications'];
+$restricted_paths = ['family', 'village', 'communications', 'admin'];
 
 // Get the requested page
 $page = isset($_GET['to']) ? $_GET['to'] : 'home'; // Default to 'home' if no page is provided
+$original_page = $page;
+$section = isset($_GET['section']) ? $_GET['section'] : null;
 
 //if the $page is set, but ends in a "/" then add index to the end of it
 if (substr($page, -1) == "/") {
@@ -74,15 +77,26 @@ $pagePath = 'views/' . $page . '.php';
 // Extract the directory from the requested page (e.g., 'family' from 'views/family/tree.php')
 $path_parts = explode('/', $page);
 $requested_directory = $path_parts[0]; // Get the first part of the path (e.g., 'family')
-// If there are two forward slashes in the path, then the requested directory is the the first AND second arts
+// If there are two forward slashes in the path, then the requested directory is the the first AND second parts
 if (count($path_parts) > 1) {
     $requested_directory = $path_parts[0] . '/' . $path_parts[1];
 }
 
-// Check if the requested page is in a restricted directory and if the user is not logged in
-if (in_array($requested_directory, $restricted_paths) && !$auth->isLoggedIn()) {
-    // Redirect to login page if the user is not logged in
-    header('Location: index.php?to=login');
+//Check to see if the start of any value in $requested_directory matches any value in $restricted_paths
+$matches = array_filter($restricted_paths, function($path) use ($requested_directory) {
+    return strpos($requested_directory, $path) === 0;
+});
+
+// If there are any matches, and the user is not logged in, redirect to login
+if (!empty($matches) && !$auth->isLoggedIn()) {
+    $params = "?to=login";
+    if($original_page) {
+        $params .= "&redirect=" . urlencode($original_page);
+    }
+    if($section) {
+        $params .= "&section=" . urlencode($section);
+    }
+    header('Location: index.php' . $params);
     exit;
 }
 

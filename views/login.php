@@ -8,11 +8,16 @@ if ($auth->isLoggedIn()) {
     <?php
     exit;
 }
+$redirect = isset($_POST['redirect']) ? $_POST['redirect'] : false;
+$redirectsection = isset($_POST['section']) ? $_POST['section'] : false;
 
 // Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
+    $redirection = isset($_POST['redirect']) ? $_POST['redirect'] : false;
+    $redirectsection = isset($_POST['section']) ? $_POST['section'] : false;
+    
 
     // Attempt to log the user in
     $login_result = $auth->login($email, $password);
@@ -29,6 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = "<b>Not logged in!</b><br />Invalid email or password.<br /><a href='index.php?to=forgot_password' class='text-blue-500 hover:text-blue-700'>Forgot password?</a> or <a href='index.php?to=register' class='text-blue-500 hover:text-blue-700'>Register here</a>.";
     } else {
         // Redirect to the home page after successful login
+        if($redirection) {
+            //echo "Redirection: " . $redirection;
+            //die();
+            $redirecturl= $redirection;
+            if($redirectsection) {
+                $redirecturl .= "&section=" . urlencode($redirectsection);
+            }
+            header('Location: ' . "index.php?to=".$redirecturl);
+            exit;
+        }
         header('Location: index.php?to=home');
         exit;
     }
@@ -56,6 +71,8 @@ if (isset($_GET['justRegistered']) && $_GET['justRegistered'] == 1) {
 
         <form action="index.php?to=login" method="POST">
             <input type="hidden" name="action" value="login" />
+            <input type='hidden' name='redirect' value='<?= isset($redirect) ? htmlspecialchars($redirect) : ''; ?>' />
+            <input type='hidden' name='section' value='<?= isset($redirectsection) ? htmlspecialchars($redirectsection) : ''; ?>' />
             <div class="mb-4">
                 <label for="email" class="block text-gray-700">Email</label>
                 <input type="email" id="email" name="email" class="w-full px-4 py-2 border rounded-lg" required>

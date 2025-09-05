@@ -4,18 +4,23 @@
  * 
  */
 //Gather tree folk
+// Todo - see if the existing $individuals list can be reused to save a db call
 $individuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
-$individuals=array();
+$individuals2=array();
 foreach($individuallist as $individualperson) {
-    $individuals[$individualperson['id']] = $individualperson;
-}
+    $individuals2[$individualperson['id']] = $individualperson;
+} 
 ?>
 <script type='text/javascript'>
-const individuals = [
-    <?php foreach($individuals as $ind): ?>
-        { id: <?= $ind['id'] ?>, name: "<?= $ind['first_names'] . ' ' . $ind['last_name'] ?>" },
-    <?php endforeach; ?>
-];
+// Check to see if the const @individuals@ const already exists
+if (typeof individuals === 'undefined') {
+    const individuals = [
+        <?php foreach($individuals2 as $ind): ?>
+            { id: <?= $ind['id'] ?>, name: "<?= $ind['first_names'] . ' ' . $ind['last_name'] ?>" },
+        <?php endforeach; ?>
+    ];
+}
+
 </script>
 <?php
 
@@ -41,10 +46,10 @@ if(count($users) > 0) {
     echo '<th class="border px-4 py-2">First Name</th>';
     echo '<th class="border px-4 py-2">Last Name</th>';
     echo '<th class="border px-4 py-2">Email</th>';
-    echo '<th class="border px-4 py-2">Last Login</th>';
+    echo '<th class="border px-4 py-2 sm:hidden">Last Login</th>';
     echo '<th class="border px-4 py-2">Role</th>';
     echo '<th class="border px-4 py-2">Approved</th>';
-    echo '<th class="border px-4 py-2">Tree Id</th>';
+    echo '<th class="border px-4 py-2 sm:hidden">Tree Id</th>';
     echo '<th class="border px-4 py-2">Reset Password</th>';
     echo '<th class="border px-4 py-2">Actions</th>';
     echo '</tr>';
@@ -58,7 +63,7 @@ if(count($users) > 0) {
         echo '<td class="border px-4 py-2">'.$user['first_name'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['last_name'].'</td>';
         echo '<td class="border px-4 py-2">'.$user['email'].'</td>';
-        echo '<td class="border px-4 py-2">'.$lastlogin.'</td>';
+        echo '<td class="border px-4 py-2 sm:hidden">'.$lastlogin.'</td>';
         echo '<td class="border px-4 py-2">'.$user['role'].'</td>';
         echo '<td class="border px-4 py-2 text-center">';
         if($user['approved'] == 0) {
@@ -71,10 +76,10 @@ if(count($users) > 0) {
             echo '</button>';
         }
         echo '</td>';
-        echo '<td class="border px-4 py-2 text-xs">';
-        if(isset($individuals[$user['individuals_id']])) {
+        echo '<td class="border px-4 py-2 text-xs sm:hidden">';
+        if(isset($individuals2[$user['individuals_id']])) {
             echo "<a href='?to=family/individual&individual_id=".$user['individuals_id']."'>";
-            echo explode(" ",$individuals[$user['individuals_id']]['first_names'])[0] . ' ' . $individuals[$user['individuals_id']]['last_name'];
+            echo explode(" ",$individuals2[$user['individuals_id']]['first_names'])[0] . ' ' . $individuals2[$user['individuals_id']]['last_name'];
             echo "</a>";
         }
         echo '</td>';
@@ -107,7 +112,7 @@ if(count($users) > 0) {
 
 <!-- Modal for Editing User -->
 <div id="editUserModal" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 hidden">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-1/3">
+    <div class="bg-white p-6 rounded-lg shadow-lg sm:w-4/5 w-1/3">
         <h2 class="text-xl font-bold mb-4">Edit User</h2>
         <form id="editUserForm">
             <input type="hidden" id="editUserId" name="id">

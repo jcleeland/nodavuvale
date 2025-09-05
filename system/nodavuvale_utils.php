@@ -720,9 +720,34 @@ class Utils {
             JOIN individuals ON relationships.individual_id_2 = individuals.id 
             WHERE relationships.individual_id_1 = ? 
             AND relationships.relationship_type = 'child'
-            ORDER BY individuals.birth_year, individuals.first_names
+            ORDER BY individuals.birth_year IS NULL, individuals.birth_year, individuals.first_names
         ";
         $children = $db->fetchAll($query, [$individual_id]);
+
+        // For each child, find their other parent(s)
+        foreach ($children as &$child) {
+            $child_id = $child['id'];
+
+            $otherParentsQuery = "
+                SELECT individuals.*, 
+                    COALESCE(
+                        (SELECT files.file_path 
+                            FROM file_links 
+                            JOIN files ON file_links.file_id = files.id 
+                            JOIN items ON items.item_id = file_links.item_id 
+                            WHERE file_links.individual_id = individuals.id 
+                            AND items.detail_type = 'Key Image'
+                            LIMIT 1), 
+                        '') AS keyimagepath,
+                    relationships.id as relationshipId
+                FROM relationships 
+                JOIN individuals ON relationships.individual_id_1 = individuals.id 
+                WHERE relationships.individual_id_2 = ? 
+                AND relationships.relationship_type = 'child'
+                AND relationships.individual_id_1 != ?
+            ";
+            $child['other_parents'] = $db->fetchAll($otherParentsQuery, [$child_id, $individual_id]);
+        }        
         
         return $children;
     }

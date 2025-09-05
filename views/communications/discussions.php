@@ -166,13 +166,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
     $event_location = isset($_POST['event_location']) ? $_POST['event_location'] : null;
     
     // Validate discussion
-    if (!empty($title) && !empty($content) && $user_id > 0) {
+    if (!empty($content) && $user_id > 0) {
         try {
             // Start a transaction
             $db->beginTransaction();
             // Insert the new discussion into the database
             $sql="INSERT INTO discussions (user_id, title, content, is_sticky, is_event, is_news, event_date, event_location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-            echo $sql."<br />Paramaters: ".$user_id.", ".$title.", ".$content.", ".$is_sticky.", ".$is_event.", ".$is_news.", ".$event_date.", ".$event_location;
+            //echo $sql."<br />Paramaters: ".$user_id.", ".$title.", ".$content.", ".$is_sticky.", ".$is_event.", ".$is_news.", ".$event_date.", ".$event_location;
             $discussion_id=$db->insert($sql, [$user_id, $title, $content, $is_sticky, $is_event, $is_news, $event_date, $event_location]);
         
             
@@ -198,6 +198,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
 
 
 
+    } else {
+        // Handle the case where the discussion is not valid
+        if(empty($title))
+        echo "Please fill in all required fields. You must provide a title and content for the discussion.";
+        // Fill in the form with the posted data so it isn't lost.
     }
 }
 

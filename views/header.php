@@ -131,7 +131,7 @@ if($auth->getUserRole() == 'admin') {
                         <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden" id="user-menu">
                             <a href="?to=account" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Account</a>
                             <?php if ($_SESSION['role'] === 'admin'): ?>
-                                <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Adminstrator Options</a>
+                                <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Administrator Options</a>
                             <?php endif; ?>
                             <a href="?action=logout" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
                         </div>
