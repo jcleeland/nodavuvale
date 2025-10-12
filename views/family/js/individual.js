@@ -135,6 +135,13 @@ document.addEventListener("DOMContentLoaded", function() {
         })
             .then(response => response.json())
             .then(result => {
+                if (result.status && result.status === 'error' && result.message === 'User not logged in') {
+                    console.log('User not logged in');
+                    // Redirect to the login page with returnto parameter
+                    //window.location.href = 'login.php?returnto=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    return; // Exit the function to prevent further execution
+                }
+                console.log('Received reaction summary for', type, id, ':', result); // Log the result received
                 if (result.success) {
                     const selector = type === 'discussion' ? `[data-discussion-id="${id}"] .reaction-summary` : `[data-comment-id="${id}"] .reaction-summary`;
                     const summaryElement = document.querySelector(selector);
@@ -152,10 +159,14 @@ document.addEventListener("DOMContentLoaded", function() {
                         console.error('Element not found for selector:', selector); // Log if element is not found
                     }
                 } else {
-                    console.error('Error fetching reactions:', result.error);
+                    console.log('Result success: ', result.success);
+                    const selector = type === 'discussion' ? `[data-discussion-id="${id}"] .reaction-summary` : `[data-comment-id="${id}"] .reaction-summary`;
+                    console.error('Error fetching reactions ('+type+'):', result.error);
                 }
             })
-            .catch(error => console.error('Error:', error)); // Catch and log any errors
+            .catch(
+                error => console.error('Error:', error)
+            ); // Catch and log any errors
     }    
     // ------------------- Handling the "Edit" button and modal -------------------
 

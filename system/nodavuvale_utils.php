@@ -1118,11 +1118,14 @@ class Utils {
                 if($groupType=='Birth') {
                     //echo "<pre> -->"; print_r($item); echo "</pre><br />";
                     //See if the "tree_birth_date" is just a year, and if so, simply show the year
-                    if(strlen($item['tree_birth_date'])==4) {
-                        $sortDate=$item['tree_birth_date'];
-                    } else {
-                        $sortDate=date("Y-m-d", strtotime($item['tree_birth_date']));
+                    if ($item['tree_birth_date'] ) {
+                        if(strlen($item['tree_birth_date'])==4) {
+                            $sortDate=$item['tree_birth_date'];
+                        } else {
+                            $sortDate=date("Y-m-d", strtotime($item['tree_birth_date']));
+                        }
                     }
+                    
 
                     //Add an extra item to the $groupedItems[$key]['items'] called "Date" with the value of the birth date
                     $groupedItems[$key]['items'][]=array(

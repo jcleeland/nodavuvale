@@ -165,7 +165,8 @@ function updateUser() {
     var email = document.getElementById('editEmail').value;
     var role = document.getElementById('editRole').value;
     var approved = document.getElementById('editApproved').value;
-    var individualsId = document.querySelector('select[name="individuals_id"]').value;
+    var individualsId = document.getElementById('individuals_id').value;
+    //var individualsId = document.querySelector('select[name="individuals_id"]').value;
 
     var formData = new FormData();
     formData.append('method', 'update_user');

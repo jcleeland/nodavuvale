@@ -530,6 +530,7 @@ function expandStory(textId) {
     document.getElementById(textId).classList.toggle('hidden');
     document.getElementById('full'+textId).classList.toggle('hidden');
 }
+
 function shrinkStory(textId) {
     //console.log(textId);
     document.getElementById(textId).classList.toggle('hidden');

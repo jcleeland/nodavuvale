@@ -204,7 +204,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                                 if($individual['id'] == $rootId) {
                                     echo " selected";
                                 }
-                                echo ">".$individual['first_names']." ".$individual['last_name']."</option>";
+                                echo ">".str_replace("_", "&nbsp;", $individual['first_names'])." ".$individual['last_name']."</option>";
                             }
                         ?>
                     </select>

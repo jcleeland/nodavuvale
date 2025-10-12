@@ -103,7 +103,7 @@ class Auth {
     }
 
     public function isLoggedIn() {
-        Web::startSession();
+        Web::checkLogin();
         return isset($_SESSION['user_id']) && isset($_SESSION['approved']) && $_SESSION['approved'] > 0;
     }
 

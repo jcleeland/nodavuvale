@@ -15,6 +15,7 @@ class Web {
 
     public static function startSession() {
         if (session_status() == PHP_SESSION_NONE) {
+            session_name('nodavuvale_app_session');
             session_start();
         }
     }
@@ -22,7 +23,7 @@ class Web {
     public static function checkLogin() {
         self::startSession();
         if (!isset($_SESSION['user_id'])) {
-            self::redirect('index.php?page=login');
+            //self::redirect('index.php?page=login');
         }
     }
 
