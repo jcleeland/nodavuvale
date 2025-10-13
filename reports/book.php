@@ -74,7 +74,7 @@ if ($type === 'descendants' && !empty($generationData[1])) {
 }
 
 $rootPerson = $rootBundle['person'] ?? [];
-$rootName = trim(($rootPerson['first_names'] ?? '') . ' ' . ($rootPerson['last_name'] ?? ''));
+$rootName = formatPersonName($rootPerson);
 
 $indexEntries = [];
 $simpleIndex = [
@@ -117,7 +117,7 @@ if ($type === 'descendants') {
         }
     }
     foreach ($lines as $line) {
-        $lineLabel = 'Line of Descendancy: ' . ($line['name'] ?? '');
+        $lineLabel = ($line['name'] ?? '[Unknown]') . "'s Line";
         $accentColor = $line['color'] ?? null;
         $lineSimpleIndex = [
             'name' => $line['name'] ?? 'Line of Descendancy',
@@ -148,7 +148,7 @@ if ($type === 'descendants') {
                 $pageNumber = renderIndividualPage($pdf, $bundle, $relationship, $accentColor, $lineLabel);
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
                     $personId = (int) $bundle['person']['id'];
-                    $fullName = trim(($bundle['person']['first_names'] ?? '') . ' ' . ($bundle['person']['last_name'] ?? ''));
+                    $fullName = formatPersonName($bundle['person']);
                     $indexEntries[$personId] = [
                         'name' => $fullName,
                         'page' => $pageNumber,
@@ -187,7 +187,7 @@ if ($type === 'descendants') {
                 $pageNumber = renderIndividualPage($pdf, $bundle, $relationship);
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
                     $personId = (int) $bundle['person']['id'];
-                    $fullName = trim(($bundle['person']['first_names'] ?? '') . ' ' . ($bundle['person']['last_name'] ?? ''));
+                    $fullName = formatPersonName($bundle['person']);
                     $indexEntries[$personId] = [
                         'name' => $fullName,
                         'page' => $pageNumber,
@@ -249,10 +249,10 @@ function fetchIndividualBundle(int $individualId, array &$cache): array
 function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, string $siteName, string $type): void
 {
     $person = $bundle['person'];
-    $fullName = trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? ''));
+    $fullName = formatPersonName($person);
     $pdf->AddPage();
     $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetFont('Helvetica', 'B', 28);
+    $pdf->SetFont('Helvetica', 'B', 24);
     $pdf->Cell(0, 20, $fullName . "'s " . $bookLabel . ' Book', 1, 'C');
     $pdf->Ln(30);
 
@@ -262,7 +262,7 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
         $imageX = $pdf->GetLeftMargin() + max(0, ($usableWidth - $imageWidth) / 2);
         $currentY = $pdf->GetY();
         $pdf->Image($bundle['key_image'], $imageX, $currentY, $imageWidth, $imageHeight);
-        $pdf->SetY($currentY + $imageHeight + 20);
+        pdfSetY($pdf, $currentY + $imageHeight + 20);
     } else {
         $pdf->Ln(20);
     }
@@ -275,7 +275,7 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
         date('j F Y'),
         $siteName
     );
-    $pdf->SetFont('Helvetica', '', 14);
+    $pdf->SetFont('Helvetica', '', 13);
     $pdf->MultiCell(0, 8, $subtitle, 'C');
 }
 
@@ -474,7 +474,7 @@ function addDescendantLinesOverviewPage(SimplePDF $pdf, array $generationOne, ar
         } else {
             $pdf->SetTextColor(0, 0, 0);
         }
-        $name = trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? ''));
+        $name = formatPersonName($person);
         if ($name === '') {
             $name = 'Unknown';
         }
@@ -502,7 +502,7 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
     if (!$person) {
         return null;
     }
-    $fullName = trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? ''));
+    $fullName = formatPersonName($person);
     $pdf->AddPage();
     $pageNumber = $pdf->GetPageNumber();
 
@@ -524,7 +524,7 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
         $blockHeight = 12.0;
         $blockY = max(0.0, $topMargin - ($blockHeight / 2));
         $pdf->FilledRect($left, $blockY, $usableWidth, $blockHeight, $accent);
-        $pdf->SetY($blockY + $blockHeight + 2);
+        pdfSetY($pdf, $blockY + $blockHeight + 2);
         if ($lineLabel !== '') {
             $pdf->SetFont('Helvetica', 'B', 12);
             $pdf->SetTextColor($r, $g, $b);
@@ -554,61 +554,144 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
         $imageX = $left + max(0, ($usableWidth - $imageWidth) / 2);
         $currentY = $pdf->GetY();
         $pdf->Image($bundle['key_image'], $imageX, $currentY, $imageWidth, $imageHeight);
-        $pdf->SetY($currentY + $imageHeight + 10);
+        pdfSetY($pdf, $currentY + $imageHeight + 6);
     }
 
-    $details = buildPersonDetails($person);
-    if (!empty($details)) {
-        $pdf->SetFont('Helvetica', '', 12);
-        foreach ($details as $line) {
-            $pdf->MultiCell(0, 6, $line);
-        }
-        $pdf->Ln(4);
-    }
+    renderLifeLine($pdf, $person);
 
     $facts = summariseFacts($bundle['facts']);
-    $pdf->SetFont('Helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Facts & Events', 1, 'L');
-    $pdf->Ln(12);
-    $pdf->SetFont('Helvetica', '', 11);
     if (!empty($facts)) {
+        $pdf->Ln(4);
+        $pdf->SetFont('Helvetica', 'B', 16);
+        $pdf->Cell(0, 10, 'Facts & Events', 1, 'L');
+        $pdf->Ln(12);
+        $leftMargin = $pdf->GetLeftMargin();
         foreach ($facts as $fact) {
-            $pdf->MultiCell(0, 6, '• ' . $fact);
+            $pdf->SetFont('Helvetica', 'B', 11);
+            $pdf->MultiCell(0, 6, $fact['title']);
+            if ($fact['detail'] !== '') {
+                $pdf->SetFont('Helvetica', '', 10);
+                pdfSetX($pdf, $leftMargin + 5);
+                $pdf->MultiCell(0, 5.5, $fact['detail']);
+            }
+            $pdf->Ln(2);            
         }
-    } else {
-        $pdf->MultiCell(0, 6, 'No facts or events recorded.');
     }
     $pdf->Ln(6);
 
     $stories = summariseStories($bundle['stories']);
-    $pdf->SetFont('Helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Stories', 1, 'L');
-    $pdf->Ln(12);
-    $pdf->SetFont('Helvetica', '', 11);
     if (!empty($stories)) {
+        $pdf->Ln(4);
+        $pdf->SetFont('Helvetica', 'B', 16);
+        $pdf->Cell(0, 10, 'Stories', 1, 'L');
+        $pdf->Ln(12);
+        $innerPadding = 3.0;        
         foreach ($stories as $story) {
-            $pdf->MultiCell(0, 6, $story['title']);
-            if ($story['summary'] !== '') {
-                $pdf->MultiCell(0, 6, $story['summary']);
-            }
-            $pdf->Ln(2);
-        }
-    } else {
-        $pdf->MultiCell(0, 6, 'No stories recorded.');
-    }
-    $pdf->Ln(6);
+            $boxWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+            $usableTextWidth = $boxWidth - ($innerPadding * 2);
+            $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
 
-    $pdf->SetFont('Helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Photos', 1, 'L');
-    $pdf->Ln(12);
-    if (!empty($bundle['photos'])) {
-        renderPhotoGrid($pdf, $bundle['photos']);
-    } else {
-        $pdf->SetFont('Helvetica', '', 11);
-        $pdf->MultiCell(0, 6, 'No photos available.');
+            $pdf->SetFont('Courier', 'B', 11);
+            $titleText = (string) ($story['title'] ?? '');
+            $titleHeight = $titleText !== '' ? estimateMultiCellHeight($pdf, $usableTextWidth, 5.5, $titleText) : 0.0;
+            $pdf->SetFont('Courier', '', 10);
+            $summaryText = (string) ($story['summary'] ?? '');
+            $summaryHeight = $summaryText !== '' ? estimateMultiCellHeight($pdf, $usableTextWidth, 5.0, $summaryText) : 0.0;
+            $requiredHeight = $innerPadding + $titleHeight + ($summaryHeight > 0 ? 2.0 + $summaryHeight : 0.0) + $innerPadding;
+
+            if ($pdf->GetY() + $requiredHeight > $pageBottom) {
+                $pdf->AddPage();
+                $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
+            }
+
+            $startX = $pdf->GetLeftMargin();
+            $startY = $pdf->GetY();
+            $pdf->SetXY($startX + $innerPadding, $startY + $innerPadding);
+
+            if ($titleText !== '') {
+                $pdf->SetFont('Courier', 'B', 11);
+                $pdf->MultiCell($usableTextWidth, 5.5, $titleText);
+            }
+
+            if ($summaryText !== '') {
+                if ($titleText !== '') {
+                    $pdf->Ln(1.5);
+                }
+                $pdf->SetXY($startX + $innerPadding, $pdf->GetY());
+                $pdf->SetFont('Courier', '', 10);
+                $pdf->MultiCell($usableTextWidth, 5.0, $summaryText);
+            }
+
+            $contentBottom = $pdf->GetY();
+            $boxHeight = max($requiredHeight, ($contentBottom - $startY) + $innerPadding);
+            pdfDrawBorder($pdf, $startX, $startY, $boxWidth, $boxHeight);
+            pdfSetY($pdf, $startY + $boxHeight + 4);       
+        }
+    }
+
+    $photos = filterPhotos($bundle['photos'] ?? [], $bundle['key_image'] ?? null);
+    if (!empty($photos)) {
+        $pdf->Ln(2);
+        $pdf->SetFont('Helvetica', 'B', 16);
+        $pdf->Cell(0, 10, 'Photos', 1, 'L');
+        $pdf->Ln(12);
+        renderPhotoGrid($pdf, $photos);
     }
 
     return $pageNumber;
+}
+
+function renderLifeLine(SimplePDF $pdf, array $person): void
+{
+    $genderRaw = trim((string) ($person['gender'] ?? ''));
+    $gender = $genderRaw !== '' ? ucfirst($genderRaw) : '—';
+    $birth = formatDateFromParts($person['birth_year'] ?? null, $person['birth_month'] ?? null, $person['birth_date'] ?? null);
+    $death = formatDateFromParts($person['death_year'] ?? null, $person['death_month'] ?? null, $person['death_date'] ?? null);
+    $birthLabel = $birth !== '' ? $birth : '—';
+    $deathLabel = $death !== '' ? $death : '—';
+
+    if ($gender === '—' && $birthLabel === '—' && $deathLabel === '—') {
+        return;
+    }
+
+    $line = sprintf('%-12s %s - %s', $gender, $birthLabel, $deathLabel);
+    $pdf->SetFont('Helvetica', '', 12);
+    $pdf->MultiCell(0, 6, $line);
+    $pdf->Ln(4);
+}
+
+function pdfSetY(SimplePDF $pdf, float $y): void
+{
+    if (is_callable([$pdf, 'SetY'])) {
+        $pdf->SetY($y);
+        return;
+    }
+
+    $left = is_callable([$pdf, 'GetLeftMargin']) ? $pdf->GetLeftMargin() : 0.0;
+    $pdf->SetXY($left, $y);
+}
+
+function pdfSetX(SimplePDF $pdf, float $x): void
+{
+    $y = is_callable([$pdf, 'GetY']) ? $pdf->GetY() : 0.0;
+    $pdf->SetXY($x, $y);
+}
+
+function pdfDrawBorder(SimplePDF $pdf, float $x, float $y, float $width, float $height, float $thickness = 0.5): void
+{
+    if ($width <= 0 || $height <= 0) {
+        return;
+    }
+
+    $thickness = max(0.1, $thickness);
+    $right = $x + $width;
+    $bottom = $y + $height;
+
+    // Draw the four edges using thin filled rectangles to emulate a stroked border.
+    $pdf->FilledRect($x, $y, $width, $thickness, [0, 0, 0]); // Top edge
+    $pdf->FilledRect($x, $bottom - $thickness, $width, $thickness, [0, 0, 0]); // Bottom edge
+    $pdf->FilledRect($x, $y, $thickness, $height, [0, 0, 0]); // Left edge
+    $pdf->FilledRect($right - $thickness, $y, $thickness, $height, [0, 0, 0]); // Right edge
 }
 
 function addGenerationSummaryPage(SimplePDF $pdf, int $generation, array $people, string $type, array &$parentCache, array $options = []): ?int
@@ -635,7 +718,10 @@ function addGenerationSummaryPage(SimplePDF $pdf, int $generation, array $people
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('Helvetica', '', 12);
     foreach ($people as $person) {
-        $name = trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? ''));
+        $name = formatPersonName($person);
+        if ($name === '') {
+            $name = 'Unknown';
+        }
         $relationship = trim($person['relationship'] ?? '');
         if ($relationship === '') {
             $relationship = $type === 'descendants' ? 'Descendant' : 'Ancestor';
@@ -686,7 +772,7 @@ function buildDescendantLineMetadata(array $generationOne): array
         $color = $palette[$index % count($palette)];
         $index++;
         $metadata[$key] = [
-            'name' => trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? '')),
+            'name' => formatPersonName($person),
             'color' => $color,
         ];
     }
@@ -714,7 +800,7 @@ function buildDescendantLines(array $generationData, array &$lineMetadata): arra
             $lineId = (string) $lineIdRaw;
             if (!isset($lineMetadata[$lineId])) {
                 $lineMetadata[$lineId] = [
-                    'name' => trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? '')),
+                    'name' => formatPersonName($person),
                     'color' => $palette[$colorIndex % count($palette)],
                 ];
                 $colorIndex++;
@@ -740,7 +826,7 @@ function buildDescendantLines(array $generationData, array &$lineMetadata): arra
             $lineIdRaw = $person['line_id'] ?? null;
             $lineId = $lineIdRaw !== null ? (string) $lineIdRaw : ('__' . ($person['id'] ?? uniqid('line', true)));
             if (!isset($lines[$lineId])) {
-                $name = trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? ''));
+               $name = formatPersonName($person);
                 if (!isset($lineMetadata[$lineId])) {
                     $lineMetadata[$lineId] = [
                         'name' => $name !== '' ? $name : 'Line ' . (count($lines) + 1),
@@ -806,11 +892,11 @@ function addLineGenerationSummaryPage(SimplePDF $pdf, int $generation, array $pe
     $blockHeight = 12.0;
     $blockY = max(0.0, $pdf->GetTopMargin() - ($blockHeight / 2));
     $pdf->FilledRect($left, $blockY, $usableWidth, $blockHeight, $color);
-    $pdf->SetY($blockY + $blockHeight + 2);
+    pdfSetY($pdf, $blockY + $blockHeight + 2);
 
     $pdf->SetFont('Helvetica', 'B', 12);
     $pdf->SetTextColor((int) $color[0], (int) $color[1], (int) $color[2]);
-    $pdf->MultiCell(0, 6, 'Line of Descendancy: ' . $lineName, 'L');
+    $pdf->MultiCell(0, 6, $lineName . "'s Line", 'L');
     $pdf->Ln(2);
     $pdf->SetFont('Helvetica', 'B', 18);
     $pdf->MultiCell(0, 8, 'Generation ' . $generation, 'L');
@@ -818,7 +904,7 @@ function addLineGenerationSummaryPage(SimplePDF $pdf, int $generation, array $pe
     $pdf->SetTextColor(0, 0, 0);
 
     foreach ($people as $person) {
-        $name = trim(($person['first_names'] ?? '') . ' ' . ($person['last_name'] ?? ''));
+        $name = formatPersonName($person);
         $relationship = formatRelationshipWithRoot($person['relationship'] ?? '', $rootName, 'descendants');
         if ($relationship === '' && $rootName !== '') {
             $relationship = 'Descendant of ' . $rootName;
@@ -858,7 +944,7 @@ function formatParentsLine(int $personId, array &$cache): string
     usort($parents, [Utils::class, 'compareIndividualsByBirthThenName']);
     $names = [];
     foreach ($parents as $parent) {
-        $names[] = trim(($parent['first_names'] ?? '') . ' ' . ($parent['last_name'] ?? ''));
+        $names[] = formatPersonName($parent);
     }
     $names = array_values(array_filter($names, static function ($name) {
         return $name !== '';
@@ -888,23 +974,56 @@ function formatRelationshipWithRoot(string $relationship, string $rootName, stri
     return $formatted;
 }
 
-function buildPersonDetails(array $person): array
+function formatPersonName(?array $person): string
 {
-    $lines = [];
-    $birth = formatDateFromParts($person['birth_year'] ?? null, $person['birth_month'] ?? null, $person['birth_date'] ?? null);
-    if ($birth !== '') {
-        $prefix = trim((string) ($person['birth_prefix'] ?? 'Born'));
-        $lines[] = trim(($prefix !== '' ? $prefix . ' ' : '') . $birth);
+    if (empty($person)) {
+        return '';
     }
-    $death = formatDateFromParts($person['death_year'] ?? null, $person['death_month'] ?? null, $person['death_date'] ?? null);
-    if ($death !== '') {
-        $prefix = trim((string) ($person['death_prefix'] ?? 'Died'));
-        $lines[] = trim(($prefix !== '' ? $prefix . ' ' : '') . $death);
+
+    $first = sanitiseNameComponent($person['first_names'] ?? '', true);
+    $last = sanitiseNameComponent($person['last_name'] ?? '', false);
+
+    $parts = [];
+    foreach ([$first, $last] as $component) {
+        $component = trim($component);
+        if ($component === '') {
+            continue;
+        }
+        if ($component === '-' && in_array('-', $parts, true)) {
+            continue;
+        }
+        $parts[] = $component;
     }
-    if (!empty($person['gender'])) {
-        $lines[] = 'Gender: ' . ucfirst((string) $person['gender']);
+
+    if (empty($parts)) {
+        return $first === '-' || $last === '-' ? '-' : '';
     }
-    return $lines;
+
+    return trim(implode(' ', $parts));
+}
+
+function sanitiseNameComponent($value, bool $isFirstNames = false): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        return '';
+    }
+    if ($isFirstNames) {
+        $text = str_replace('_', ' ', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+    }
+
+    if ($text === '?' || preg_match('/^\?+$/', $text)) {
+        return '-';
+    }
+    if (preg_match('/^\?[^?]*\?$/', $text)) {
+        return '-';
+    }
+    if (preg_match('/^\[\?].*\[\?]$/', $text)) {
+        return '-';
+    }
+
+    return $text;
 }
 
 function formatDateFromParts($year, $month, $day): string
@@ -931,27 +1050,60 @@ function summariseFacts(array $items): array
         if (($group['item_group_name'] ?? '') === 'Private') {
             continue;
         }
-        $label = $group['item_group_name'] ?? 'Fact';
+
+        $label = trim((string) ($group['item_group_name'] ?? 'Fact'));
         $segments = [];
+        $notes = [];
         if (!empty($group['items'])) {
             foreach ($group['items'] as $detail) {
                 if (!empty($detail['file_id'])) {
                     continue;
                 }
-                if (($detail['detail_type'] ?? '') === 'Story') {
+                $type = trim((string) ($detail['detail_type'] ?? 'Detail'));
+                $detailNotes = extractDetailNotes($detail);
+
+                if (strcasecmp($type, 'Story') === 0 || strcasecmp($type, 'Description') === 0 || strcasecmp($type, 'Note') === 0) {
+                    $noteValue = extractItemValue($detail);
+                    if ($noteValue !== '') {
+                        $notes[] = $noteValue;
+                    }
+                    $notes = array_merge($notes, $detailNotes);
                     continue;
                 }
+
                 $value = extractItemValue($detail);
-                if ($value === '') {
-                    continue;
+                if ($value !== '') {
+                    $segments[] = ($type !== '' ? $type : 'Detail') . ': ' . $value;
                 }
-                $segments[] = ($detail['detail_type'] ?? 'Detail') . ': ' . $value;
+                $notes = array_merge($notes, $detailNotes);
             }
         }
-        if (!empty($segments)) {
-            $facts[] = $label . ' — ' . implode('; ', $segments);
+
+        $segments = array_values(array_filter($segments, static function ($segment) {
+            return $segment !== '';
+        }));
+        $notes = array_values(array_filter(array_unique(array_map(static function ($note) {
+            return trim($note);
+        }, $notes)), static function ($note) {
+            return $note !== '';
+        }));
+
+        if (empty($segments) && empty($notes)) {
+            continue;
         }
+
+        $title = $label !== '' ? $label : 'Fact';
+
+        if (!empty($segments)) {
+            $title .= ' — ' . implode('; ', $segments);
+        }
+
+        $facts[] = [
+            'title' => trim($title),
+            'detail' => !empty($notes) ? implode(PHP_EOL . PHP_EOL, $notes) : '',
+        ];
     }
+
     return $facts;
 }
 
@@ -969,6 +1121,29 @@ function extractItemValue(array $detail): string
     }
     $value = summariseText($value, 180);
     return $value;
+}
+
+function extractDetailNotes(array $detail): array
+{
+    $fields = [
+        $detail['detail_story'] ?? '',
+        $detail['detail_description'] ?? '',
+        $detail['description'] ?? '',
+        $detail['story'] ?? '',
+        $detail['items_item_story'] ?? '',
+        $detail['items_item_description'] ?? '',
+        $detail['detail_memo'] ?? '',
+    ];
+
+    $notes = [];
+    foreach ($fields as $field) {
+        $text = summariseText((string) $field, 240);
+        if ($text !== '') {
+            $notes[] = $text;
+        }
+    }
+
+    return $notes;
 }
 
 function formatDateValue(string $value): string
@@ -992,6 +1167,12 @@ function summariseStories(array $stories): array
     foreach ($stories as $story) {
         $title = trim((string) ($story['title'] ?? 'Story'));
         $summary = summariseText($story['content'] ?? '', 400);
+        if ($title === '' && $summary === '') {
+            continue;
+        }
+        if ($title === '') {
+            $title = 'Story';
+        }        
         $output[] = [
             'title' => $title,
             'summary' => $summary,
@@ -1013,14 +1194,43 @@ function summariseText(string $text, int $maxLength = 250): string
     return $normalised;
 }
 
-function renderPhotoGrid(SimplePDF $pdf, array $photos): void
+
+function filterPhotos(array $photos, ?string $keyImagePath = null): array
 {
-    $filtered = array_values(array_filter($photos, static function ($photo) {
-        return !empty($photo['file_path']);
-    }));
+   if (empty($photos)) {
+        return [];
+    }
+
+    $filtered = [];
+    $seen = [];
+    $keyNormalised = $keyImagePath !== null ? normaliseMediaPath($keyImagePath) : null;
+
+    foreach ($photos as $photo) {
+        $path = trim((string) ($photo['file_path'] ?? ''));
+        if ($path === '') {
+            continue;
+        }
+        $normalised = normaliseMediaPath($path);
+        if ($keyNormalised !== null && $keyNormalised !== '' && $normalised === $keyNormalised) {
+            continue;
+        }
+        if ($normalised !== '' && isset($seen[$normalised])) {
+            continue;
+        }
+        if ($normalised !== '') {
+            $seen[$normalised] = true;
+        }
+        $filtered[] = $photo;
+    }
+
+    return $filtered;
+}
+
+function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = null): void
+{
+    $filtered = filterPhotos($photos, $keyImagePath);
+
     if (empty($filtered)) {
-        $pdf->SetFont('Helvetica', '', 11);
-        $pdf->MultiCell(0, 6, 'No photos available.');
         return;
     }
 
@@ -1037,6 +1247,8 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos): void
     $y = $pdf->GetY();
     $rowHeight = 0.0;
     $baseFont = 10;
+    $lineHeight = 4.5;
+    $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
 
     foreach ($filtered as $index => $photo) {
         if ($index > 0 && $index % $perRow === 0) {
@@ -1044,22 +1256,73 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos): void
             $x = $pdf->GetLeftMargin();
             $rowHeight = 0.0;
         }
+
         [$width, $height] = computeImageBox($photo['file_path'], $targetWidth);
+        $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
+        $pdf->SetFont('Helvetica', '', $baseFont);
+        $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $width, $lineHeight, $caption) + 4.0 : 0.0;
+        $neededHeight = $height + $captionHeight;
+
+        if ($y + max($rowHeight, $neededHeight) > $pageBottom) {
+            $pdf->AddPage();
+            $x = $pdf->GetLeftMargin();
+            $y = $pdf->GetY();
+            $rowHeight = 0.0;
+        }
+
         $pdf->Image($photo['file_path'], $x, $y, $width, $height);
-        $rowHeight = max($rowHeight, $height);
+        $rowHeight = max($rowHeight, $height + ($captionHeight > 0 ? $captionHeight : 0));
 
         $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
         if ($caption !== '') {
             $pdf->SetFont('Helvetica', '', $baseFont);
             $pdf->SetXY($x, $y + $height + 4);
-            $pdf->MultiCell($width, 4.5, $caption);
+            $pdf->MultiCell($width, $lineHeight, $caption);
             $captionBottom = $pdf->GetY();
             $rowHeight = max($rowHeight, $captionBottom - $y);
-            $pdf->SetY($y);
+            pdfSetY($pdf, $y);
         }
+
         $x += $width + $spacing;
     }
-    $pdf->SetY($y + $rowHeight + 14);
+
+    pdfSetY($pdf, $y);
+}
+
+function estimateMultiCellHeight(SimplePDF $pdf, float $width, float $lineHeight, string $text): float
+{
+    $text = trim($text);
+    if ($text === '') {
+        return 0.0;
+    }
+
+    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+    if ($width <= 0.0 || $width > $usableWidth) {
+        $width = $usableWidth;
+    }
+
+    // Mirror SimplePDF::wrapLine() heuristics to approximate wrapping.
+    $charWidth = max(0.1, $lineHeight * (0.5 / 1.35));
+    $maxChars = max(1, (int) floor($width / $charWidth));
+
+    $lineCount = 0;
+    $lines = preg_split("/(\r\n|\r|\n)/", $text);
+    if ($lines === false || empty($lines)) {
+        $lines = [$text];
+    }
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            $lineCount++;
+            continue;
+        }
+        $wrapped = wordwrap($line, $maxChars, "\n", true);
+        $chunks = $wrapped === '' ? [''] : explode("\n", $wrapped);
+        $lineCount += count($chunks);
+    }
+
+    return max(1, $lineCount) * $lineHeight;
 }
 
 function computeImageBox(string $path, float $targetWidth): array
@@ -1074,6 +1337,17 @@ function computeImageBox(string $path, float $targetWidth): array
     }
     $targetHeight = $targetWidth * ($height / $width);
     return [$targetWidth, $targetHeight];
+}
+
+function normaliseMediaPath(string $path): string
+{
+    $resolved = resolveMediaPath($path);
+    if ($resolved !== null) {
+        return $resolved;
+    }
+
+    $sanitised = str_replace(['\\', '//'], '/', trim($path));
+    return ltrim($sanitised, './');
 }
 
 function resolveMediaPath(string $path): ?string
@@ -1102,7 +1376,10 @@ function resolveMediaPath(string $path): ?string
 
 function buildFileName(array $person, string $bookLabel): string
 {
-    $name = trim(($person['first_names'] ?? '') . '_' . ($person['last_name'] ?? ''));
-    $name = preg_replace('/[^A-Za-z0-9_\-]+/', '_', $name);
-    return trim($name, '_') . '_' . $bookLabel . '_Book.pdf';
+    $name = formatPersonName($person);
+    if ($name === '' || $name === '-') {
+        $name = 'individual';
+    }
+    $safe = preg_replace('/[^A-Za-z0-9_\-]+/', '_', str_replace(' ', '_', $name));
+    return trim((string) $safe, '_') . '_' . $bookLabel . '_Book.pdf';
 }
