@@ -251,10 +251,7 @@ if ($individual_id) {
     } else {
         // If no birth information is available, show a default message (optional)
         $deathdate= "";
-    }
-
-  
-    
+    }    
 }
 
 
@@ -263,6 +260,7 @@ if ($individual_id) {
 
 ?>
 <input type='hidden' id='individual_brief_name' value='<?= $individual['fullname'] ?>' />
+<input type='hidden' id='report_individual_id' value='<?= $individual['id'] ?>' />
 <section class="hero text-white py-20 relative">
     <div class="container hero-content relative">
         <div class="hero-image">
@@ -313,6 +311,26 @@ if ($individual_id) {
         <div class="tab px-4 py-2" data-tab="mediatab" title="View (or add-to) photos, videos, documents and other digital records about this person">Media</div>
     </div>
 </section>
+
+<section class="container mx-auto px-4 mt-6">
+    <div class="flex flex-wrap justify-center gap-4">
+        <button class="report-book-trigger flex items-center gap-2 bg-deep-green text-white px-5 py-2 rounded-full shadow"
+                data-report-type="descendants"
+                data-report-label="Descendants Book"
+                title="Download a PDF containing <?= $individual['first_name'] ?>'s descendants">
+            <i class="fas fa-book"></i>
+            <span>Download Descendants Book</span>
+        </button>
+        <button class="report-book-trigger flex items-center gap-2 bg-ocean-blue text-white px-5 py-2 rounded-full shadow"
+                data-report-type="ancestors"
+                data-report-label="Ancestry Book"
+                title="Download a PDF containing <?= $individual['first_name'] ?>'s ancestors">
+            <i class="fas fa-book"></i>
+            <span>Download Ancestry Book</span>
+        </button>
+    </div>
+</section>
+
 
 <!-- Gallery Modal Popup -->
 <div id="gallery-modal" class="modal">

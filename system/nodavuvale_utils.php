@@ -61,8 +61,9 @@ class Utils {
             $deathYear = isset($individual['death_year']) && $individual['death_year'] !== 0 ? $individual['death_year'] : '';
             //If $individual['first_names'] conatains more than one name, set $prefName to just the first of them
             $prefName = explode(" ", $individual['first_names'])[0];
+            $prefName = str_replace("_", "&nbsp;", $prefName);
             $briefName = $prefName." ".$individual['last_name'];
-            $fullName = $individual['first_names'] . " " . $individual['last_name'];
+            $fullName = str_replace("_", "&nbsp;", $individual['first_names']). " " . $individual['last_name'];
             $lifeSpan = "$birthYear - $deathYear";
             $gender = !empty($individual['gender']) ? $individual['gender'] : 'other';
             $keyImage = !empty($individual['keyimagepath']) ? $individual['keyimagepath'] : 'images/default_avatar.webp';
@@ -668,7 +669,9 @@ class Utils {
      */
     public static function getIndividualsList() {
         $db = Database::getInstance();
-        $query = "SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names";
+        $query = "SELECT id, REPLACE(first_names, '_', '&nbsp;') AS first_names, last_name
+                    FROM individuals
+                    ORDER BY last_name, first_names;";
         $individuals = $db->fetchAll($query);
         return $individuals;
     }
@@ -702,7 +705,7 @@ class Utils {
     public static function getChildren($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
-        
+
         // Fetch children using the updated query
         $query = "
             SELECT individuals.*, 
@@ -752,10 +755,151 @@ class Utils {
         return $children;
     }
 
+     public static function getDescendantsByGeneration($individual_id, $maxGenerations = null) {
+        if (!$individual_id) {
+            return [];
+        }
+
+        $max = ($maxGenerations !== null && $maxGenerations !== 'All') ? (int) $maxGenerations : null;
+        if ($max !== null && $max < 1) {
+            return [];
+        }
+
+        $results = [];
+        $queue = [
+            ['id' => (int) $individual_id, 'generation' => 0, 'line' => null],
+        ];
+        $visited = [ (int) $individual_id => true ];
+
+        while (!empty($queue)) {
+            $current = array_shift($queue);
+            if ($max !== null && $current['generation'] >= $max) {
+                continue;
+            }
+
+            $children = self::getChildren($current['id']);
+            foreach ($children as $child) {
+                $childId = (int) $child['id'];
+                if (isset($visited[$childId])) {
+                    continue;
+                }
+                $visited[$childId] = true;
+                $generation = $current['generation'] + 1;
+                $lineId = $current['generation'] === 0 ? $childId : ($current['line'] ?? $current['id']);
+                $relationship = self::getRelationshipLabel($individual_id, $childId);
+                if (!$relationship) {
+                    $relationship = 'Descendant';
+                }
+                $child['generation'] = $generation;
+                $child['relationship'] = $relationship;
+                $child['line_id'] = $lineId;
+                $child['direct_parent_id'] = $current['id'];
+                $results[$generation][] = $child;
+
+                if ($max === null || $generation < $max) {
+                    $queue[] = ['id' => $childId, 'generation' => $generation, 'line' => $lineId];
+                }
+            }
+        }
+
+        ksort($results);
+        foreach ($results as &$generationMembers) {
+            usort($generationMembers, [self::class, 'compareIndividualsByBirthThenName']);
+        }
+        unset($generationMembers);
+        return $results;
+    }
+
+    public static function getAncestorsByGeneration($individual_id, $maxGenerations = null) {
+        if (!$individual_id) {
+            return [];
+        }
+
+        $max = ($maxGenerations !== null && $maxGenerations !== 'All') ? (int) $maxGenerations : null;
+        if ($max !== null && $max < 1) {
+            return [];
+        }
+
+        $results = [];
+        $queue = [
+            ['id' => (int) $individual_id, 'generation' => 0],
+        ];
+        $visited = [ (int) $individual_id => true ];
+
+        while (!empty($queue)) {
+            $current = array_shift($queue);
+            if ($max !== null && $current['generation'] >= $max) {
+                continue;
+            }
+
+            $parents = self::getParents($current['id']);
+            foreach ($parents as $parent) {
+                $parentId = (int) $parent['id'];
+                if (isset($visited[$parentId])) {
+                    continue;
+                }
+                $visited[$parentId] = true;
+                $generation = $current['generation'] + 1;
+                $relationship = self::getRelationshipLabel($individual_id, $parentId);
+                if (!$relationship) {
+                    $relationship = 'Ancestor';
+                }
+                $parent['generation'] = $generation;
+                $parent['relationship'] = $relationship;
+                $results[$generation][] = $parent;
+
+                if ($max === null || $generation < $max) {
+                    $queue[] = ['id' => $parentId, 'generation' => $generation];
+                }
+            }
+        }
+
+        ksort($results);
+        foreach ($results as &$generationMembers) {
+            usort($generationMembers, [self::class, 'compareIndividualsByBirthThenName']);
+        }
+        unset($generationMembers);
+        return $results;
+    }
+
+    private static function birthSortKey(array $person): ?string
+    {
+        $year = isset($person['birth_year']) ? (int) $person['birth_year'] : 0;
+        if ($year <= 0) {
+            return null;
+        }
+        $month = isset($person['birth_month']) ? (int) $person['birth_month'] : 0;
+        $day = isset($person['birth_date']) ? (int) $person['birth_date'] : 0;
+        $month = ($month >= 1 && $month <= 12) ? $month : 1;
+        $day = ($day >= 1 && $day <= 31) ? $day : 1;
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
+    }
+
+    public static function compareIndividualsByBirthThenName(array $a, array $b): int
+    {
+        $aDate = self::birthSortKey($a);
+        $bDate = self::birthSortKey($b);
+        if ($aDate !== null && $bDate !== null && $aDate !== $bDate) {
+            return $aDate <=> $bDate;
+        }
+        if ($aDate !== null && $bDate === null) {
+            return -1;
+        }
+        if ($aDate === null && $bDate !== null) {
+            return 1;
+        }
+        $aName = strtolower(trim(($a['last_name'] ?? '') . ' ' . ($a['first_names'] ?? '')));
+        $bName = strtolower(trim(($b['last_name'] ?? '') . ' ' . ($b['first_names'] ?? '')));
+        if ($aName !== $bName) {
+            return $aName <=> $bName;
+        }
+        return ($a['id'] ?? 0) <=> ($b['id'] ?? 0);
+    }
+
     public static function getSpouses($individual_id) {
         // Get the database instance
         $db = Database::getInstance();
-        
+
         $spouses=[];
         //First find explicit spouses as identified by the 'spouse' relationship type
         $esquery = "SELECT DISTINCT

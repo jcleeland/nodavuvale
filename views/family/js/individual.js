@@ -4,6 +4,38 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const reactionButtons = document.querySelectorAll('.reaction-btn');
 
+    const reportButtons = document.querySelectorAll('.report-book-trigger');
+    
+    reportButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const individualInput = document.getElementById('report_individual_id');
+            if (!individualInput) {
+                return;
+            }
+            const individualId = individualInput.value;
+            const reportType = button.getAttribute('data-report-type');
+            const reportLabel = button.getAttribute('data-report-label') || 'report';
+            let generations = prompt(`How many generations should be included in the ${reportLabel}? Enter a number or type "All".`, 'All');
+            if (generations === null) {
+                return;
+            }
+            generations = generations.trim();
+            if (generations === '') {
+                generations = 'All';
+            }
+            if (generations.toLowerCase() !== 'all') {
+                if (!/^[0-9]+$/.test(generations) || parseInt(generations, 10) < 1) {
+                    alert('Please enter "All" or a positive whole number.');
+                    return;
+                }
+            } else {
+                generations = 'All';
+            }
+            const url = `reports/book.php?type=${encodeURIComponent(reportType)}&individual_id=${encodeURIComponent(individualId)}&generations=${encodeURIComponent(generations)}`;
+            window.location.href = url;
+        });
+    });
+
     reactionButtons.forEach(button => {
         button.addEventListener('click', function () {
             const reaction = this.getAttribute('data-reaction');
