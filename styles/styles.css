@@ -80,8 +80,16 @@ section.content a {
     --nv-bg-opacity: 0.2 !important;
 }
 
+.nv-bg-opacity-30, .hover\:nv-bg-opacity-30:hover {
+    --nv-bg-opacity: 0.3 !important;
+}
+
 .nv-bg-opacity-50, .hover\:nv-bg-opacity-50:hover {
     --nv-bg-opacity: 0.5 !important;
+}
+
+.nv-bg-opacity-70, .hover\:nv-bg-opacity-70:hover {
+    --nv-bg-opacity:0.7 !important;
 }
 
 .nv-bg-opacity-90, .hover\:nv-bg-opacity-90:hover {
@@ -130,7 +138,9 @@ section.content a {
 }
 
 .bg-deep-green {
-    background-color: var(--deep-green);
+    --nv-bg-opacity: 1;
+    /* background-color: var(--deep-green); */
+    background-color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), var(--nv-bg-opacity));
 }
 
 .bg-ocean-blue-800, .hover\:bg-ocean-blue-800:hover {

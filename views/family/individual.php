@@ -310,25 +310,31 @@ if ($individual_id) {
         <div class="tab px-4 py-2" data-tab="relationshipstab" title="View (or add-to) the family tree relationships for this person">Relationships</div>
         <div class="tab px-4 py-2" data-tab="mediatab" title="View (or add-to) photos, videos, documents and other digital records about this person">Media</div>
     </div>
-</section>
 
-<section class="container mx-auto px-4 mt-6">
-    <div class="flex flex-wrap justify-center gap-4">
-        <button class="report-book-trigger flex items-center gap-2 bg-deep-green text-white px-5 py-2 rounded-full shadow"
+    <div class="flex flex-wrap justify-center gap-4 mt-2">
+        <button class="report-book-trigger flex items-center gap-2 bg-deep-green nv-bg-opacity-70 text-white px-5 py-2 rounded-full shadow"
                 data-report-type="descendants"
                 data-report-label="Descendants Book"
                 title="Download a PDF containing <?= $individual['first_name'] ?>'s descendants">
             <i class="fas fa-book"></i>
-            <span>Download Descendants Book</span>
+            <span>Descendants Book</span>
         </button>
-        <button class="report-book-trigger flex items-center gap-2 bg-ocean-blue text-white px-5 py-2 rounded-full shadow"
+        <button class="report-book-trigger flex items-center gap-2 bg-deep-green nv-bg-opacity-70 text-white px-5 py-2 rounded-full shadow"
                 data-report-type="ancestors"
                 data-report-label="Ancestry Book"
                 title="Download a PDF containing <?= $individual['first_name'] ?>'s ancestors">
             <i class="fas fa-book"></i>
-            <span>Download Ancestry Book</span>
+            <span>Ancestry Book</span>
+        </button>
+        <button class="flex items-center gap-2 bg-deep-green nv-bg-opacity-70 text-white px-5 py-2 rounded-full shadow"
+                type="button"
+                title="Open a printable descendant chart for <?= $individual['first_name'] ?>"
+                onclick="window.open('reports/graphical_tree.php?individual_id=<?= $individual['id'] ?>&generations=All', '_blank')">
+            <i class="fas fa-sitemap"></i>
+            <span>Descendant Chart</span>
         </button>
     </div>
+
 </section>
 
 

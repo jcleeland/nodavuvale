@@ -66,7 +66,7 @@ $pdf = new SimplePDF();
 $pdf->SetMargins(20, 20, 20);
 $pdf->SetBottomMargin(25);
 $pdf->SetAutoPageBreak(true);
-$pdf->EnablePageNumbers();
+
 
 $lineMetadata = [];
 if ($type === 'descendants' && !empty($generationData[1])) {
@@ -86,7 +86,12 @@ $simpleIndex = [
 ];
 
 createCoverPage($pdf, $rootBundle, $bookLabel, $siteName, $type);
+// Insert a blank page between the cover and the index
+$pdf->AddPage();
 $simpleIndexPageNumber = createSimpleIndexPage($pdf, $bookLabel, $type);
+// Enable page numbers starting after the index page (first numbered page = 1)
+$pdf->EnablePageNumbers();
+$pdf->SetPageNumberingStart($simpleIndexPageNumber + 1, 1);
 $rootPageNumber = renderIndividualPage($pdf, $rootBundle, 'Overview');
 if ($rootPageNumber !== null) {
     $indexEntries[(int) $individualId] = [
@@ -116,6 +121,9 @@ if ($type === 'descendants') {
             ];
         }
     }
+    // Build a quick map of direct parents for descendants to help ordering and chains.
+    $directParentMap = buildDirectParentMap($generationData);
+
     foreach ($lines as $line) {
         $lineLabel = ($line['name'] ?? '[Unknown]') . "'s Line";
         $accentColor = $line['color'] ?? null;
@@ -129,6 +137,9 @@ if ($type === 'descendants') {
             if (empty($members)) {
                 continue;
             }
+            // Order members by parent, then date of birth
+            $members = sortMembersByParentThenBirth($members, $directParentMap);
+
             $summaryPage = addLineGenerationSummaryPage($pdf, $generation, $members, $line, $parentCache, $rootName);
             if ($summaryPage !== null) {
                 if ($lineSimpleIndex['page'] === null) {
@@ -145,7 +156,15 @@ if ($type === 'descendants') {
                 if ($relationship === '') {
                     $relationship = 'Descendant of ' . $rootName;
                 }
-                $pageNumber = renderIndividualPage($pdf, $bundle, $relationship, $accentColor, $lineLabel);
+                // From 3rd generation onwards, include ancestor chain beneath the line heading
+                $lineLabelForPerson = $lineLabel;
+                if ((int) $generation >= 3) {
+                    $chain = buildAncestorChainForDescendant((int) ($person['id'] ?? 0), (string) ($line['id'] ?? ''), $directParentMap, $rootBundleCache);
+                    if ($chain !== '') {
+                        $lineLabelForPerson .= "\n" . $chain;
+                    }
+                }
+                $pageNumber = renderIndividualPage($pdf, $bundle, $relationship, $accentColor, $lineLabelForPerson);
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
                     $personId = (int) $bundle['person']['id'];
                     $fullName = formatPersonName($bundle['person']);
@@ -207,7 +226,9 @@ if ($appendixPage !== null) {
 }
 
 $finalPageNumber = $pdf->GetPageNumber();
-populateSimpleIndexPage($pdf, $simpleIndexPageNumber, $simpleIndex, $bookLabel, $type);
+// Adjust displayed page numbers to start after the index
+$pageOffset = $simpleIndexPageNumber; // first numbered page is offset + 1
+populateSimpleIndexPage($pdf, $simpleIndexPageNumber, $simpleIndex, $bookLabel, $type, $pageOffset);
 if ($finalPageNumber > 0) {
     $pdf->UsePage($finalPageNumber);
 }
@@ -253,12 +274,13 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
     $pdf->AddPage();
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('Helvetica', 'B', 24);
-    $pdf->Cell(0, 20, $fullName . "'s " . $bookLabel . ' Book', 1, 'C');
+    $pdf->Cell(0, 20, $bookLabel . " of ".$fullName, 1, 'C');
     $pdf->Ln(30);
 
     if (!empty($bundle['key_image'])) {
-        [$imageWidth, $imageHeight] = computeImageBox($bundle['key_image'], 110.0);
         $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+        $maxKeyWidth = max(10.0, $usableWidth * 0.2);
+        [$imageWidth, $imageHeight] = computeImageBox($bundle['key_image'], min(110.0, $maxKeyWidth));
         $imageX = $pdf->GetLeftMargin() + max(0, ($usableWidth - $imageWidth) / 2);
         $currentY = $pdf->GetY();
         $pdf->Image($bundle['key_image'], $imageX, $currentY, $imageWidth, $imageHeight);
@@ -285,14 +307,14 @@ function createSimpleIndexPage(SimplePDF $pdf, string $bookLabel, string $type):
     $pageNumber = $pdf->GetPageNumber();
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('Helvetica', 'B', 22);
-    $title = trim($bookLabel) !== '' ? ($bookLabel . ' Simple Index') : 'Simple Index';
+    $title = trim($bookLabel) !== '' ? ($bookLabel . ' Index') : 'Index';
     $pdf->Cell(0, 14, $title, 1, 'C');
     $pdf->Ln(16);
 
     return $pageNumber;
 }
 
-function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, string $bookLabel, string $type): void
+function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, string $bookLabel, string $type, int $pageOffset = 0): void
 {
     if ($pageNumber < 1) {
         return;
@@ -300,13 +322,15 @@ function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, s
 
     $pdf->UsePage($pageNumber);
     $pdf->SetTextColor(0, 0, 0);
+    // Ensure we start below the heading drawn when the page was created
+    $pdf->SetY($pdf->GetTopMargin() + 30.0);
     $pdf->SetFont('Helvetica', '', 12);
 
     $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
     $pageWidth = 24.0;
     $labelWidth = max(0.0, $usableWidth - $pageWidth);
 
-    $writeEntry = static function (SimplePDF $pdf, string $label, ?int $page, ?array $color = null, float $indent = 0.0) use ($labelWidth, $pageWidth): void {
+    $writeEntry = static function (SimplePDF $pdf, string $label, ?int $page, ?array $color = null, float $indent = 0.0, bool $bold = true, float $fontSize = 12.0) use ($labelWidth, $pageWidth, $pageOffset): void {
         if ($label === '') {
             return;
         }
@@ -315,7 +339,7 @@ function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, s
         } else {
             $pdf->SetTextColor(0, 0, 0);
         }
-        $pdf->SetFont('Helvetica', 'B', 12);
+        $pdf->SetFont('Helvetica', $bold ? 'B' : '', max(8.0, $fontSize));
         $effectiveWidth = $labelWidth;
         $currentY = $pdf->GetY();
         if ($indent > 0) {
@@ -327,7 +351,14 @@ function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, s
         $pdf->Cell($effectiveWidth, 6, $label, 0, 'L');
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetFont('Helvetica', '', 11);
-        $pdf->Cell($pageWidth, 6, $page !== null ? (string) $page : '', 1, 'R');
+        $displayPage = '';
+        if ($page !== null) {
+            $displayNum = $page - (int) $pageOffset;
+            if ($displayNum >= 1) {
+                $displayPage = (string) $displayNum;
+            }
+        }
+        $pdf->Cell($pageWidth, 6, $displayPage, 1, 'R');
     };
 
     if (!empty($data['subject'])) {
@@ -353,12 +384,19 @@ function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, s
                 is_array($line['color'] ?? null) ? $line['color'] : null
             );
             foreach ($line['generations'] ?? [] as $generation) {
+                $genLabel = trim((string) ($generation['label'] ?? ''));
+                // Skip "Generation 1" for descendancy lines; it is implied by the line name
+                if ($genLabel !== '' && preg_match('/^generation\s*1\b/i', $genLabel)) {
+                    continue;
+                }
                 $writeEntry(
                     $pdf,
-                    (string) ($generation['label'] ?? ''),
+                    $genLabel,
                     $generation['page'] ?? null,
                     null,
-                    6.0
+                    6.0,
+                    false,
+                    11.0
                 );
             }
             $pdf->Ln(2);
@@ -368,7 +406,11 @@ function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, s
             $writeEntry(
                 $pdf,
                 (string) ($generation['label'] ?? ''),
-                $generation['page'] ?? null
+                $generation['page'] ?? null,
+                null,
+                0.0,
+                false,
+                11.0
             );
         }
         if (!empty($data['generations'])) {
@@ -388,7 +430,7 @@ function createAppendingPage(SimplePDF $pdf, array $entries, string $bookLabel, 
 
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('Helvetica', 'B', 20);
-    $pdf->Cell(0, 12, 'Appending', 1, 'C');
+    $pdf->Cell(0, 12, 'Names Index', 1, 'C');
     $pdf->Ln(14);
 
     if (empty($entries)) {
@@ -550,7 +592,8 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
     }
 
     if (!empty($bundle['key_image'])) {
-        [$imageWidth, $imageHeight] = computeImageBox($bundle['key_image'], 80.0);
+        $maxKeyWidth = max(10.0, $usableWidth * 0.2);
+        [$imageWidth, $imageHeight] = computeImageBox($bundle['key_image'], min(80.0, $maxKeyWidth));
         $imageX = $left + max(0, ($usableWidth - $imageWidth) / 2);
         $currentY = $pdf->GetY();
         $pdf->Image($bundle['key_image'], $imageX, $currentY, $imageWidth, $imageHeight);
@@ -574,6 +617,28 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
                 pdfSetX($pdf, $leftMargin + 5);
                 $pdf->MultiCell(0, 5.5, $fact['detail']);
             }
+            // Render clickable URLs if provided for this fact/event
+            if (!empty($fact['urls']) && is_array($fact['urls'])) {
+                $pdf->SetFont('Helvetica', '', 10);
+                $indent = 5.0;
+                $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - $indent;
+                foreach ($fact['urls'] as $url) {
+                    $url = trim((string) $url);
+                    if ($url === '') { continue; }
+                    // Break the URL into wrapped lines so we can annotate each line area
+                    $lines = wrapTextForWidth($pdf, $usableWidth, 5.5, $url);
+                    foreach ($lines as $line) {
+                        $line = (string) $line;
+                        $yLine = $pdf->GetY();
+                        pdfSetX($pdf, $leftMargin + $indent);
+                        $pdf->MultiCell($usableWidth, 5.5, $line);
+                        // Create a link annotation spanning the full line width
+                        if (method_exists($pdf, 'AddUriAnnotation')) {
+                            $pdf->AddUriAnnotation($pdf->GetLeftMargin() + $indent, $yLine, $usableWidth, 5.5, $url);
+                        }
+                    }
+                }
+            }
             $pdf->Ln(2);            
         }
     }
@@ -585,47 +650,29 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
         $pdf->SetFont('Helvetica', 'B', 16);
         $pdf->Cell(0, 10, 'Stories', 1, 'L');
         $pdf->Ln(12);
-        $innerPadding = 3.0;        
+        $leftMargin = $pdf->GetLeftMargin();
         foreach ($stories as $story) {
-            $boxWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
-            $usableTextWidth = $boxWidth - ($innerPadding * 2);
-            $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
-
-            $pdf->SetFont('Courier', 'B', 11);
-            $titleText = (string) ($story['title'] ?? '');
-            $titleHeight = $titleText !== '' ? estimateMultiCellHeight($pdf, $usableTextWidth, 5.5, $titleText) : 0.0;
-            $pdf->SetFont('Courier', '', 10);
-            $summaryText = (string) ($story['summary'] ?? '');
-            $summaryHeight = $summaryText !== '' ? estimateMultiCellHeight($pdf, $usableTextWidth, 5.0, $summaryText) : 0.0;
-            $requiredHeight = $innerPadding + $titleHeight + ($summaryHeight > 0 ? 2.0 + $summaryHeight : 0.0) + $innerPadding;
-
-            if ($pdf->GetY() + $requiredHeight > $pageBottom) {
-                $pdf->AddPage();
-                $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
-            }
-
-            $startX = $pdf->GetLeftMargin();
-            $startY = $pdf->GetY();
-            $pdf->SetXY($startX + $innerPadding, $startY + $innerPadding);
+            $titleText = trim((string) ($story['title'] ?? ''));
+            $contentText = trim((string) ($story['content'] ?? ''));
 
             if ($titleText !== '') {
                 $pdf->SetFont('Courier', 'B', 11);
-                $pdf->MultiCell($usableTextWidth, 5.5, $titleText);
+                pdfSetX($pdf, $leftMargin + 3.0);
+                $pdf->MultiCell(0, 5.5, $titleText);
             }
 
-            if ($summaryText !== '') {
+            if ($contentText !== '') {
                 if ($titleText !== '') {
                     $pdf->Ln(1.5);
                 }
-                $pdf->SetXY($startX + $innerPadding, $pdf->GetY());
                 $pdf->SetFont('Courier', '', 10);
-                $pdf->MultiCell($usableTextWidth, 5.0, $summaryText);
+                $indent = 6.0;
+                $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - $indent;
+                pdfSetX($pdf, $leftMargin + $indent);
+                $pdf->MultiCell($usableWidth, 5.0, $contentText);
             }
 
-            $contentBottom = $pdf->GetY();
-            $boxHeight = max($requiredHeight, ($contentBottom - $startY) + $innerPadding);
-            pdfDrawBorder($pdf, $startX, $startY, $boxWidth, $boxHeight);
-            pdfSetY($pdf, $startY + $boxHeight + 4);       
+            $pdf->Ln(3);
         }
     }
 
@@ -1053,6 +1100,7 @@ function summariseFacts(array $items): array
 
         $label = trim((string) ($group['item_group_name'] ?? 'Fact'));
         $segments = [];
+        $urls = [];
         $notes = [];
         if (!empty($group['items'])) {
             foreach ($group['items'] as $detail) {
@@ -1073,7 +1121,11 @@ function summariseFacts(array $items): array
 
                 $value = extractItemValue($detail);
                 if ($value !== '') {
-                    $segments[] = ($type !== '' ? $type : 'Detail') . ': ' . $value;
+                    if (strcasecmp($type, 'URL') === 0) {
+                        $urls[] = $value;
+                    } else {
+                        $segments[] = ($type !== '' ? $type : 'Detail') . ': ' . $value;
+                    }
                 }
                 $notes = array_merge($notes, $detailNotes);
             }
@@ -1082,25 +1134,31 @@ function summariseFacts(array $items): array
         $segments = array_values(array_filter($segments, static function ($segment) {
             return $segment !== '';
         }));
+        $urls = array_values(array_filter($urls, static function ($u) {
+            return trim((string) $u) !== '';
+        }));
         $notes = array_values(array_filter(array_unique(array_map(static function ($note) {
             return trim($note);
         }, $notes)), static function ($note) {
             return $note !== '';
         }));
 
-        if (empty($segments) && empty($notes)) {
+        if (empty($segments) && empty($notes) && empty($urls)) {
             continue;
         }
 
-        $title = $label !== '' ? $label : 'Fact';
-
+        $detailParts = [];
         if (!empty($segments)) {
-            $title .= ' — ' . implode('; ', $segments);
+            $detailParts[] = implode('; ', $segments);
+        }
+        if (!empty($notes)) {
+            $detailParts[] = implode(PHP_EOL . PHP_EOL, $notes);
         }
 
         $facts[] = [
-            'title' => trim($title),
-            'detail' => !empty($notes) ? implode(PHP_EOL . PHP_EOL, $notes) : '',
+            'title' => $label !== '' ? $label : 'Fact',
+            'detail' => !empty($detailParts) ? implode(PHP_EOL . PHP_EOL, $detailParts) : '',
+            'urls' => $urls,
         ];
     }
 
@@ -1166,19 +1224,40 @@ function summariseStories(array $stories): array
     $output = [];
     foreach ($stories as $story) {
         $title = trim((string) ($story['title'] ?? 'Story'));
-        $summary = summariseText($story['content'] ?? '', 400);
-        if ($title === '' && $summary === '') {
+        $content = normaliseStoryContent((string) ($story['content'] ?? ''));
+        if ($title === '' && $content === '') {
             continue;
         }
         if ($title === '') {
             $title = 'Story';
-        }        
+        }
         $output[] = [
             'title' => $title,
-            'summary' => $summary,
+            'content' => $content,
         ];
     }
     return $output;
+}
+
+function normaliseStoryContent(string $html): string
+{
+    if (trim($html) === '') {
+        return '';
+    }
+    // Preserve basic line breaks before stripping tags
+    $text = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $html);
+    $text = preg_replace('/<\s*\/p\s*>/i', "\n\n", $text);
+    $text = strip_tags($text);
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    // Collapse spaces/tabs but keep newlines
+    $text = preg_replace('/[ \t]+/', ' ', $text);
+    // Limit consecutive blank lines
+    $text = preg_replace("/\n{3,}/", "\n\n", $text);
+    // Trim each line
+    $lines = array_map('trim', explode("\n", $text));
+    $text = implode("\n", $lines);
+    return trim($text);
 }
 
 function summariseText(string $text, int $maxLength = 250): string
@@ -1246,7 +1325,7 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
     $x = $pdf->GetLeftMargin();
     $y = $pdf->GetY();
     $rowHeight = 0.0;
-    $baseFont = 10;
+    $baseFont = 8;
     $lineHeight = 4.5;
     $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
 
@@ -1257,7 +1336,9 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
             $rowHeight = 0.0;
         }
 
-        [$width, $height] = computeImageBox($photo['file_path'], $targetWidth);
+        // Constrain image to target width and at most 1/5 of content height
+        $maxContentHeight = ($pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.2;
+        [$width, $height] = computeImageBoxWithMaxes($photo['file_path'], $targetWidth, max(10.0, $maxContentHeight));
         $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
         $pdf->SetFont('Helvetica', '', $baseFont);
         $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $width, $lineHeight, $caption) + 4.0 : 0.0;
@@ -1276,8 +1357,9 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
         $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
         if ($caption !== '') {
             $pdf->SetFont('Helvetica', '', $baseFont);
-            $pdf->SetXY($x, $y + $height + 4);
-            $pdf->MultiCell($width, $lineHeight, $caption);
+            $pdf->SetXY($x, $y + $height + 1);
+            // Ensure wrapped caption lines stay aligned with the photo edge
+            $pdf->MultiCell($width, $lineHeight, $caption, 'L', 0.0);
             $captionBottom = $pdf->GetY();
             $rowHeight = max($rowHeight, $captionBottom - $y);
             pdfSetY($pdf, $y);
@@ -1325,6 +1407,41 @@ function estimateMultiCellHeight(SimplePDF $pdf, float $width, float $lineHeight
     return max(1, $lineCount) * $lineHeight;
 }
 
+function wrapTextForWidth(SimplePDF $pdf, float $width, float $lineHeight, string $text): array
+{
+    $text = trim($text);
+    if ($text === '') {
+        return [];
+    }
+
+    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+    if ($width <= 0.0 || $width > $usableWidth) {
+        $width = $usableWidth;
+    }
+    // Mirror SimplePDF::wrapLine() heuristics
+    $charWidth = max(0.1, $lineHeight * (0.5 / 1.35));
+    $maxChars = max(1, (int) floor($width / $charWidth));
+
+    $out = [];
+    $lines = preg_split("/(\r\n|\r|\n)/", $text);
+    if ($lines === false || empty($lines)) {
+        $lines = [$text];
+    }
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            $out[] = '';
+            continue;
+        }
+        $wrapped = wordwrap($line, $maxChars, "\n", true);
+        $chunks = $wrapped === '' ? [''] : explode("\n", $wrapped);
+        foreach ($chunks as $chunk) {
+            $out[] = $chunk;
+        }
+    }
+    return $out;
+}
+
 function computeImageBox(string $path, float $targetWidth): array
 {
     $real = resolveMediaPath($path);
@@ -1337,6 +1454,24 @@ function computeImageBox(string $path, float $targetWidth): array
     }
     $targetHeight = $targetWidth * ($height / $width);
     return [$targetWidth, $targetHeight];
+}
+
+function computeImageBoxWithMaxes(string $path, float $maxWidth, float $maxHeight): array
+{
+    $real = resolveMediaPath($path);
+    if (!$real || !is_file($real)) {
+        return [$maxWidth, min($maxHeight, $maxWidth)];
+    }
+    [$w, $h] = @getimagesize($real);
+    if (!$w || !$h) {
+        return [$maxWidth, min($maxHeight, $maxWidth)];
+    }
+    $scaleW = $w > 0 ? ($maxWidth / $w) : 1.0;
+    $scaleH = $h > 0 ? ($maxHeight / $h) : 1.0;
+    $scale = min(1.0, $scaleW, $scaleH);
+    $newW = $w * $scale;
+    $newH = $h * $scale;
+    return [$newW, $newH];
 }
 
 function normaliseMediaPath(string $path): string
@@ -1383,3 +1518,115 @@ function buildFileName(array $person, string $bookLabel): string
     $safe = preg_replace('/[^A-Za-z0-9_\-]+/', '_', str_replace(' ', '_', $name));
     return trim((string) $safe, '_') . '_' . $bookLabel . '_Book.pdf';
 }
+
+/**
+ * Build a quick lookup of direct parent for each descendant id.
+ */
+function buildDirectParentMap(array $generationData): array
+{
+    $map = [];
+    foreach ($generationData as $gen => $people) {
+        foreach ((array) $people as $p) {
+            $id = isset($p['id']) ? (int) $p['id'] : 0;
+            $parentId = isset($p['direct_parent_id']) ? (int) $p['direct_parent_id'] : 0;
+            if ($id > 0 && $parentId > 0) {
+                $map[$id] = $parentId;
+            }
+        }
+    }
+    return $map;
+}
+
+/**
+ * Sort generation members by parent (by parent birth then name), then by member birth then name.
+ */
+function sortMembersByParentThenBirth(array $members, array $directParentMap): array
+{
+    static $parentCache = [];
+
+    $getParent = static function (int $childId) use (&$parentCache, $directParentMap): ?array {
+        $parentId = $directParentMap[$childId] ?? null;
+        if (!$parentId) {
+            return null;
+        }
+        $parentId = (int) $parentId;
+        if (!isset($parentCache[$parentId])) {
+            $parentCache[$parentId] = Utils::getIndividual($parentId) ?: null;
+        }
+        return $parentCache[$parentId];
+    };
+
+    usort($members, static function (array $a, array $b) use ($getParent): int {
+        $aId = (int) ($a['id'] ?? 0);
+        $bId = (int) ($b['id'] ?? 0);
+        $pa = $getParent($aId);
+        $pb = $getParent($bId);
+
+        // Order by parent when different parents
+        if ($pa && $pb) {
+            $cmp = Utils::compareIndividualsByBirthThenName($pa, $pb);
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+        } elseif ($pa && !$pb) {
+            return -1; // entries with known parent first
+        } elseif (!$pa && $pb) {
+            return 1;
+        }
+
+        // Then by child's own birth then name
+        return Utils::compareIndividualsByBirthThenName($a, $b);
+    });
+
+    return $members;
+}
+
+/**
+ * Build ancestor chain string for a descendant up to the line founder.
+ * Example output: "William Macdonald -> Alexander Macdonald -> Janice Macdonald".
+ */
+function buildAncestorChainForDescendant(int $personId, string $lineFounderId, array $directParentMap, array &$bundleCache): string
+{
+    $founderId = (int) $lineFounderId;
+    if ($personId <= 0 || $founderId <= 0) {
+        return '';
+    }
+    $chainIds = [];
+    $current = $personId;
+    $guard = 0;
+    $seen = [];
+    while (++$guard < 100) {
+        $parentId = isset($directParentMap[$current]) ? (int) $directParentMap[$current] : 0;
+        if ($parentId <= 0) {
+            break;
+        }
+        $chainIds[] = $parentId;
+        if ($parentId === $founderId) {
+            break;
+        }
+        if (isset($seen[$parentId])) {
+            break; // avoid cycles
+        }
+        $seen[$parentId] = true;
+        $current = $parentId;
+    }
+
+    if (empty($chainIds)) {
+        return '';
+    }
+    $chainIds = array_reverse($chainIds);
+    $names = [];
+    foreach ($chainIds as $id) {
+        $bundle = fetchIndividualBundle((int) $id, $bundleCache);
+        $name = formatPersonName($bundle['person'] ?? null);
+        if ($name !== '') {
+            $names[] = $name;
+        }
+    }
+    if (empty($names)) {
+        return '';
+    }
+    return implode(' -> ', $names);
+}
+
+

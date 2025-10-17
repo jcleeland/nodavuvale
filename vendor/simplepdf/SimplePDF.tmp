@@ -1300,7 +1300,7 @@ class SimplePDF
         }
 
         $postScriptName = $this->extractPostScriptName($name);
-        if ($postScriptName === null || $postScriptName === '') {
+        if ($postScriptName === null || $postScriptName === ') {
             $postScriptName = 'Font' . substr(md5($filePath), 0, 8);
         }
 
@@ -1619,7 +1619,7 @@ class SimplePDF
 
     private function decodeUtf16Be(string $data): string
     {
-        $result = '';
+        $result = ';
         $length = strlen($data);
         for ($i = 0; $i + 1 < $length; $i += 2) {
             $first = unpack('n', substr($data, $i, 2));
