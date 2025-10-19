@@ -39,9 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files
 if (isset($_GET['discussion_id'])) {
     ?>
     <script>
-        //Show the general tab (where the discussions are)
+        //Show the stories tab (where the discussions are)
         document.addEventListener('DOMContentLoaded', function() {
-            showTab('generaltab');
+            showTab('storiestab');
             var discussionElement = document.getElementById('discussion_id_<?= $_GET['discussion_id'] ?>');
             if (discussionElement) {
                 discussionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -58,9 +58,9 @@ if (isset($_GET['discussion_id'])) {
 if (isset($_GET['item_group_id'])) {
     ?>
     <script>
-        //Show the general tab (where the discussions are)
+        //Show the events tab (where the event cards are)
         document.addEventListener('DOMContentLoaded', function() {
-            showTab('generaltab');
+            showTab('eventstab');
             var eventElement = document.getElementById('item_group_id_<?= $_GET['item_group_id'] ?>');
             if (eventElement) {
                 eventElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -75,11 +75,15 @@ if (isset($_GET['item_group_id'])) {
 }
 
 if(isset($_GET['tab'])) {
+    $requestedTab = $_GET['tab'];
+    if ($requestedTab === 'generaltab') {
+        $requestedTab = 'storiestab';
+    }
     ?>
     <script>
-        //Show the general tab (where the discussions are)
+        //Show a specific tab requested via query parameter
         document.addEventListener('DOMContentLoaded', function() {
-            showTab('<?= $_GET['tab'] ?>');
+            showTab('<?= htmlspecialchars($requestedTab, ENT_QUOTES) ?>');
         });
     </script>
     <?php
@@ -306,7 +310,9 @@ if ($individual_id) {
                 <img src="<?= $useravatar ?>" alt="<?= $user['first_name'] ?> <?= $user['last_name'] ?>" class="avatar-img-sm object-cover mt-1 p-1 h-1 <?=$activityclass ?>" title="<?= $user['first_name'] ?> <?= $user['last_name'] ?>">
             </div>
         <?php endif; ?>
-        <div class="tab $nouserclass px-4 py-2" data-tab="generaltab" title="View (or add-to) facts about this person's life, and read or share stories for ancestors">General</div>
+        <div class="tab $nouserclass px-4 py-2" data-tab="storiestab" title="Read or share stories for this person">Stories</div>
+        <div class="tab $nouserclass px-4 py-2" data-tab="eventstab" title="View (or add-to) facts and documented events for this person">Events</div>
+        <div class="tab px-4 py-2" data-tab="timelinetab" title="Explore a rich, scrollable timeline for this person">Timeline</div>
         <div class="tab px-4 py-2" data-tab="relationshipstab" title="View (or add-to) the family tree relationships for this person">Relationships</div>
         <div class="tab px-4 py-2" data-tab="mediatab" title="View (or add-to) photos, videos, documents and other digital records about this person">Media</div>
     </div>
@@ -464,7 +470,7 @@ if ($individual_id) {
 
 
 
-<div class="tab-content active" id="generaltab">
+<div class="tab-content active" id="storiestab">
     <?php if($is_deceased || (isset($user['user_id']) && $_SESSION['user_id'] == $user['user_id'])) { ?>
     <?php 
     /*********************************************
@@ -720,6 +726,10 @@ if ($individual_id) {
     </section>
     <?php } ?>
 
+    </div>
+
+<div class="tab-content" id="eventstab">
+
     <section class="container mx-auto ">
         <!-- Display Items -->
         <div class="text-center p-2">
@@ -919,6 +929,14 @@ if ($individual_id) {
             </div>
         </div>
     </section>    
+</div>
+
+
+
+<div class="tab-content" id="timelinetab">
+    <section class="container mx-auto ">
+        <?php include __DIR__ . '/timeline.php'; ?>
+    </section>
 </div>
 
 

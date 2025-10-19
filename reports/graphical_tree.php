@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_name('nodavuvale_app_session');
 session_start();
 
@@ -632,14 +632,13 @@ function buildTreeFileName(array $person): string
     }
     return $safe . '_Descendant_Tree.pdf';
 }
-
 function getGenderSymbol(array $person): string
 {
     $genderRaw = isset($person['gender']) ? strtolower(trim((string) $person['gender'])) : '';
     return match ($genderRaw) {
-        'male', 'man', 'm' => '♂',
-        'female', 'woman', 'f' => '♀',
-        '', 'other', 'unknown', 'u' => '⚲',
-        default => '⚲',
+        'male', 'man', 'm' => "\u{2642}",
+        'female', 'woman', 'f' => "\u{2640}",
+        '', 'other', 'unknown', 'u' => "\u{26B2}",
+        default => "\u{26B2}",
     };
 }

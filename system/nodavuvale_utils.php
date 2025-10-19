@@ -21,7 +21,7 @@ class Utils {
      * 4. Processes the tree starting from the root individual and recursively expands all relationships.
      * 5. Returns the tree data as a JSON-encoded string.
      */
-    public static function buildTreeData($rootId, $individuals, $relationships, $treesettings=array()) {
+    public static function buildTreeData($rootId, $individuals, $relationships, $treesettings=array(), &$statistics = null) {
         $treeData = [];
         
 
@@ -325,6 +325,122 @@ class Utils {
         // Process the tree starting from the root and recursively expand all relationships
         $processedIds = [];
         $treeData[] = createMarriageGroup($rootId, $relationshipLookup, $individualLookup, $processedIds, 1, $treeData, $treesettings, $colors );
+
+        if (is_array($statistics)) {
+            $uniqueIds = array_values(array_map('intval', array_unique(array_filter($processedIds, static function ($id) {
+                return is_numeric($id);
+            }))));
+
+            $genderCounts = [
+                'male' => 0,
+                'female' => 0,
+                'other' => 0,
+            ];
+            $livingCount = 0;
+            $firstNameCounts = [];
+            $currentYear = (int) date('Y');
+
+            $childMap = [];
+            foreach ($relationshipLookup as $parentId => $relList) {
+                $parentIdInt = (int) $parentId;
+                if (!in_array($parentIdInt, $uniqueIds, true)) {
+                    continue;
+                }
+                foreach ($relList as $rel) {
+                    if ($rel['relationship_type'] !== 'child') {
+                        continue;
+                    }
+                    $childId = (int) $rel['individual_id_2'];
+                    if (!in_array($childId, $uniqueIds, true)) {
+                        continue;
+                    }
+                    $childMap[$parentIdInt][] = $childId;
+                }
+            }
+
+            $descendantDepthCache = [];
+            $computeDescendantDepth = static function ($id) use (&$computeDescendantDepth, &$descendantDepthCache, $childMap) {
+                if (isset($descendantDepthCache[$id])) {
+                    return $descendantDepthCache[$id];
+                }
+                $maxDepth = 0;
+                if (!empty($childMap[$id])) {
+                    foreach ($childMap[$id] as $childId) {
+                        $depth = 1 + $computeDescendantDepth($childId);
+                        if ($depth > $maxDepth) {
+                            $maxDepth = $depth;
+                        }
+                    }
+                }
+                $descendantDepthCache[$id] = $maxDepth;
+                return $maxDepth;
+            };
+
+            foreach ($uniqueIds as $personId) {
+                if (!isset($individualLookup[$personId])) {
+                    continue;
+                }
+                $person = $individualLookup[$personId];
+
+                $genderKey = strtolower(trim((string) ($person['gender'] ?? '')));
+                if ($genderKey === 'male') {
+                    $genderCounts['male']++;
+                } elseif ($genderKey === 'female') {
+                    $genderCounts['female']++;
+                } else {
+                    $genderCounts['other']++;
+                }
+
+                $firstNamesRaw = str_replace('_', ' ', (string) ($person['first_names'] ?? ''));
+                $firstToken = trim($firstNamesRaw) === '' ? 'Unknown' : preg_split('/\s+/', trim($firstNamesRaw))[0];
+                if ($firstToken === '') {
+                    $firstToken = 'Unknown';
+                }
+                $normalisedKey = strtolower($firstToken);
+                if (!isset($firstNameCounts[$normalisedKey])) {
+                    $firstNameCounts[$normalisedKey] = [
+                        'name' => ucwords(strtolower($firstToken)),
+                        'count' => 0,
+                    ];
+                }
+                $firstNameCounts[$normalisedKey]['count']++;
+
+                $isLiving = true;
+                $deathYear = isset($person['death_year']) ? (int) $person['death_year'] : 0;
+                if ($deathYear > 0) {
+                    $isLiving = false;
+                } else {
+                    $birthYear = isset($person['birth_year']) ? (int) $person['birth_year'] : 0;
+                    if ($birthYear > 0 && ($currentYear - $birthYear) >= 100) {
+                        $isLiving = false;
+                    } else {
+                        $descendantDepth = $computeDescendantDepth($personId);
+                        if ($descendantDepth >= 3) {
+                            $isLiving = false;
+                        }
+                    }
+                }
+                if ($isLiving) {
+                    $livingCount++;
+                }
+            }
+
+            $firstNameCountsList = array_values($firstNameCounts);
+            usort($firstNameCountsList, static function ($a, $b) {
+                if ($a['count'] === $b['count']) {
+                    return strcmp($a['name'], $b['name']);
+                }
+                return $b['count'] <=> $a['count'];
+            });
+            $topFirstNames = array_slice($firstNameCountsList, 0, 20);
+
+            $statistics = [
+                'total' => count($uniqueIds),
+                'by_gender' => $genderCounts,
+                'living' => $livingCount,
+                'top_first_names' => $topFirstNames,
+            ];
+        }
 
         return json_encode($treeData);
 

@@ -40,6 +40,7 @@ class SimplePDF
     private bool $textColorDirty = true;
 
     private array $fillColor = [0.0, 0.0, 0.0];
+    private float $lineWidth = 0.2;
 
     private array $images = [];
     private array $tempImages = [];
@@ -186,6 +187,11 @@ class SimplePDF
         $this->autoPageBreak = $auto;
     }
 
+    public function SetLineWidth(float $width): void
+    {
+        $this->lineWidth = max(0.01, $width);
+    }
+
     public function EnablePageNumbers(string $format = 'Page %d', float $fontSize = 10.0, ?array $color = null): void
     {
         $this->pageNumbersEnabled = true;
@@ -235,6 +241,7 @@ class SimplePDF
             'images' => [],
             'orientation' => $orientation,
             'annots' => [],
+            'lineWidth' => null,
         ];
 
         $this->x = $this->lMargin;
@@ -358,9 +365,59 @@ class SimplePDF
         return $this->y;
     }
 
+    public function GetPageNumber(): int
+    {
+        return $this->currentPage;
+    }
+
+    public function PageNo(): int
+    {
+        return $this->GetPageNumber();
+    }
+
     public function GetPageWidth(): float
     {
         return $this->pageWidth;
+    }
+
+    public function FilledRect(float $x, float $y, float $width, float $height, ?array $color = null): void
+    {
+        if ($width <= 0.0 || $height <= 0.0) {
+            return;
+        }
+        if ($this->currentPage === 0) {
+            $this->AddPage();
+        }
+
+        $fill = $this->fillColor;
+        if (is_array($color) && count($color) === 3) {
+            $fill = [
+                max(0.0, min(1.0, (int) $color[0] / 255)),
+                max(0.0, min(1.0, (int) $color[1] / 255)),
+                max(0.0, min(1.0, (int) $color[2] / 255)),
+            ];
+        }
+
+        $xPt = $x * self::K;
+        $yPt = ($this->pageHeight - $y - $height) * self::K;
+        $wPt = $width * self::K;
+        $hPt = $height * self::K;
+
+        $this->pages[$this->currentPage]['content'] .= sprintf(
+            "%.3F %.3F %.3F rg %.3F %.3F %.3F RG %.3F %.3F %.3F %.3F re f\n",
+            $fill[0],
+            $fill[1],
+            $fill[2],
+            $fill[0],
+            $fill[1],
+            $fill[2],
+            $xPt,
+            $yPt,
+            $wPt,
+            $hPt
+        );
+
+        $this->textColorDirty = true;
     }
 
     public function GetPageHeight(): float
@@ -465,6 +522,14 @@ class SimplePDF
                 $b
             );
             $this->textColorDirty = false;
+        }
+        $currentLineWidth = $this->pages[$this->currentPage]['lineWidth'] ?? null;
+        if ($currentLineWidth === null || abs($currentLineWidth - $this->lineWidth) > 1e-6) {
+            $this->pages[$this->currentPage]['content'] .= sprintf(
+                "%.3F w\n",
+                $this->lineWidth * self::K
+            );
+            $this->pages[$this->currentPage]['lineWidth'] = $this->lineWidth;
         }
         $x1Pt = $x1 * self::K;
         $y1Pt = ($this->pageHeight - $y1) * self::K;

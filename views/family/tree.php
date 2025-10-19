@@ -71,7 +71,8 @@ include("helpers/quickedit.php");
 
 include("helpers/add_relationship.php");
 
-$tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSION['treeSettings']);
+$treeStats = [];
+$tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSION['treeSettings'], $treeStats);
 
 
 ?>
@@ -172,11 +173,33 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
             </div>
         </div>
 
-    </div>
+</div>
     
+
+<style>
+    .familytree-fullscreen {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 2000;
+        background: rgba(15, 23, 42, 0.96);
+        padding: 1.5rem;
+        overflow: auto;
+    }
+    .familytree-fullscreen svg {
+        width: 100%;
+        height: 100%;
+    }
+    body.tree-no-scroll {
+        overflow: hidden;
+    }
+</style>
 
 
 <section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View insights" id="treeInsightsToggle"><i class="fas fa-chart-pie"></i></button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View tree full screen" id="treeFullScreenToggle"><i class="fas fa-expand"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How to use the family tree" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right hidden" title="Print" id="exportTree" ><i class="fas fa-print"></i></button>
@@ -252,6 +275,54 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
         document.getElementById('treeColorScheme').value = '<?= $treeSettings['colorScheme'] ?>';
         document.getElementById('treeRootId').value = '<?= $treeSettings['rootId'] ?>';
     </script>    
+
+    <?php if (!empty($treeStats)): ?>
+    <div id="tree-insights-panel" class="hidden fixed inset-6 z-[2100] flex items-center justify-center">
+        <div class="relative max-w-5xl w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/70">
+            <button type="button" id="treeInsightsClose" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div class="p-8">
+                <h2 class="text-2xl font-semibold text-slate-800 mb-6">Tree Insights</h2>
+                <div class="grid gap-6 md:grid-cols-3">
+                    <div class="rounded-2xl bg-slate-50 border border-slate-200/70 shadow-sm p-6">
+                        <h3 class="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-3">Individuals in view</h3>
+                        <p class="text-4xl font-bold text-slate-800 mb-4"><?= number_format($treeStats['total'] ?? 0) ?></p>
+                        <ul class="text-sm text-slate-600 space-y-2">
+                            <li class="flex justify-between"><span class="font-medium text-slate-700">Female</span><span><?= number_format($treeStats['by_gender']['female'] ?? 0) ?></span></li>
+                            <li class="flex justify-between"><span class="font-medium text-slate-700">Male</span><span><?= number_format($treeStats['by_gender']['male'] ?? 0) ?></span></li>
+                            <li class="flex justify-between"><span class="font-medium text-slate-700">Other / Unstated</span><span><?= number_format($treeStats['by_gender']['other'] ?? 0) ?></span></li>
+                        </ul>
+                    </div>
+                    <div class="rounded-2xl bg-emerald-50 border border-emerald-200/80 shadow-sm p-6">
+                        <h3 class="text-xs uppercase tracking-wide text-emerald-700 font-semibold mb-3">Estimated living relatives</h3>
+                        <p class="text-4xl font-bold text-emerald-600 mb-3"><?= number_format($treeStats['living'] ?? 0) ?></p>
+                        <p class="text-xs text-emerald-900/80 leading-snug">
+                            Assumes people without a recorded death year have passed if they are 100+ years old or have descendants spanning at least three generations.
+                        </p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 border border-slate-200/70 shadow-sm p-6">
+                        <h3 class="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-3">Most common first names</h3>
+                        <?php if (!empty($treeStats['top_first_names'])): ?>
+                        <div class="max-h-56 overflow-y-auto pr-2">
+                            <ol class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+                                <?php foreach ($treeStats['top_first_names'] as $index => $entry): ?>
+                                    <li>
+                                        <span class="font-medium text-slate-700"><?= htmlspecialchars($entry['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <span class="text-slate-500"> (<?= number_format($entry['count']) ?>)</span>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ol>
+                        </div>
+                        <?php else: ?>
+                            <p class="text-sm text-slate-600">Not enough information yet.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     
     <!-- Family Tree Display -->
     <div id="family-tree" class="familytree bg-burnt-orange-800 nv-bg-opacity-10 border rounded"></div>
@@ -281,6 +352,71 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
                 textRenderer: function (name, extra, textClass) {
                     return "<div style='height: 170px'>"+name+"</div>";
                 }
+            }
+        });
+
+var familyTreeContainer = document.getElementById('family-tree');
+var fullScreenToggleButton = document.getElementById('treeFullScreenToggle');
+var insightsPanel = document.getElementById('tree-insights-panel');
+var insightsToggleButton = document.getElementById('treeInsightsToggle');
+var insightsCloseButton = document.getElementById('treeInsightsClose');
+
+if (fullScreenToggleButton && familyTreeContainer) {
+    fullScreenToggleButton.addEventListener('click', function () {
+        var isFull = familyTreeContainer.classList.toggle('familytree-fullscreen');
+        if (isFull) {
+            document.body.classList.add('tree-no-scroll');
+                    this.innerHTML = "<i class='fas fa-compress'></i>";
+                    this.setAttribute('title', 'Exit full screen');
+                    setTimeout(function () {
+                        if (tree && tree.zoomToFit) {
+                            tree.zoomToFit(250);
+                        }
+                    }, 150);
+                } else {
+                    document.body.classList.remove('tree-no-scroll');
+                    this.innerHTML = "<i class='fas fa-expand'></i>";
+                    this.setAttribute('title', 'View tree full screen');
+                    setTimeout(function () {
+                        if (tree && tree.resetZoom) {
+                            tree.resetZoom(250);
+                        }
+                    }, 150);
+        }
+    });
+}
+
+if (insightsToggleButton && insightsPanel) {
+    insightsToggleButton.addEventListener('click', function () {
+        var willShow = insightsPanel.classList.toggle('hidden') === false;
+        this.setAttribute('aria-pressed', willShow ? 'true' : 'false');
+        if (willShow) {
+            this.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+            this.innerHTML = "<i class='fas fa-chart-pie'></i>";
+        } else {
+            this.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+            this.classList.add('bg-blue-500', 'hover:bg-blue-700');
+            this.innerHTML = "<i class='fas fa-chart-pie'></i>";
+        }
+    });
+}
+
+if (insightsCloseButton && insightsPanel) {
+    insightsCloseButton.addEventListener('click', function () {
+        insightsPanel.classList.add('hidden');
+        if (insightsToggleButton) {
+            insightsToggleButton.setAttribute('aria-pressed', 'false');
+            insightsToggleButton.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+        }
+    });
+}
+
+window.addEventListener('resize', function () {
+            if (tree && tree.zoomToFit) {
+                clearTimeout(window.__treeResizeTimer);
+                window.__treeResizeTimer = setTimeout(function () {
+                    tree.zoomToFit(0);
+                }, 250);
             }
         });
 

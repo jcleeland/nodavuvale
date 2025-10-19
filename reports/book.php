@@ -277,13 +277,14 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
     $pdf->Cell(0, 20, $bookLabel . " of ".$fullName, 1, 'C');
     $pdf->Ln(30);
 
-    if (!empty($bundle['key_image'])) {
+    $imagePath = preparePdfImagePath($bundle['key_image'] ?? null);
+    if ($imagePath !== null) {
         $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
         $maxKeyWidth = max(10.0, $usableWidth * 0.2);
-        [$imageWidth, $imageHeight] = computeImageBox($bundle['key_image'], min(110.0, $maxKeyWidth));
+        [$imageWidth, $imageHeight] = computeImageBox($imagePath, min(110.0, $maxKeyWidth));
         $imageX = $pdf->GetLeftMargin() + max(0, ($usableWidth - $imageWidth) / 2);
         $currentY = $pdf->GetY();
-        $pdf->Image($bundle['key_image'], $imageX, $currentY, $imageWidth, $imageHeight);
+        $pdf->Image($imagePath, $imageX, $currentY, $imageWidth, $imageHeight);
         pdfSetY($pdf, $currentY + $imageHeight + 20);
     } else {
         $pdf->Ln(20);
@@ -591,12 +592,13 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
         $pdf->Ln(6);
     }
 
-    if (!empty($bundle['key_image'])) {
+    $imagePath = preparePdfImagePath($bundle['key_image'] ?? null);
+    if ($imagePath !== null) {
         $maxKeyWidth = max(10.0, $usableWidth * 0.2);
-        [$imageWidth, $imageHeight] = computeImageBox($bundle['key_image'], min(80.0, $maxKeyWidth));
+        [$imageWidth, $imageHeight] = computeImageBox($imagePath, min(80.0, $maxKeyWidth));
         $imageX = $left + max(0, ($usableWidth - $imageWidth) / 2);
         $currentY = $pdf->GetY();
-        $pdf->Image($bundle['key_image'], $imageX, $currentY, $imageWidth, $imageHeight);
+        $pdf->Image($imagePath, $imageX, $currentY, $imageWidth, $imageHeight);
         pdfSetY($pdf, $currentY + $imageHeight + 6);
     }
 
@@ -1329,8 +1331,14 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
     $lineHeight = 4.5;
     $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
 
-    foreach ($filtered as $index => $photo) {
-        if ($index > 0 && $index % $perRow === 0) {
+    $rendered = 0;
+    foreach ($filtered as $photo) {
+        $imagePath = preparePdfImagePath($photo['file_path'] ?? null);
+        if ($imagePath === null) {
+            continue;
+        }
+
+        if ($rendered > 0 && $rendered % $perRow === 0) {
             $y += $rowHeight + 12;
             $x = $pdf->GetLeftMargin();
             $rowHeight = 0.0;
@@ -1338,7 +1346,7 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
 
         // Constrain image to target width and at most 1/5 of content height
         $maxContentHeight = ($pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.2;
-        [$width, $height] = computeImageBoxWithMaxes($photo['file_path'], $targetWidth, max(10.0, $maxContentHeight));
+        [$width, $height] = computeImageBoxWithMaxes($imagePath, $targetWidth, max(10.0, $maxContentHeight));
         $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
         $pdf->SetFont('Helvetica', '', $baseFont);
         $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $width, $lineHeight, $caption) + 4.0 : 0.0;
@@ -1351,7 +1359,7 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
             $rowHeight = 0.0;
         }
 
-        $pdf->Image($photo['file_path'], $x, $y, $width, $height);
+        $pdf->Image($imagePath, $x, $y, $width, $height);
         $rowHeight = max($rowHeight, $height + ($captionHeight > 0 ? $captionHeight : 0));
 
         $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
@@ -1366,6 +1374,7 @@ function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = 
         }
 
         $x += $width + $spacing;
+        $rendered++;
     }
 
     pdfSetY($pdf, $y);
@@ -1506,6 +1515,33 @@ function resolveMediaPath(string $path): ?string
             return $real;
         }
     }
+    return null;
+}
+
+/**
+ * Provide SimplePDF with an absolute path (or URL) it can load for image embedding.
+ */
+function preparePdfImagePath(?string $path): ?string
+{
+    $path = trim((string) $path);
+    if ($path === '') {
+        return null;
+    }
+
+    $resolved = resolveMediaPath($path);
+    if ($resolved !== null) {
+        return $resolved;
+    }
+
+    if (preg_match('/^https?:\/\//i', $path)) {
+        return $path;
+    }
+
+    if (is_file($path)) {
+        $real = realpath($path);
+        return $real !== false ? $real : $path;
+    }
+
     return null;
 }
 
