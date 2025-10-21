@@ -396,6 +396,12 @@ class Utils {
                 if ($firstToken === '') {
                     $firstToken = 'Unknown';
                 }
+                $strippedToken = trim($firstToken);
+                $looksUnknown = $strippedToken === '?' ||
+                    (strlen($strippedToken) >= 2 && $strippedToken[0] === '?' && substr($strippedToken, -1) === '?');
+                if ($looksUnknown) {
+                    continue;
+                }
                 $normalisedKey = strtolower($firstToken);
                 if (!isset($firstNameCounts[$normalisedKey])) {
                     $firstNameCounts[$normalisedKey] = [

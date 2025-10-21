@@ -16,6 +16,7 @@ if (!isset($individual) || !is_array($individual)) {
     echo '<div class="p-4 text-sm text-red-600">Timeline data is currently unavailable.</div>';
     return;
 }
+$person = $individual;
 if (!function_exists('nvTimelineFormatName')) {
     /**
      * Create a friendly display name for an individual array.
@@ -166,6 +167,70 @@ if (!function_exists('nvTimelineFormatName')) {
         }
         return $result;
     }
+    function nvTimelineBuildPersonLink(?array $person, string $fallback = 'Unknown'): string
+    {
+        $id = 0;
+        $personData = is_array($person) ? $person : [];
+        if (isset($personData['id'])) {
+            $id = (int) $personData['id'];
+        } elseif (isset($personData['individual_name_id'])) {
+            $id = (int) $personData['individual_name_id'];
+        }
+        $label = nvTimelineFormatName($personData);
+        if ($label === '' || $label === '-') {
+            $label = $fallback;
+        }
+        $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        if ($id > 0) {
+            return '<a class="nv-timeline-link" href="?to=family/individual&amp;individual_id=' . $id . '">' . $safeLabel . '</a>';
+        }
+        return $safeLabel;
+    }
+    function nvTimelineLinkLabel(string $label, int $id = 0): string
+    {
+        $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        if ($id > 0) {
+            return '<a class="nv-timeline-link" href="?to=family/individual&amp;individual_id=' . $id . '">' . $safeLabel . '</a>';
+        }
+        return $safeLabel;
+    }
+    function nvTimelineRenderDetailList(array $group): string
+    {
+        $items = $group['items'] ?? [];
+        if (empty($items)) {
+            return '';
+        }
+        $html = '<div class="nv-timeline-info-card">';
+        $title = htmlspecialchars($group['item_group_name'] ?? 'Event', ENT_QUOTES, 'UTF-8');
+        $html .= '<h4 class="nv-timeline-info-title">' . $title . '</h4><dl class="nv-timeline-info-list">';
+        foreach ($items as $item) {
+            $label = htmlspecialchars($item['detail_type'] ?? 'Detail', ENT_QUOTES, 'UTF-8');
+            $valueHtml = '';
+            if (!empty($item['individual_name'])) {
+                $valueText = trim((string) $item['individual_name']);
+                $personId = isset($item['individual_name_id']) ? (int) $item['individual_name_id'] : (isset($item['individual_id']) ? (int) $item['individual_id'] : 0);
+                $valueHtml = nvTimelineLinkLabel($valueText, $personId);
+            } elseif (!empty($item['detail_value'])) {
+                $valueText = (string) $item['detail_value'];
+                if (!empty($item['detail_is_url']) || filter_var($valueText, FILTER_VALIDATE_URL)) {
+                    $safeUrl = htmlspecialchars($valueText, ENT_QUOTES, 'UTF-8');
+                    $valueHtml = '<a class="nv-timeline-link" href="' . $safeUrl . '" target="_blank" rel="noopener">' . $safeUrl . '</a>';
+                } else {
+                    $valueHtml = htmlspecialchars($valueText, ENT_QUOTES, 'UTF-8');
+                }
+            } elseif (!empty($item['file_path'])) {
+                $filePath = (string) $item['file_path'];
+                $fileLabel = htmlspecialchars(basename($filePath), ENT_QUOTES, 'UTF-8');
+                $safePath = htmlspecialchars($filePath, ENT_QUOTES, 'UTF-8');
+                $valueHtml = '<a class="nv-timeline-link" href="' . $safePath . '" target="_blank" rel="noopener">' . $fileLabel . '</a>';
+            } else {
+                $valueHtml = '<span class="nv-timeline-muted">Not specified</span>';
+            }
+            $html .= '<dt>' . $label . '</dt><dd>' . $valueHtml . '</dd>';
+        }
+        $html .= '</dl></div>';
+        return $html;
+    }
     /**
      * Compare two timeline dates.
      *
@@ -237,7 +302,7 @@ $deathInfo = nvTimelineCreateDateFromParts(
 $assumedBirth = false;
 $assumedDeath = false;
 if (!$birthInfo && $deathInfo) {
-    $fallbackDate = $deathInfo['date']->sub(new DateInterval('P100Y'));
+    $fallbackDate = $deathInfo['date']->sub(new DateInterval('P82Y'));
     $birthInfo = [
         'date' => $fallbackDate,
         'label' => $fallbackDate->format('Y'),
@@ -246,7 +311,7 @@ if (!$birthInfo && $deathInfo) {
     $assumedBirth = true;
 }
 if (!$deathInfo && $birthInfo) {
-    $fallbackDate = $birthInfo['date']->add(new DateInterval('P100Y'));
+    $fallbackDate = $birthInfo['date']->add(new DateInterval('P82Y'));
     $deathInfo = [
         'date' => $fallbackDate,
         'label' => $fallbackDate->format('Y'),
@@ -313,13 +378,19 @@ if ($birthInfo) {
     $birthIndexed = $birthDetails ? nvTimelineIndexGroupItems($birthDetails) : [];
     $birthLocation = nvTimelineExtractDetail($birthIndexed, ['Location']);
     $birthLocationText = $birthLocation['detail_value'] ?? null;
+    $birthDescription = $birthLocationText ? 'Born in ' . $birthLocationText : 'Birth recorded for ' . $personName;
+    $birthDescriptionHtml = $birthLocationText
+        ? 'Born in ' . htmlspecialchars($birthLocationText, ENT_QUOTES, 'UTF-8')
+        : 'Birth recorded for ' . nvTimelineBuildPersonLink($person, $personName);
     $timelineEvents[] = [
         'id' => 'nv-birth-' . $individualId,
         'category' => 'personal',
         'scope' => 'self',
         'icon' => 'fa-solid fa-cake-candles',
         'title' => 'Birth of ' . $personName,
-        'description' => $birthLocationText ? 'Born in ' . $birthLocationText : 'Birth recorded for ' . $personName,
+        'title_html' => 'Birth of ' . nvTimelineBuildPersonLink($person, $personName),
+        'description' => $birthDescription,
+        'description_html' => $birthDescriptionHtml,
         'date' => $birthInfo['date'],
         'display_date' => $birthInfo['label'],
         'assumed' => $assumedBirth,
@@ -332,18 +403,29 @@ if ($deathInfo) {
     $deathTitle = $assumedDeath
         ? 'Estimated passing of ' . $personName
         : 'Passing of ' . $personName;
+    $deathTitleHtml = $assumedDeath
+        ? 'Estimated passing of ' . nvTimelineBuildPersonLink($person, $personName)
+        : 'Passing of ' . nvTimelineBuildPersonLink($person, $personName);
     $deathDescriptionParts = [];
+    $deathDescriptionPartsHtml = [];
     if ($deathLocationText) {
         $deathDescriptionParts[] = 'Remembered in ' . $deathLocationText;
+        $deathDescriptionPartsHtml[] = 'Remembered in ' . htmlspecialchars($deathLocationText, ENT_QUOTES, 'UTF-8');
     }
     if ($assumedDeath) {
-        $deathDescriptionParts[] = 'Date estimated using a 100-year lifespan';
+        $deathDescriptionParts[] = 'Date estimated using an 82-year lifespan';
+        $deathDescriptionPartsHtml[] = 'Date estimated using an 82-year lifespan';
     }
     $deathDescription = $deathDescriptionParts
         ? implode(' - ', $deathDescriptionParts)
         : ($assumedDeath
             ? 'Estimated date for the end of ' . $personName . '\'s lifespan'
             : 'Death recorded for ' . $personName);
+    $deathDescriptionHtml = $deathDescriptionPartsHtml
+        ? implode(' - ', $deathDescriptionPartsHtml)
+        : ($assumedDeath
+            ? 'Estimated date for the end of ' . nvTimelineBuildPersonLink($person, $personName) . '\'s lifespan'
+            : 'Death recorded for ' . nvTimelineBuildPersonLink($person, $personName));
     if ($assumedDeath) {
         $deathDateCheck = $deathInfo['date'] ?? null;
         $nowCheck = $now instanceof DateTimeImmutable ? $now : new DateTimeImmutable('now');
@@ -359,7 +441,9 @@ if ($deathInfo) {
             'scope' => 'self',
             'icon' => 'fa-solid fa-dove',
             'title' => $deathTitle,
+            'title_html' => $deathTitleHtml,
             'description' => $deathDescription,
+            'description_html' => $deathDescriptionHtml,
             'date' => $deathInfo['date'],
             'display_date' => $deathInfo['label'],
             'assumed' => $assumedDeath,
@@ -382,14 +466,19 @@ foreach ($itemGroupsByName['Marriage'] ?? [] as $marriageGroup) {
         continue;
     }
     $spouseName = $spouseDetail['individual_name'] ?? $spouseDetail['detail_value'] ?? 'Spouse';
+    $spouseId = isset($spouseDetail['individual_name_id']) ? (int) $spouseDetail['individual_name_id'] : (isset($spouseDetail['individual_id']) ? (int) $spouseDetail['individual_id'] : 0);
+    $spouseLink = nvTimelineLinkLabel($spouseName, $spouseId);
     $location = $locationDetail['detail_value'] ?? null;
+    $locationHtml = $location ? htmlspecialchars($location, ENT_QUOTES, 'UTF-8') : null;
     $timelineEvents[] = [
         'id' => 'nv-marriage-' . ($marriageGroup['items'][0]['item_identifier'] ?? uniqid('', true)),
         'category' => 'family',
         'scope' => 'marriage',
         'icon' => 'fa-solid fa-ring',
         'title' => 'Married ' . $spouseName,
+        'title_html' => 'Married ' . $spouseLink,
         'description' => $location ? 'Celebrated in ' . $location : 'Marriage recorded with ' . $spouseName,
+        'description_html' => $locationHtml ? 'Celebrated in ' . $locationHtml : 'Marriage recorded with ' . $spouseLink,
         'date' => $eventDate['date'],
         'display_date' => $eventDate['label'],
         'assumed' => false,
@@ -409,19 +498,26 @@ foreach ($children ?? [] as $child) {
         continue;
     }
     $childName = nvTimelineFormatName($child);
+    $childLink = nvTimelineBuildPersonLink($child, $childName);
     $otherParent = null;
+    $otherParentHtml = null;
     if (!empty($child['other_parents'][0])) {
         $otherParent = nvTimelineFormatName($child['other_parents'][0]);
+        $otherParentHtml = nvTimelineBuildPersonLink($child['other_parents'][0], $otherParent);
     }
+    $childDescription = $otherParent ? 'Welcomed with ' . $otherParent : 'Child of ' . $personName;
+    $childDescriptionHtml = $otherParentHtml
+        ? 'Welcomed with ' . $otherParentHtml
+        : 'Child of ' . nvTimelineBuildPersonLink($person, $personName);
     $timelineEvents[] = [
         'id' => 'nv-child-' . ($child['id'] ?? uniqid('', true)),
         'category' => 'family',
         'scope' => 'child',
         'icon' => 'fa-solid fa-baby',
         'title' => $childName . ' was born',
-        'description' => $otherParent
-            ? 'Parented with ' . $otherParent
-            : 'Child of ' . $personName,
+        'title_html' => $childLink . ' was born',
+        'description' => $childDescription,
+        'description_html' => $childDescriptionHtml,
         'date' => $childDate['date'],
         'display_date' => $childDate['label'],
         'assumed' => false,
@@ -443,7 +539,9 @@ foreach ($parents ?? [] as $parent) {
         'scope' => 'parent',
         'icon' => 'fa-solid fa-people-roof',
         'title' => $parentName . ' passed away',
+        'title_html' => nvTimelineBuildPersonLink($parent, $parentName) . ' passed away',
         'description' => 'Parent of ' . $personName,
+        'description_html' => 'Parent of ' . nvTimelineBuildPersonLink($person, $personName),
         'date' => $parentDeath['date'],
         'display_date' => $parentDeath['label'],
         'assumed' => false,
@@ -468,27 +566,39 @@ foreach ($items ?? [] as $group) {
         continue;
     }
     $descriptionParts = [];
+    $descriptionPartsHtml = [];
     foreach ($indexed as $type => $details) {
         if (in_array($type, $dateDetailTypes, true)) {
             continue;
         }
         $detail = $details[0];
         if (!empty($detail['individual_name'])) {
-            $descriptionParts[] = $detail['individual_name'];
+            $label = trim((string) $detail['individual_name']);
+            $descriptionParts[] = $label;
+            $personId = isset($detail['individual_name_id']) ? (int) $detail['individual_name_id'] : (isset($detail['individual_id']) ? (int) $detail['individual_id'] : 0);
+            $descriptionPartsHtml[] = nvTimelineLinkLabel($label, $personId);
         } elseif (!empty($detail['detail_value']) && !filter_var($detail['detail_value'], FILTER_VALIDATE_URL)) {
-            $descriptionParts[] = $detail['detail_value'];
+            $value = (string) $detail['detail_value'];
+            $descriptionParts[] = $value;
+            $descriptionPartsHtml[] = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
         }
     }
+    $descriptionText = $descriptionParts ? implode(' - ', array_slice($descriptionParts, 0, 2)) : 'Recorded event for ' . $personName;
+    $descriptionHtml = $descriptionPartsHtml ? implode(' - ', array_slice($descriptionPartsHtml, 0, 2)) : 'Recorded event for ' . nvTimelineBuildPersonLink($person, $personName);
+    $detailsHtml = nvTimelineRenderDetailList($group);
     $timelineEvents[] = [
         'id' => 'nv-fact-' . ($group['items'][0]['item_identifier'] ?? uniqid('', true)),
         'category' => 'facts',
         'scope' => 'fact',
         'icon' => 'fa-solid fa-scroll',
         'title' => $groupName,
-        'description' => $descriptionParts ? implode(' - ', array_slice($descriptionParts, 0, 2)) : 'Recorded event for ' . $personName,
+        'title_html' => htmlspecialchars($groupName, ENT_QUOTES, 'UTF-8'),
+        'description' => $descriptionText,
+        'description_html' => $descriptionHtml,
         'date' => $eventDate['date'],
         'display_date' => $eventDate['label'],
         'assumed' => false,
+        'details_html' => $detailsHtml,
     ];
 }
 usort($timelineEvents, static function (array $a, array $b): int {
@@ -547,7 +657,6 @@ if (!empty($timelineEvents)) {
     $minSpacing = 160.0;
     $maxSpacing = 340.0;
     $yearFactor = 16.0;
-    $breakThresholdYears = 12.0;
     $previousDate = null;
     $lastNonBreakSide = 'left';
     $lastNonBreakPosition = null;
@@ -565,31 +674,7 @@ if (!empty($timelineEvents)) {
         $yearsDiffRaw = $previousDate
             ? max(0.0, $previousDate->diff($event['date'])->days / 365.25)
             : 0.0;
-        $adjustedDiff = $yearsDiffRaw;
-        /* if ($previousDate && $yearsDiffRaw > $breakThresholdYears) {
-            $currentY += $minSpacing * 0.6;
-            $startYear = $previousDate->format('Y');
-            $endYear = $event['date']->format('Y');
-            $breakEvent = [
-                'id' => 'nv-break-' . $event['id'],
-                'category' => 'break',
-                'scope' => 'break',
-                'icon' => 'fa-solid fa-ellipsis',
-                'title' => 'Time skips ahead',
-                'description' => 'Approximately ' . (int) round($yearsDiffRaw) . ' years pass without recorded events.',
-                'date' => $previousDate,
-                'display_date' => ($startYear && $endYear) ? $startYear . ' - ' . $endYear : '',
-                'assumed' => false,
-                'position' => $currentY,
-                'initial_visibility' => true,
-                'is_break' => true,
-                'side' => 'center',
-            ];
-            $renderEvents[] = $breakEvent;
-            $currentY += $minSpacing * 0.55;
-            $adjustedDiff = max(0.0, $yearsDiffRaw - ($breakThresholdYears * 0.65));
-        } */
-        $spacing = max($minSpacing, min($maxSpacing, $adjustedDiff * $yearFactor));
+        $spacing = max($minSpacing, min($maxSpacing, $yearsDiffRaw * $yearFactor));
         $currentY += $spacing;
         $event['position'] = $currentY;
         $event['initial_visibility'] = $event['category'] !== 'facts';
@@ -745,6 +830,96 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         .nv-timeline-event[data-category="facts"] {
             --nv-timeline-accent: rgba(234, 88, 12, 0.75);
         }
+        .nv-timeline-link {
+            color: #2563eb;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+        }
+        .nv-timeline-link:hover {
+            color: #1d4ed8;
+        }
+        .nv-timeline-info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.9rem;
+            height: 1.9rem;
+            border-radius: 9999px;
+            border: none;
+            background: rgba(15, 23, 42, 0.06);
+            color: #1e293b;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .nv-timeline-info-btn:hover {
+            background: rgba(37, 99, 235, 0.15);
+            transform: translateY(-1px);
+        }
+        .nv-timeline-info-btn i {
+            pointer-events: none;
+        }
+        .nv-timeline-info-card {
+            padding: 1rem 1.2rem;
+        }
+        .nv-timeline-info-title {
+            font-size: 1.05rem;
+            margin-bottom: 0.75rem;
+        }
+        .nv-timeline-info-list {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            column-gap: 0.75rem;
+            row-gap: 0.5rem;
+        }
+        .nv-timeline-info-list dt {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .nv-timeline-info-list dd {
+            margin: 0;
+            color: #374151;
+        }
+        .nv-timeline-info-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .nv-timeline-info-modal[aria-hidden="false"] {
+            display: flex;
+        }
+        .nv-timeline-info-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+        }
+        .nv-timeline-info-dialog {
+            position: relative;
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 25px 45px rgba(15, 23, 42, 0.25);
+            padding: 1.5rem 1.75rem;
+            max-width: 480px;
+            width: calc(100% - 2rem);
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1;
+        }
+        .nv-timeline-info-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            border: none;
+            background: transparent;
+            font-size: 1.25rem;
+            color: #4b5563;
+            cursor: pointer;
+        }
+        .nv-timeline-info-close:hover {
+            color: #1f2937;
+        }
         .nv-timeline-card {
             margin: 0;
             padding: 0.85rem 1.05rem;
@@ -891,6 +1066,8 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                 $styleFragments[] = 'pointer-events:none';
                             }
                             $styleAttribute = implode(';', $styleFragments) . ';';
+                            $eventIdentifier = (string) ($event['id'] ?? ('event-' . $eventIndex));
+                            $infoId = !empty($event['details_html']) ? 'nv-timeline-info-' . md5($eventIdentifier) : null;
                         ?>
                         <div
                             class="nv-timeline-event transition-opacity duration-300"
@@ -907,9 +1084,9 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                     <?php if (!empty($event['display_date'])): ?>
                                         <span class="nv-timeline-break-range"><?= htmlspecialchars($event['display_date'], ENT_QUOTES) ?></span>
                                     <?php endif; ?>
-                                    <h4 class="font-semibold"><?= htmlspecialchars($event['title'], ENT_QUOTES) ?></h4>
-                                    <?php if (!empty($event['description'])): ?>
-                                        <p class="mt-2 nv-timeline-muted"><?= htmlspecialchars($event['description'], ENT_QUOTES) ?></p>
+                                    <h4 class="font-semibold"><?= $event['title_html'] ?? htmlspecialchars($event['title'] ?? '', ENT_QUOTES) ?></h4>
+                                    <?php if (!empty($event['description']) || !empty($event['description_html'])): ?>
+                                        <p class="mt-2 nv-timeline-muted"><?= $event['description_html'] ?? htmlspecialchars($event['description'] ?? '', ENT_QUOTES) ?></p>
                                     <?php endif; ?>
                                 </div>
                             <?php else: ?>
@@ -928,23 +1105,33 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                                 Fact
                                             <?php endif; ?>
                                         </span>
-                                        <span class="font-semibold text-slate-600">
-                                            <?= htmlspecialchars($event['display_date'], ENT_QUOTES) ?>
-                                            <?php if (!empty($event['assumed'])): ?>
-                                                <span class="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                                                    <i class="fa-solid fa-triangle-exclamation"></i>
-                                                    Estimated
-                                                </span>
+                                        <div class="flex items-center gap-2 text-slate-600">
+                                            <span class="font-semibold">
+                                                <?= htmlspecialchars($event['display_date'], ENT_QUOTES) ?>
+                                                <?php if (!empty($event['assumed'])): ?>
+                                                    <span class="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                                        <i class="fa-solid fa-triangle-exclamation"></i>
+                                                        Estimated
+                                                    </span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <?php if ($infoId): ?>
+                                                <button type="button" class="nv-timeline-info-btn" data-info-target="<?= $infoId ?>" aria-label="View full details">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
                                             <?php endif; ?>
-                                        </span>
+                                        </div>
                                     </div>
-                                    <h4 class="mt-4 text-xl font-semibold text-slate-800"><?= htmlspecialchars($event['title'], ENT_QUOTES) ?></h4>
-                                    <?php if (!empty($event['description'])): ?>
-                                        <p class="mt-2 nv-timeline-muted"><?= htmlspecialchars($event['description'], ENT_QUOTES) ?></p>
+                                    <h4 class="mt-4 text-xl font-semibold text-slate-800"><?= $event['title_html'] ?? htmlspecialchars($event['title'] ?? '', ENT_QUOTES) ?></h4>
+                                    <?php if (!empty($event['description']) || !empty($event['description_html'])): ?>
+                                        <p class="mt-2 nv-timeline-muted"><?= $event['description_html'] ?? htmlspecialchars($event['description'] ?? '', ENT_QUOTES) ?></p>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <?php if ($infoId): ?>
+                            <div id="<?= $infoId ?>" class="hidden nv-timeline-info-content"><?= $event['details_html'] ?></div>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -998,11 +1185,56 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                 toggle.addEventListener('change', applyState);
                 applyState();
             });
+        const infoModal = document.getElementById('nv-timeline-info-modal');
+        const infoBody = infoModal ? infoModal.querySelector('.nv-timeline-info-body') : null;
+        if (infoModal && infoBody) {
+            const openInfo = (targetId) => {
+                const source = targetId ? document.getElementById(targetId) : null;
+                if (!source) {
+                    return;
+                }
+                infoBody.innerHTML = source.innerHTML;
+                infoModal.setAttribute('aria-hidden', 'false');
+                infoModal.focus();
+            };
+            const closeInfo = () => {
+                infoModal.setAttribute('aria-hidden', 'true');
+                infoBody.innerHTML = '';
+            };
+            root.querySelectorAll('.nv-timeline-info-btn').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const targetId = button.getAttribute('data-info-target');
+                    if (targetId) {
+                        openInfo(targetId);
+                    }
+                });
+            });
+            infoModal.querySelectorAll('[data-info-close]').forEach((closer) => {
+                closer.addEventListener('click', closeInfo);
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && infoModal.getAttribute('aria-hidden') === 'false') {
+                    closeInfo();
+                }
+            });
         }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initTimeline, { once: true });
-        } else {
-            initTimeline();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTimeline, { once: true });
+    } else {
+        initTimeline();
         }
     })();
 </script>
+<?php if (!defined('NV_TIMELINE_INFO_MODAL')): ?>
+    <?php define('NV_TIMELINE_INFO_MODAL', true); ?>
+    <div id="nv-timeline-info-modal" class="nv-timeline-info-modal" aria-hidden="true" tabindex="-1">
+        <div class="nv-timeline-info-backdrop" data-info-close></div>
+        <div class="nv-timeline-info-dialog">
+            <button type="button" class="nv-timeline-info-close" data-info-close aria-label="Close details">&times;</button>
+            <div class="nv-timeline-info-body"></div>
+        </div>
+    </div>
+<?php endif; ?>
+
+

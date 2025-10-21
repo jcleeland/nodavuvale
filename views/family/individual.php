@@ -300,21 +300,58 @@ if ($individual_id) {
     </div>
 
 
-    <div class="tabs absolute -bottom-0 text-sm md:text-lg gap-2">
-        <?php 
-        $nouserclass="active";
-        if($user): 
-            $nouserclass="";
-        ?>
-            <div class="tab active px-4 py-0" data-tab="membertab" title="This person is registered on this website. Find out more about them...">
-                <img src="<?= $useravatar ?>" alt="<?= $user['first_name'] ?> <?= $user['last_name'] ?>" class="avatar-img-sm object-cover mt-1 p-1 h-1 <?=$activityclass ?>" title="<?= $user['first_name'] ?> <?= $user['last_name'] ?>">
+    <?php
+        $defaultActiveTab = 'timelinetab';
+        $individualTabs = [
+            [
+                'id' => 'timelinetab',
+                'label' => 'Timeline',
+                'title' => 'Explore a rich, scrollable timeline for this person',
+                'icon' => 'fas fa-history',
+            ],
+            [
+                'id' => 'eventstab',
+                'label' => 'Events',
+                'title' => 'View (or add-to) facts and documented events for this person',
+                'icon' => 'fas fa-list-ul',
+            ],
+            [
+                'id' => 'relationshipstab',
+                'label' => 'Relationships',
+                'title' => 'View (or add-to) the family tree relationships for this person',
+                'icon' => 'fas fa-sitemap',
+            ],
+            [
+                'id' => 'mediatab',
+                'label' => 'Media',
+                'title' => 'View (or add-to) photos, videos, documents and other digital records about this person',
+                'icon' => 'fas fa-photo-video',
+            ],
+            [
+                'id' => 'storiestab',
+                'label' => 'Stories',
+                'title' => 'Read or share stories for this person',
+                'icon' => 'fas fa-book-open',
+            ],
+        ];
+    ?>
+    <div class="tabs absolute -bottom-0 text-sm md:text-lg gap-2 flex flex-wrap">
+        <?php foreach ($individualTabs as $tab): ?>
+            <div
+                class="tab px-3 sm:px-4 py-2 flex items-center gap-2 <?= $tab['id'] === $defaultActiveTab ? 'active ' : '' ?>"
+                data-tab="<?= $tab['id'] ?>"
+                title="<?= htmlspecialchars($tab['title'], ENT_QUOTES) ?>"
+            >
+                <i class="<?= $tab['icon'] ?> text-base sm:text-lg" aria-hidden="true"></i>
+                <span class="hidden sm:inline"><?= htmlspecialchars($tab['label'], ENT_QUOTES) ?></span>
+            </div>
+        <?php endforeach; ?>
+        <?php if($user): ?>
+            <div class="tab px-3 sm:px-4 py-2 flex items-center gap-2" data-tab="membertab" title="This person is registered on this website. Find out more about them...">
+                <img src="<?= $useravatar ?>" alt="<?= $user['first_name'] ?> <?= $user['last_name'] ?>" class="avatar-img-sm object-cover mt-1 p-1 h-1 <?=$activityclass ?>">
+                <span class="hidden sm:inline">Member</span>
             </div>
         <?php endif; ?>
-        <div class="tab $nouserclass px-4 py-2" data-tab="storiestab" title="Read or share stories for this person">Stories</div>
-        <div class="tab $nouserclass px-4 py-2" data-tab="eventstab" title="View (or add-to) facts and documented events for this person">Events</div>
-        <div class="tab px-4 py-2" data-tab="timelinetab" title="Explore a rich, scrollable timeline for this person">Timeline</div>
-        <div class="tab px-4 py-2" data-tab="relationshipstab" title="View (or add-to) the family tree relationships for this person">Relationships</div>
-        <div class="tab px-4 py-2" data-tab="mediatab" title="View (or add-to) photos, videos, documents and other digital records about this person">Media</div>
     </div>
 
     <div class="flex flex-wrap justify-center gap-4 mt-2">
@@ -470,7 +507,7 @@ if ($individual_id) {
 
 
 
-<div class="tab-content active" id="storiestab">
+<div class="tab-content" id="storiestab">
     <?php if($is_deceased || (isset($user['user_id']) && $_SESSION['user_id'] == $user['user_id'])) { ?>
     <?php 
     /*********************************************
@@ -933,7 +970,7 @@ if ($individual_id) {
 
 
 
-<div class="tab-content" id="timelinetab">
+<div class="tab-content active" id="timelinetab">
     <section class="container mx-auto ">
         <?php include __DIR__ . '/timeline.php'; ?>
     </section>
