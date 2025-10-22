@@ -89,6 +89,32 @@ if (!function_exists('nvTimelineFormatName')) {
         return $result;
     }
     /**
+     * Allow a controlled subset of HTML for rich text fields.
+     */
+    function nvTimelineSanitizeRichText(string $html): string
+    {
+        $allowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><span>';
+        $clean = strip_tags($html, $allowed);
+        if ($clean === null || $clean === '') {
+            return '';
+        }
+        $clean = preg_replace_callback('/<a\b[^>]*>/i', static function ($matches) {
+            $tag = $matches[0];
+            $hasTarget = stripos($tag, 'target=') !== false;
+            $hasRel = stripos($tag, 'rel=') !== false;
+            $replacement = rtrim($tag, '>');
+            if (!$hasTarget) {
+                $replacement .= ' target="_blank"';
+            }
+            if (!$hasRel) {
+                $replacement .= ' rel="noopener"';
+            }
+            $replacement .= '>';
+            return $replacement;
+        }, $clean);
+        return $clean;
+    }
+    /**
      * Build a date representation from a free-form string (YYYY, YYYY-MM, YYYY-MM-DD).
      *
      * @param string|null $raw
@@ -212,7 +238,11 @@ if (!function_exists('nvTimelineFormatName')) {
                 $valueHtml = nvTimelineLinkLabel($valueText, $personId);
             } elseif (!empty($item['detail_value'])) {
                 $valueText = (string) $item['detail_value'];
-                if (!empty($item['detail_is_url']) || filter_var($valueText, FILTER_VALIDATE_URL)) {
+                $type = $item['detail_type'] ?? '';
+                $richTextTypes = ['Story', 'Description', 'Notes', 'Narrative', 'Summary'];
+                if (in_array($type, $richTextTypes, true)) {
+                    $valueHtml = nvTimelineSanitizeRichText($valueText);
+                } elseif (!empty($item['detail_is_url']) || filter_var($valueText, FILTER_VALIDATE_URL)) {
                     $safeUrl = htmlspecialchars($valueText, ENT_QUOTES, 'UTF-8');
                     $valueHtml = '<a class="nv-timeline-link" href="' . $safeUrl . '" target="_blank" rel="noopener">' . $safeUrl . '</a>';
                 } else {
@@ -580,11 +610,50 @@ foreach ($items ?? [] as $group) {
         } elseif (!empty($detail['detail_value']) && !filter_var($detail['detail_value'], FILTER_VALIDATE_URL)) {
             $value = (string) $detail['detail_value'];
             $descriptionParts[] = $value;
-            $descriptionPartsHtml[] = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            $descriptionPartsHtml[] = nvTimelineSanitizeRichText($value);
         }
     }
     $descriptionText = $descriptionParts ? implode(' - ', array_slice($descriptionParts, 0, 2)) : 'Recorded event for ' . $personName;
     $descriptionHtml = $descriptionPartsHtml ? implode(' - ', array_slice($descriptionPartsHtml, 0, 2)) : 'Recorded event for ' . nvTimelineBuildPersonLink($person, $personName);
+    $mediaGallery = [];
+    if (strcasecmp($groupName, 'Website') === 0) {
+        $urlDetail = nvTimelineExtractDetail($indexed, ['URL', 'Link']);
+        $targetUrl = $urlDetail['detail_value'] ?? null;
+        if (!$targetUrl) {
+            foreach ($indexed as $detailGroup) {
+                foreach ($detailGroup as $detail) {
+                    if (!empty($detail['detail_value']) && filter_var($detail['detail_value'], FILTER_VALIDATE_URL)) {
+                        $targetUrl = $detail['detail_value'];
+                        break 2;
+                    }
+                }
+            }
+        }
+        if ($targetUrl) {
+            $safeUrl = htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8');
+            $descriptionHtml .= ' <a class="nv-timeline-link inline-flex items-center gap-1" href="' . $safeUrl . '" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Visit site</a>';
+        }
+    }
+    foreach ($indexed as $detailGroup) {
+        foreach ($detailGroup as $detail) {
+            if (!empty($detail['file_path']) && !empty($detail['file_type']) && strtolower($detail['file_type']) === 'image') {
+                $mediaGallery[] = [
+                    'src' => $detail['file_path'],
+                    'alt' => trim((string) ($detail['file_description'] ?? $groupName)),
+                ];
+            }
+            if (!empty($detail['detail_type']) && strcasecmp($detail['detail_type'], 'GPS') === 0 && !empty($detail['detail_value'])) {
+                $coordinates = trim((string) $detail['detail_value']);
+                if (strpos($coordinates, ',') !== false) {
+                    [$lat, $lng] = array_map('trim', explode(',', $coordinates, 2));
+                    if (is_numeric($lat) && is_numeric($lng)) {
+                        $mapUrl = 'https://www.google.com/maps?q=' . urlencode($lat . ',' . $lng);
+                        $descriptionHtml .= ' <a class="nv-timeline-link inline-flex items-center gap-1" href="' . htmlspecialchars($mapUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> View map</a>';
+                    }
+                }
+            }
+        }
+    }
     $detailsHtml = nvTimelineRenderDetailList($group);
     $timelineEvents[] = [
         'id' => 'nv-fact-' . ($group['items'][0]['item_identifier'] ?? uniqid('', true)),
@@ -599,6 +668,7 @@ foreach ($items ?? [] as $group) {
         'display_date' => $eventDate['label'],
         'assumed' => false,
         'details_html' => $detailsHtml,
+        'media_gallery' => $mediaGallery,
     ];
 }
 usort($timelineEvents, static function (array $a, array $b): int {
@@ -1122,10 +1192,23 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                    <h4 class="mt-4 text-xl font-semibold text-slate-800"><?= $event['title_html'] ?? htmlspecialchars($event['title'] ?? '', ENT_QUOTES) ?></h4>
-                                    <?php if (!empty($event['description']) || !empty($event['description_html'])): ?>
-                                        <p class="mt-2 nv-timeline-muted"><?= $event['description_html'] ?? htmlspecialchars($event['description'] ?? '', ENT_QUOTES) ?></p>
-                                    <?php endif; ?>
+                                    <div class="nv-timeline-body mt-4 flex gap-4 items-start">
+                                        <?php if (!empty($event['media_gallery']) && is_array($event['media_gallery'])): ?>
+                                            <div class="nv-timeline-media">
+                                                <?php foreach (array_slice($event['media_gallery'], 0, 3) as $media): ?>
+                                                    <div class="nv-timeline-media-thumb">
+                                                        <img src="<?= htmlspecialchars($media['src'], ENT_QUOTES) ?>" alt="<?= htmlspecialchars($media['alt'] ?? $event['title'] ?? 'Event image', ENT_QUOTES) ?>">
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="nv-timeline-text flex-1 min-w-0">
+                                            <h4 class="text-xl font-semibold text-slate-800"><?= $event['title_html'] ?? htmlspecialchars($event['title'] ?? '', ENT_QUOTES) ?></h4>
+                                            <?php if (!empty($event['description']) || !empty($event['description_html'])): ?>
+                                                <p class="mt-2 nv-timeline-muted"><?= $event['description_html'] ?? htmlspecialchars($event['description'] ?? '', ENT_QUOTES) ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>

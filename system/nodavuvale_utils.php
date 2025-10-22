@@ -1616,7 +1616,8 @@ class Utils {
             'Location',
             'Reference',
             'Photo',
-            'Story'
+            'Story',
+            'GPS'
         ];
 
         // Education
@@ -1731,6 +1732,7 @@ class Utils {
         $response['Destination']="text";
         $response['URL']="text";
         $response['Screenshot']="file";
+        $response['GPS']="text";
 
         return $response;
     }

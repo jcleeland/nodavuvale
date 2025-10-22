@@ -56,6 +56,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         'individual' => ['label' => 'New family member', 'icon' => 'fas fa-user-plus'],
         'item'       => ['label' => 'Story update',      'icon' => 'fas fa-book-open'],
         'file'       => ['label' => 'New file',          'icon' => 'fas fa-photo-video'],
+        'visitor'    => ['label' => 'Latest visit',      'icon' => 'fas fa-door-open'],
     ];
 
     $createSnippet = function ($text, $wordLimit = 24) {
@@ -72,6 +73,31 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
         }
         return implode(' ', array_slice($words, 0, $wordLimit)) . '...';
     };
+
+    foreach ($changes['visitors'] as $visitor) {
+        $timestampString = $visitor['last_view'] ?? null;
+        if (!$timestampString) {
+            continue;
+        }
+        $timestamp = strtotime($timestampString);
+        if (!$timestamp) {
+            continue;
+        }
+        $feedEntries[] = [
+            'type'      => 'visitor',
+            'title'     => trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? '')),
+            'content'   => 'Checked in recently.',
+            'meta'      => [
+                'actor_name'   => trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? '')),
+                'actor_id'     => $visitor['user_id'] ?? null,
+                'context'      => 'Latest logins',
+                'subject_name' => '',
+            ],
+            'url'       => isset($visitor['user_id']) ? "?to=family/users&user_id={$visitor['user_id']}" : '',
+            'timestamp' => $timestamp,
+            'raw_time'  => $timestampString,
+        ];
+    }
 
     foreach ($changes['discussions'] as $discussion) {
         $timestampString = $discussion['updated_at'] ?? null;

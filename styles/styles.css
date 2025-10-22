@@ -1411,3 +1411,31 @@ section.content a {
         display: none;
     }
 }
+/* Timeline media thumbnails */
+.nv-timeline-media {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 96px;
+    flex-shrink: 0;
+}
+ 
+.nv-timeline-media-thumb {
+    width: 90px;
+    height: 90px;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+    background-color: #fff;
+}
+
+.nv-timeline-media-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.nv-timeline-text h4 {
+    margin-top: 0;
+}
