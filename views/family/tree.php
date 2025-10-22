@@ -277,12 +277,14 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     </script>    
 
     <?php if (!empty($treeStats)): ?>
-    <div id="tree-insights-panel" class="hidden fixed inset-6 z-[2100] flex items-center justify-center">
-        <div class="relative max-w-5xl w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/70">
-            <button type="button" id="treeInsightsClose" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-            <div class="p-8">
+    <div id="tree-insights-panel" class="hidden fixed inset-0 z-[2100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40">
+        <div class="relative max-w-5xl w-full max-h-[85vh] h-full overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200/70">
+            <div class="sticky top-0 z-10 flex justify-end bg-white rounded-t-3xl px-6 sm:px-8 pt-5 pb-3 border-b border-slate-200/60">
+                <button type="button" id="treeInsightsClose" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 pb-8 pt-2 sm:px-8">
                 <h2 class="text-2xl font-semibold text-slate-800 mb-6">Tree Insights</h2>
                 <div class="grid gap-6 md:grid-cols-3">
                     <div class="rounded-2xl bg-slate-50 border border-slate-200/70 shadow-sm p-6">

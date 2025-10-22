@@ -505,9 +505,9 @@ foreach ($children ?? [] as $child) {
         $otherParent = nvTimelineFormatName($child['other_parents'][0]);
         $otherParentHtml = nvTimelineBuildPersonLink($child['other_parents'][0], $otherParent);
     }
-    $childDescription = $otherParent ? 'Welcomed with ' . $otherParent : 'Child of ' . $personName;
+    $childDescription = $otherParent ? 'Parented with ' . $otherParent : 'Child of ' . $personName;
     $childDescriptionHtml = $otherParentHtml
-        ? 'Welcomed with ' . $otherParentHtml
+        ? 'Parented with ' . $otherParentHtml
         : 'Child of ' . nvTimelineBuildPersonLink($person, $personName);
     $timelineEvents[] = [
         'id' => 'nv-child-' . ($child['id'] ?? uniqid('', true)),
@@ -1035,7 +1035,7 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             </label>
         </div>
     </div>
-    <div class="nv-timeline-scroll overflow-y-auto rounded-2xl bg-white/80 p-8 shadow-xl ring-1 ring-slate-100" style="max-height: 72vh;">
+    <div class="nv-timeline-scroll overflow-y-auto rounded-2xl bg-white/80 p-2 shadow-xl ring-1 ring-slate-100" style="max-height: 72vh;">
         <?php if (empty($timelineEvents)): ?>
             <div class="nv-timeline-empty">
                 <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">

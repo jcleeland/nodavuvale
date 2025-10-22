@@ -15,6 +15,9 @@ if(isset($_GET['user_id'])) {
 <div id="nothing"></div>
 
 <?php
+if (!isset($user) || !is_array($user)) {
+    $user = Utils::getUser($user_id);
+}
 
 if($user_id) { 
     //If there is a $user_id, then the individual we are looking at
@@ -69,9 +72,16 @@ $referencename=$_SESSION['user_id'] == $user_id ? "You" : $user['first_name'];
 $referencenamepossessive=$_SESSION['user_id'] == $user_id ? "Your" : $user['first_name'] . "'s";
 $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $user['first_name'] . " has";
 
+$dashboardLayout = isset($dashboardLayout) ? $dashboardLayout : 'legacy';
+$dashboardIsDropdown = $dashboardLayout === 'dropdown';
+$panelWrapperBaseClass = $dashboardIsDropdown ? 'dashboard-dropdown-panel' : 'pt-10';
+$panelCardBaseClass = $dashboardIsDropdown ? 'dashboard-dropdown-card' : 'p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto';
+
 ?>
 
+<?php if (!$dashboardIsDropdown): ?>
 <section class="container mx-auto px-4 sm:px-3 xs:px-2 lg:px-8 pt-1 pb-12">
+<?php endif; ?>
 <?php 
         if($user_id == $_SESSION['user_id']  || $auth->getUserRole() === 'admin') {
             if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
@@ -85,22 +95,21 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                 </script>  
                 <?php
             }
+            if(!$dashboardIsDropdown) {
+                ?>
+                <div class="absolute z-10 p-2 w-max">
+                    <div class="flex justify-full items-top">
+                        <div>
+                            <img 
+                                class="mt-6 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" 
+                                src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" 
+                                alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
+                        </div>
+                    </div>
+                </div>
+                <?php
+            }
     ?>
-    <div class="absolute z-10 p-2 w-max">
-        <div class="flex justify-full items-top">
-            <div>
-                <img 
-                    class="mt-6 sm:mt-0 h-20 w-20 sm:h-36 sm:w-36 avatar-img-0 avatar-float-left ml-1 mr-4 <?php echo $auth->getUserPresence($user_id) ? 'userpresent' : 'userabsent'; ?> rounded-full object-cover" 
-                    src="<?php echo $user['avatar'] ? $user['avatar'] : 'images/default_avatar.webp'; ?>" 
-                    alt="<?php echo $user['first_name'] . ' ' . $user['last_name'] ?>">
-            </div>
-
-        </div>
-    </div>
-
-
-
-
 
     <!-- Notifications -->
     <?php
@@ -129,11 +138,16 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
             $hideuser="";
             if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
                 $hideuser="hidden";
-            }            
+            }
+            $notificationWrapperClass = trim($panelWrapperBaseClass . ' ' . $hideuser);
+            $notificationCardClass = $panelCardBaseClass;
+            if(isset($dashboardDropdownMeta) && is_array($dashboardDropdownMeta)) {
+                $dashboardDropdownMeta['notifications'] = count($mynewdiscussioncomments) + count($mynewcommentreplies) + count($mynewreactions);
+            }
 
     ?>
-    <div id="userNotifications" class="pt-10 <?= $hideuser ?>">
-        <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
+    <div id="userNotifications" class="<?= $notificationWrapperClass ?>" data-panel="notifications">
+        <div class="<?= $notificationCardClass ?>">
             <div class="pb-6">
                 <div class="relative flex justify-center items-center text-center min-h-4">
                     <div class="flex-grow" style="z-index: 1000">
@@ -302,8 +316,12 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
 
 
     <!-- User's About Page (for other members to see) -->
-    <div id="publicUserDetails" class="pt-10">
-        <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
+    <?php
+        $profileWrapperClass = $panelWrapperBaseClass;
+        $profileCardClass = $panelCardBaseClass;
+    ?>
+    <div id="publicUserDetails" class="<?= $profileWrapperClass ?>" data-panel="profile">
+        <div class="<?= $profileCardClass ?>">
             <div class="pb-6">
                 <div class="relative flex justify-center items-center text-center min-h-4">
                     <div class="flex-grow" style="z-index: 1000">
@@ -446,8 +464,13 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
 
 
     <!-- User's Control Page -->
-    <div id="userDetails" class="pt-10 <?= $hideuser ?>">
-        <div class="p-4 pt-6 bg-white shadow-lg rounded-lg mt-8 h-128 overflow-y-auto">
+    <?php
+        $controlsHideClass = isset($hideuser) ? $hideuser : '';
+        $controlsWrapperClass = trim($panelWrapperBaseClass . ' ' . $controlsHideClass);
+        $controlsCardClass = $panelCardBaseClass;
+    ?>
+    <div id="userDetails" class="<?= $controlsWrapperClass ?>" data-panel="controls">
+        <div class="<?= $controlsCardClass ?>">
 
         <?php
             if($auth->getUserRole() === 'admin' && $user_id != $_SESSION['user_id']) {
@@ -480,6 +503,9 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
             <?php
             if($user['individuals_id']) {
                 $missinginfo=Utils::getMissingDataForUser($user['individuals_id']);
+                if(isset($dashboardDropdownMeta) && is_array($dashboardDropdownMeta)) {
+                    $dashboardDropdownMeta['controls'] = is_array($missinginfo) ? count($missinginfo) : 0;
+                }
                 //echo "<pre>ALl the info"; print_r($missinginfo); echo "</pre>";
                 //Remove all the items that have no missing data
                 
@@ -632,6 +658,9 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
                     ];
                 }
             }
+            if(isset($dashboardDropdownMeta) && is_array($dashboardDropdownMeta)) {
+                $dashboardDropdownMeta['profile'] = count($userinfos);
+            }
             ?>                    
 
                     <!-- User information -->
@@ -675,7 +704,6 @@ $referencenamepastposessive=$_SESSION['user_id'] == $user_id ? "You have" : $use
         ?>
     </div>
 
-
-
-
+<?php if (!$dashboardIsDropdown): ?>
 </section>
+<?php endif; ?>
