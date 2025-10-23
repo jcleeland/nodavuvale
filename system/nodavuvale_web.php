@@ -143,19 +143,28 @@ class Web {
         $words = preg_split('/\s+/', $wordsonlytext);
         $text = addslashes($text);
     
-        if (count($words) > $wordLimit) {
-            // Find the $wordLimit word
-            $lastWord = $words[$wordLimit];
-            $startLimit=$wordLimit;
-            $maxLimit=$wordLimit*1.25;
-            
-            while(strlen($lastWord) < 7 && $wordLimit <= $maxLimit) { // If the last word is less than 4 characters, get the next word, to avoid replications
-                $lastWord = $words[$wordLimit++];
+        $wordCount = is_array($words) ? count($words) : 0;
+        if ($wordCount > $wordLimit) {
+            // Find the $wordLimit word (guarding against out-of-range access)
+            $index = min($wordLimit, $wordCount - 1);
+            $maxLimit = (int) ceil($wordLimit * 1.25);
+            $maxIndex = min($maxLimit, $wordCount - 1);
+            $lastWord = isset($words[$index]) ? $words[$index] : '';
+
+            while ($lastWord !== '' && strlen($lastWord) < 7 && $index < $maxIndex) {
+                $index++;
+                $lastWord = isset($words[$index]) ? $words[$index] : '';
+            }
+
+            if ($lastWord === '' && isset($words[$wordCount - 1])) {
+                $index = $wordCount - 1;
+                $lastWord = $words[$index];
             }
             
             //Add up the length of all the words up to the $wordLimit word
             $startlength = 0;
-            for ($i = 0; $i < $startLimit; $i++) {
+            $limitForLength = max(0, min($index, $wordCount - 1));
+            for ($i = 0; $i < $limitForLength; $i++) {
                 $startlength += strlen($words[$i]);
             }
             
