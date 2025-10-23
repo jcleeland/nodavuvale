@@ -3,41 +3,188 @@
 if (!function_exists('nvFeedSanitizeHtml')) {
     function nvFeedSanitizeHtml(string $html): string
     {
-        $allowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><span>';
-        $clean = strip_tags($html, $allowed);
-        if ($clean === null || $clean === '') {
+        $html = (string) $html;
+        if (trim($html) === '') {
             return '';
         }
-        $clean = preg_replace_callback('/<a\b[^>]*>/i', static function ($matches) {
-            $tag = $matches[0];
-            $hasTarget = stripos($tag, 'target=') !== false;
-            $hasRel = stripos($tag, 'rel=') !== false;
-            $result = rtrim($tag, '>');
-            if (!$hasTarget) {
-                $result .= ' target="_blank"';
+
+        $allowedTags = [
+            'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'a', 'blockquote', 'span',
+        ];
+        $allowedGlobalAttributes = ['class', 'id', 'title', 'data-*', 'aria-*'];
+        $allowedAttributes = [
+            'a'           => array_merge($allowedGlobalAttributes, ['href', 'target', 'rel', 'name']),
+            'span'        => array_merge($allowedGlobalAttributes, ['role', 'onclick']),
+            'blockquote'  => array_merge($allowedGlobalAttributes, ['cite']),
+            'p'           => $allowedGlobalAttributes,
+            'ul'          => $allowedGlobalAttributes,
+            'ol'          => $allowedGlobalAttributes,
+            'li'          => $allowedGlobalAttributes,
+            'strong'      => $allowedGlobalAttributes,
+            'b'           => $allowedGlobalAttributes,
+            'em'          => $allowedGlobalAttributes,
+            'i'           => $allowedGlobalAttributes,
+            'u'           => $allowedGlobalAttributes,
+            'div'         => $allowedGlobalAttributes,
+        ];
+
+        $allowedTagLookup = array_flip($allowedTags);
+
+        $encodeHtml = function_exists('mb_convert_encoding')
+            ? @mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8')
+            : $html;
+        if ($encodeHtml === false) {
+            $encodeHtml = $html;
+        }
+
+        $fragment = '<div>' . $encodeHtml . '</div>';
+        $previousLibxml = libxml_use_internal_errors(true);
+        $document = new DOMDocument('1.0', 'UTF-8');
+        $loaded = $document->loadHTML(
+            '<?xml encoding="UTF-8" ?>' . $fragment,
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
+
+        if (!$loaded) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousLibxml);
+            $fallbackAllowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><span>';
+            $clean = strip_tags($html, $fallbackAllowed);
+            if ($clean === null || $clean === '') {
+                return '';
             }
-            if (!$hasRel) {
-                $result .= ' rel="noopener"';
+            return preg_replace_callback('/<a\b[^>]*>/i', static function ($matches) {
+                $tag = $matches[0];
+                $hasTarget = stripos($tag, 'target=') !== false;
+                $hasRel = stripos($tag, 'rel=') !== false;
+                $result = rtrim($tag, '>');
+                if (!$hasTarget) {
+                    $result .= ' target="_blank"';
+                }
+                if (!$hasRel) {
+                    $result .= ' rel="noopener"';
+                }
+                return $result . '>';
+            }, $clean) ?? $clean;
+        }
+
+        $wrapper = $document->getElementsByTagName('div')->item(0);
+        if (!$wrapper instanceof DOMElement) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previousLibxml);
+            return '';
+        }
+
+        $attributeAllowed = static function (string $name, array $allowedList): bool {
+            foreach ($allowedList as $allowed) {
+                if (substr($allowed, -1) === '*') {
+                    $prefix = substr($allowed, 0, -1);
+                    if ($prefix === '' || strpos($name, $prefix) === 0) {
+                        return true;
+                    }
+                } elseif ($name === $allowed) {
+                    return true;
+                }
             }
-            $result .= '>';
-            return $result;
-        }, $clean);
-        return $clean;
+            return false;
+        };
+
+        $sanitizeNode = static function (DOMNode $node) use (
+            &$sanitizeNode,
+            $allowedTagLookup,
+            $allowedAttributes,
+            $allowedGlobalAttributes,
+            $attributeAllowed
+        ): void {
+            if ($node->nodeType === XML_ELEMENT_NODE) {
+                $tagName = strtolower($node->nodeName);
+                if (!isset($allowedTagLookup[$tagName])) {
+                    if ($node->parentNode) {
+                        while ($node->firstChild) {
+                            $node->parentNode->insertBefore($node->firstChild, $node);
+                        }
+                        $node->parentNode->removeChild($node);
+                    }
+                    return;
+                }
+
+                if ($node instanceof DOMElement && $node->hasAttributes()) {
+                    $allowedForTag = $allowedAttributes[$tagName] ?? $allowedGlobalAttributes;
+                    for ($i = $node->attributes->length - 1; $i >= 0; $i--) {
+                        $attr = $node->attributes->item($i);
+                        if (!$attr) {
+                            continue;
+                        }
+                        $attrName = strtolower($attr->nodeName);
+                        if (!$attributeAllowed($attrName, $allowedForTag)) {
+                            $node->removeAttributeNode($attr);
+                        }
+                    }
+
+                    if ($tagName === 'a') {
+                        $href = $node->getAttribute('href');
+                        if ($href !== '' && !preg_match('/^(https?:|mailto:|\/|#)/i', $href)) {
+                            $node->removeAttribute('href');
+                        }
+                        if ($node->hasAttribute('href')) {
+                            if (!$node->hasAttribute('target')) {
+                                $node->setAttribute('target', '_blank');
+                            }
+                            $currentRel = $node->getAttribute('rel');
+                            $relTokens = array_filter(preg_split('/\s+/', strtolower($currentRel)) ?: []);
+                            if (!in_array('noopener', $relTokens, true)) {
+                                $relTokens[] = 'noopener';
+                            }
+                            $node->setAttribute('rel', trim(implode(' ', array_unique($relTokens))));
+                        } else {
+                            $node->removeAttribute('target');
+                            $node->removeAttribute('rel');
+                        }
+                    }
+
+                    if ($tagName === 'span' && $node->hasAttribute('onclick')) {
+                        $onclick = trim($node->getAttribute('onclick'));
+                        $isExpand = preg_match('/^\s*expandStory\s*\(\s*[\'"][A-Za-z0-9_\-]+[\'"]\s*\)\s*;?\s*$/', $onclick) === 1;
+                        $isShow = preg_match('/^\s*showStory\s*\(\s*[\'"][^\'"]+[\'"]\s*,\s*[\'"][A-Za-z0-9_\-]+[\'"]\s*\)\s*;?\s*$/', $onclick) === 1;
+                        if (!$isExpand && !$isShow) {
+                            $node->removeAttribute('onclick');
+                        }
+                    }
+                }
+            }
+
+            for ($child = $node->firstChild; $child !== null; $child = $next) {
+                $next = $child->nextSibling;
+                $sanitizeNode($child);
+            }
+        };
+
+        $sanitizeNode($wrapper);
+
+        $output = '';
+        foreach ($wrapper->childNodes as $childNode) {
+            $output .= $document->saveHTML($childNode);
+        }
+
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousLibxml);
+
+        return $output;
     }
 }
 // Check if the user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
-// Set the default "view new" as being the last login time
-$viewnewsince=isset($_SESSION['last_login']) ? date("Y-m-d H:i:s", strtotime('-1 day', strtotime($_SESSION['last_login']))) : date("Y-m-d H:i:s", strtotime('1 week ago'));
-if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
-    $viewnewsince=$_GET['changessince'];
-}   
+// Load all updates unless a specific cutoff is requested
+$defaultChangeSince = '1900-01-01 00:00:00';
+$viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
+    ? $_GET['changessince']
+    : $defaultChangeSince;
 
 ?>
 
 <!-- Hero Section -->
-<section class="hero text-white py-20">
-    <div class="container hero-content">
+<section class="hero hero-collapsible text-white py-20" data-hero-collapsible>
+    <div class="container hero-content" id="homeHeroContent">
         <h2 class="text-4xl font-bold">Welcome to <i><?= $site_name ?></i></h2>
         <p class="mt-4 text-lg">Connecting our family and preserving our cultural heritage.</p>
         <?php if (!$is_logged_in): ?>
@@ -56,9 +203,127 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                 Chat with Family
             </a>
         <?php endif; ?>
-
     </div>
 </section>
+<script>
+    (function () {
+        var hero = document.querySelector('[data-hero-collapsible]');
+        if (!hero) {
+            return;
+        }
+
+        var heroContentId = 'homeHeroContent';
+        var mobileQuery = window.matchMedia('(max-width: 640px)');
+        var collapseDelay = 5000;
+        var collapseTimer = null;
+
+        function setAriaExpanded(state) {
+            if (mobileQuery.matches) {
+                hero.setAttribute('aria-expanded', state ? 'true' : 'false');
+            } else {
+                hero.removeAttribute('aria-expanded');
+            }
+        }
+
+        function collapseHero() {
+            if (hero.classList.contains('hero-collapsed')) {
+                return;
+            }
+            hero.classList.add('hero-collapsed');
+            setAriaExpanded(false);
+        }
+
+        function expandHero() {
+            if (!hero.classList.contains('hero-collapsed')) {
+                setAriaExpanded(true);
+                return;
+            }
+            hero.classList.remove('hero-collapsed');
+            setAriaExpanded(true);
+        }
+
+        function clearCollapseTimer() {
+            if (collapseTimer) {
+                window.clearTimeout(collapseTimer);
+                collapseTimer = null;
+            }
+        }
+
+        function scheduleInitialCollapse() {
+            clearCollapseTimer();
+            if (!mobileQuery.matches) {
+                hero.classList.remove('hero-collapsed');
+                return;
+            }
+            hero.classList.remove('hero-collapsed');
+            setAriaExpanded(true);
+            collapseTimer = window.setTimeout(collapseHero, collapseDelay);
+        }
+
+        function enableMobileInteraction() {
+            hero.setAttribute('role', 'button');
+            hero.setAttribute('tabindex', '0');
+            hero.setAttribute('aria-controls', heroContentId);
+            scheduleInitialCollapse();
+        }
+
+        function disableMobileInteraction() {
+            clearCollapseTimer();
+            hero.classList.remove('hero-collapsed');
+            hero.removeAttribute('role');
+            hero.removeAttribute('tabindex');
+            hero.removeAttribute('aria-controls');
+            hero.removeAttribute('aria-expanded');
+        }
+
+        function handleModeChange(matches) {
+            if (matches) {
+                enableMobileInteraction();
+            } else {
+                disableMobileInteraction();
+            }
+        }
+
+        handleModeChange(mobileQuery.matches);
+
+        var mqListener = function (event) {
+            handleModeChange(Boolean(event.matches));
+        };
+        if (typeof mobileQuery.addEventListener === 'function') {
+            mobileQuery.addEventListener('change', mqListener);
+        } else if (typeof mobileQuery.addListener === 'function') {
+            mobileQuery.addListener(mqListener);
+        }
+
+        hero.addEventListener('click', function (event) {
+            if (!mobileQuery.matches) {
+                return;
+            }
+            if (event.target.closest('a')) {
+                return;
+            }
+            if (hero.classList.contains('hero-collapsed')) {
+                expandHero();
+                return;
+            }
+            collapseHero();
+        });
+
+        hero.addEventListener('keydown', function (event) {
+            if (!mobileQuery.matches) {
+                return;
+            }
+            if (event.key === ' ' || event.key === 'Spacebar' || event.key === 'Enter') {
+                event.preventDefault();
+                if (hero.classList.contains('hero-collapsed')) {
+                    expandHero();
+                } else {
+                    collapseHero();
+                }
+            }
+        });
+    })();
+</script>
 
 <!-- Conditional Content Section Based on Login Status -->
 <?php if ($is_logged_in): ?>
@@ -322,6 +587,15 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                 continue;
             }
 
+            if (strcasecmp($detailLabel, 'GPS') === 0) {
+                $coordinateValue = preg_replace('/\s+/', ' ', $detailValue);
+                if ($coordinateValue !== '') {
+                    $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($coordinateValue);
+                    $addDetailRow('GPS', $coordinateValue, $mapsUrl, false);
+                    continue;
+                }
+            }
+
             $displayValue = $detailValue;
             $allowsBreaks = ($detailStyle === 'textarea');
             $detailLength = function_exists('mb_strlen') ? mb_strlen($detailValue) : strlen($detailValue);
@@ -349,7 +623,7 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                 'subject_name' => $personName,
                 'privacy'      => $itemGroup['privacy'] ?? 'private',
             ],
-            'url'       => "?to=family/individual&individual_id={$firstItem['individualId']}&tab=generaltab",
+            'url'       => "?to=family/individual&individual_id={$firstItem['individualId']}&tab=timelinetab",
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
             'details'   => $detailRows,
@@ -400,7 +674,6 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
     include("family/helpers/user.php");
     $dashboardDropdownPanels = trim(ob_get_clean());
     $hasDropdownPanels = trim($dashboardDropdownPanels) !== '';
-    $changeSince = isset($_GET['changessince']) && $_GET['changessince'] !== '' ? $_GET['changessince'] : 'lastlogin';
 
     $descendancy = null;
     if($user && !empty($user['individuals_id'])) {
@@ -459,170 +732,238 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                 <i class="fas fa-stream"></i>
                 Latest updates
             </h3>
-            <div class="flex items-center gap-2 feed-controls">
-                <button type="button" class="feed-date-toggle text-sm text-ocean-blue hover:text-burnt-orange" onclick="toggleDateSelect()">
-                    <i class="fas fa-clock mr-2"></i>
-                    Change window
-                </button>
-                <select id="dateSelect" class="hidden border rounded px-2 py-1 text-sm" onchange="reloadWithDate()" onfocus="storeOriginalValue()" onblur="hideIfSameOption()">
-                    <option value="lastlogin" <?= $changeSince === 'lastlogin' ? 'selected' : '' ?>>Since your last login</option>
-                    <option value="<?= date("Y-m-d", strtotime('-1 week')) ?>" <?= $changeSince === date("Y-m-d", strtotime('-1 week')) ? 'selected' : '' ?>>The last week (since <?= date("l, d F Y", strtotime('-1 week')) ?>)</option>
-                    <option value="<?= date("Y-m-d", strtotime('-2 weeks')) ?>" <?= $changeSince === date("Y-m-d", strtotime('-2 weeks')) ? 'selected' : '' ?>>The last fortnight (since <?= date("l, d F Y", strtotime('-2 weeks')) ?>)</option>
-                    <option value="<?= date("Y-m-d", strtotime('-1 month')) ?>" <?= $changeSince === date("Y-m-d", strtotime('-1 month')) ? 'selected' : '' ?>>The last month (since <?= date("l, d F Y", strtotime('-1 month')) ?>)</option>
-                </select>
-            </div>
         </div>
-        <?php if (empty($feedEntries)): ?>
+        <?php
+            $renderFeedEntry = static function (array $entry) use ($feedTypeMeta, $web) {
+                $type = $entry['type'];
+                $meta = $feedTypeMeta[$type] ?? ['label' => ucfirst($type), 'icon' => 'fas fa-circle'];
+                $timestampLabel = isset($entry['timestamp']) ? date('l, d F Y g:ia', $entry['timestamp']) : '';
+                $actorInitial = '';
+                if (empty($entry['meta']['actor_id']) && !empty($entry['meta']['actor_name'])) {
+                    $actorInitial = strtoupper(substr($entry['meta']['actor_name'], 0, 1));
+                }
+
+                ob_start();
+                ?>
+                <article class="feed-item bg-white shadow-sm border border-gray-200 rounded-lg p-4 flex gap-4 items-start" data-feed-type="<?= htmlspecialchars($type) ?>">
+                    <div class="feed-item-icon text-xl text-ocean-blue flex-shrink-0">
+                        <i class="<?= htmlspecialchars($meta['icon']) ?>"></i>
+                    </div>
+                    <div class="feed-item-body flex-1">
+                        <div class="feed-item-meta flex items-center gap-3 text-sm text-gray-500 mb-2">
+                            <?php if (!empty($entry['meta']['actor_id'])): ?>
+                                <?= $web->getAvatarHTML($entry['meta']['actor_id'], "sm", "feed-item-avatar"); ?>
+                            <?php elseif ($actorInitial !== ''): ?>
+                                <div class="feed-item-avatar-placeholder"><?= htmlspecialchars($actorInitial) ?></div>
+                            <?php endif; ?>
+                            <span class="font-semibold text-brown"><?= htmlspecialchars($meta['label']) ?></span>
+                            <?php if (!empty($entry['meta']['context'])): ?>
+                                <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['context']) ?></span>
+                            <?php endif; ?>
+                            <?php if (!empty($entry['meta']['subject_name']) && $type !== 'individual'): ?>
+                                <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['subject_name']) ?></span>
+                            <?php endif; ?>
+                            <?php if (!empty($entry['raw_time'])): ?>
+                                <span class="feed-item-timestamp ml-auto" title="<?= htmlspecialchars($timestampLabel) ?>">
+                                    <?= $web->timeSince($entry['raw_time']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (!empty($entry['title'])): ?>
+                            <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
+                                <?php if (!empty($entry['url'])): ?>
+                                    <a class="hover:text-burnt-orange" href="<?= $entry['url'] ?>"><?= htmlspecialchars($entry['title']) ?></a>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($entry['title']) ?>
+                                <?php endif; ?>
+                            </h4>
+                        <?php endif; ?>
+                        <?php if (!empty($entry['content_html'])): ?>
+                            <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
+                        <?php elseif (!empty($entry['content'])): ?>
+                            <p class="feed-item-summary text-sm text-gray-600 mb-3"><?= htmlspecialchars($entry['content']) ?></p>
+                        <?php endif; ?>
+                        <?php if ($type === 'item' && !empty($entry['media'])): ?>
+                            <div class="feed-item-media-grid mb-3">
+                                <?php foreach ($entry['media'] as $media): ?>
+                                    <img src="<?= htmlspecialchars($media['src']) ?>" alt="<?= htmlspecialchars($media['alt']) ?>" class="feed-item-thumb feed-item-media-image">
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($type === 'item' && !empty($entry['details'])): ?>
+                            <ul class="feed-item-details text-sm text-gray-700 mb-3">
+                                <?php foreach ($entry['details'] as $detail): ?>
+                                    <li class="feed-item-detail-row">
+                                        <span class="feed-item-detail-label"><?= htmlspecialchars($detail['label']) ?>:</span>
+                                        <?php if (!empty($detail['link'])): ?>
+                                            <a href="<?= htmlspecialchars($detail['link']) ?>" class="feed-item-detail-link hover:text-burnt-orange"><?= htmlspecialchars($detail['value']) ?></a>
+                                        <?php else: ?>
+                                            <span class="feed-item-detail-text">
+                                                <?php if (!empty($detail['is_html'])): ?>
+                                                    <?= nl2br(htmlspecialchars($detail['value'])) ?>
+                                                <?php else: ?>
+                                                    <?= htmlspecialchars($detail['value']) ?>
+                                                <?php endif; ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                        <?php if ($type === 'item' && !empty($entry['files'])): ?>
+                            <ul class="feed-item-files text-xs text-ocean-blue mb-3">
+                                <?php foreach ($entry['files'] as $file): ?>
+                                    <li><a href="<?= htmlspecialchars($file['url']) ?>" class="hover:text-burnt-orange" target="_blank" rel="noopener"><?= htmlspecialchars($file['label']) ?></a></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                        <div class="feed-item-footer flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                            <?php if (!empty($entry['meta']['actor_name'])): ?>
+                                <span>by <?= htmlspecialchars($entry['meta']['actor_name']) ?></span>
+                            <?php endif; ?>
+                            <?php if ($type === 'item' && !empty($entry['meta']['privacy']) && $entry['meta']['privacy'] === 'private'): ?>
+                                <span class="inline-flex items-center gap-1 text-warm-red"><i class="fas fa-lock"></i> Private</span>
+                            <?php endif; ?>
+                            <?php if ($type === 'file' && !empty($entry['media']) && ($entry['meta']['file_type'] ?? '') === 'image'): ?>
+                                <img src="<?= htmlspecialchars($entry['media']) ?>" alt="Preview" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
+                            <?php endif; ?>
+                            <?php if ($type === 'individual' && !empty($entry['cover'])): ?>
+                                <img src="<?= htmlspecialchars($entry['cover']) ?>" alt="Profile" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </article>
+                <?php
+                return trim(ob_get_clean());
+            };
+
+            $initialFeedBatchSize = 10;
+            $subsequentFeedBatchSize = 5;
+            $initialFeedEntries = array_slice($feedEntries, 0, $initialFeedBatchSize);
+            $remainingFeedEntries = array_slice($feedEntries, $initialFeedBatchSize);
+            $initialFeedHtml = array_map($renderFeedEntry, $initialFeedEntries);
+            $remainingFeedHtml = array_map($renderFeedEntry, $remainingFeedEntries);
+        ?>
+        <?php if (empty($initialFeedHtml)): ?>
             <div class="feed-empty text-center text-gray-500 bg-white shadow-sm border rounded-lg py-12">No updates to show right now.</div>
         <?php else: ?>
-            <div class="feed-stream space-y-4">
-                <?php foreach ($feedEntries as $entry): ?>
-                    <?php
-                        $type = $entry['type'];
-                        $meta = $feedTypeMeta[$type] ?? ['label' => ucfirst($type), 'icon' => 'fas fa-circle'];
-                        $timestampLabel = isset($entry['timestamp']) ? date('l, d F Y g:ia', $entry['timestamp']) : '';
-                        $actorInitial = '';
-                        if (empty($entry['meta']['actor_id']) && !empty($entry['meta']['actor_name'])) {
-                            $actorInitial = strtoupper(substr($entry['meta']['actor_name'], 0, 1));
-                        }
-                    ?>
-                    <article class="feed-item bg-white shadow-sm border border-gray-200 rounded-lg p-4 flex gap-4 items-start" data-feed-type="<?= htmlspecialchars($type) ?>">
-                        <div class="feed-item-icon text-xl text-ocean-blue flex-shrink-0">
-                            <i class="<?= htmlspecialchars($meta['icon']) ?>"></i>
-                        </div>
-                        <div class="feed-item-body flex-1">
-                            <div class="feed-item-meta flex items-center gap-3 text-sm text-gray-500 mb-2">
-                                <?php if (!empty($entry['meta']['actor_id'])): ?>
-                                    <?= $web->getAvatarHTML($entry['meta']['actor_id'], "sm", "feed-item-avatar"); ?>
-                                <?php elseif ($actorInitial !== ''): ?>
-                                    <div class="feed-item-avatar-placeholder"><?= htmlspecialchars($actorInitial) ?></div>
-                                <?php endif; ?>
-                                <span class="font-semibold text-brown"><?= htmlspecialchars($meta['label']) ?></span>
-                                <?php if (!empty($entry['meta']['context'])): ?>
-                                    <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['context']) ?></span>
-                                <?php endif; ?>
-                                <?php if (!empty($entry['meta']['subject_name']) && $type !== 'individual'): ?>
-                                    <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['subject_name']) ?></span>
-                                <?php endif; ?>
-                                <?php if (!empty($entry['raw_time'])): ?>
-                                    <span class="feed-item-timestamp ml-auto" title="<?= htmlspecialchars($timestampLabel) ?>">
-                                        <?= $web->timeSince($entry['raw_time']) ?>
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                            <?php if (!empty($entry['title'])): ?>
-                                <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
-                                    <?php if (!empty($entry['url'])): ?>
-                                        <a class="hover:text-burnt-orange" href="<?= $entry['url'] ?>"><?= htmlspecialchars($entry['title']) ?></a>
-                                    <?php else: ?>
-                                        <?= htmlspecialchars($entry['title']) ?>
-                                    <?php endif; ?>
-                                </h4>
-                            <?php endif; ?>
-                            <?php if (!empty($entry['content_html'])): ?>
-                                <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
-                            <?php elseif (!empty($entry['content'])): ?>
-                                <p class="feed-item-summary text-sm text-gray-600 mb-3"><?= htmlspecialchars($entry['content']) ?></p>
-                            <?php endif; ?>
-                            <?php if ($type === 'item' && !empty($entry['media'])): ?>
-                                <div class="feed-item-media-grid mb-3">
-                                    <?php foreach ($entry['media'] as $media): ?>
-                                        <img src="<?= htmlspecialchars($media['src']) ?>" alt="<?= htmlspecialchars($media['alt']) ?>" class="feed-item-thumb feed-item-media-image">
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($type === 'item' && !empty($entry['details'])): ?>
-                                <ul class="feed-item-details text-sm text-gray-700 mb-3">
-                                    <?php foreach ($entry['details'] as $detail): ?>
-                                        <li class="feed-item-detail-row">
-                                            <span class="feed-item-detail-label"><?= htmlspecialchars($detail['label']) ?>:</span>
-                                            <?php if (!empty($detail['link'])): ?>
-                                                <a href="<?= htmlspecialchars($detail['link']) ?>" class="feed-item-detail-link hover:text-burnt-orange"><?= htmlspecialchars($detail['value']) ?></a>
-                                            <?php else: ?>
-                                                <span class="feed-item-detail-text">
-                                                    <?php if (!empty($detail['is_html'])): ?>
-                                                        <?= nl2br(htmlspecialchars($detail['value'])) ?>
-                                                    <?php else: ?>
-                                                        <?= htmlspecialchars($detail['value']) ?>
-                                                    <?php endif; ?>
-                                                </span>
-                                            <?php endif; ?>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php endif; ?>
-                            <?php if ($type === 'item' && !empty($entry['files'])): ?>
-                                <ul class="feed-item-files text-xs text-ocean-blue mb-3">
-                                    <?php foreach ($entry['files'] as $file): ?>
-                                        <li><a href="<?= htmlspecialchars($file['url']) ?>" class="hover:text-burnt-orange" target="_blank" rel="noopener"><?= htmlspecialchars($file['label']) ?></a></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php endif; ?>
-                            <div class="feed-item-footer flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                                <?php if (!empty($entry['meta']['actor_name'])): ?>
-                                    <span>by <?= htmlspecialchars($entry['meta']['actor_name']) ?></span>
-                                <?php endif; ?>
-                                <?php if ($type === 'item' && !empty($entry['meta']['privacy']) && $entry['meta']['privacy'] === 'private'): ?>
-                                    <span class="inline-flex items-center gap-1 text-warm-red"><i class="fas fa-lock"></i> Private</span>
-                                <?php endif; ?>
-                                <?php if ($type === 'file' && !empty($entry['media']) && ($entry['meta']['file_type'] ?? '') === 'image'): ?>
-                                    <img src="<?= htmlspecialchars($entry['media']) ?>" alt="Preview" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
-                                <?php endif; ?>
-                                <?php if ($type === 'individual' && !empty($entry['cover'])): ?>
-                                    <img src="<?= htmlspecialchars($entry['cover']) ?>" alt="Profile" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </article>
+            <div class="feed-stream space-y-4" id="feedStream">
+                <?php foreach ($initialFeedHtml as $entryHtml): ?>
+                    <?= $entryHtml ?>
                 <?php endforeach; ?>
+                <div id="feedSentinel" class="feed-sentinel" aria-hidden="true"></div>
+            </div>
+            <div class="feed-loading hidden text-center text-gray-500 py-4" id="feedLoading">
+                <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading more updates&hellip;
             </div>
         <?php endif; ?>
+        <script>
+            (function () {
+                var feedStream = document.getElementById('feedStream');
+                var feedLoading = document.getElementById('feedLoading');
+                var feedSentinel = document.getElementById('feedSentinel');
+                var feedQueue = <?=
+                    json_encode(
+                        $remainingFeedHtml,
+                        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                    );
+                ?>;
+                var batchSize = <?= (int) $subsequentFeedBatchSize ?>;
+                var isLoading = false;
+                var observer = null;
+
+                if (!feedStream || !feedSentinel || !Array.isArray(feedQueue)) {
+                    return;
+                }
+
+                if (feedQueue.length === 0) {
+                    if (feedSentinel.parentNode) {
+                        feedSentinel.parentNode.removeChild(feedSentinel);
+                    }
+                    return;
+                }
+
+                function appendHtml(html) {
+                    if (!html) {
+                        return;
+                    }
+                    var range = document.createRange();
+                    range.selectNodeContents(feedStream);
+                    var fragment = range.createContextualFragment(html);
+                    feedStream.insertBefore(fragment, feedSentinel);
+                }
+
+                function loadNextBatch() {
+                    if (isLoading) {
+                        return;
+                    }
+                    if (!feedQueue.length) {
+                        if (observer) {
+                            observer.disconnect();
+                        }
+                        if (feedSentinel && feedSentinel.parentNode) {
+                            feedSentinel.parentNode.removeChild(feedSentinel);
+                        }
+                        if (feedLoading) {
+                            feedLoading.classList.add('hidden');
+                        }
+                        return;
+                    }
+                    isLoading = true;
+                    if (feedLoading) {
+                        feedLoading.classList.remove('hidden');
+                    }
+                    window.requestAnimationFrame(function () {
+                        var batch = feedQueue.splice(0, batchSize);
+                        batch.forEach(appendHtml);
+                        isLoading = false;
+                        if (feedLoading) {
+                            feedLoading.classList.add('hidden');
+                        }
+                        if (!feedQueue.length) {
+                            if (observer) {
+                                observer.disconnect();
+                            }
+                            if (feedSentinel && feedSentinel.parentNode) {
+                                feedSentinel.parentNode.removeChild(feedSentinel);
+                            }
+                        }
+                    });
+                }
+
+                if ('IntersectionObserver' in window) {
+                    observer = new IntersectionObserver(function (entries) {
+                        entries.forEach(function (entry) {
+                            if (entry.isIntersecting) {
+                                loadNextBatch();
+                            }
+                        });
+                    }, { rootMargin: '200px 0px' });
+                    observer.observe(feedSentinel);
+                } else {
+                    function legacyScrollHandler() {
+                        if (feedQueue.length === 0) {
+                            window.removeEventListener('scroll', legacyScrollHandler);
+                            return;
+                        }
+                        if ((window.innerHeight + window.pageYOffset) >= (document.body.offsetHeight - 200)) {
+                            loadNextBatch();
+                        }
+                    }
+                    window.addEventListener('scroll', legacyScrollHandler);
+                    legacyScrollHandler();
+                }
+
+                if (feedQueue.length && feedStream.getBoundingClientRect().bottom < window.innerHeight) {
+                    loadNextBatch();
+                }
+            })();
+        </script>
     </section>
     <script>
         (function () {
-            var dateSelect = document.getElementById('dateSelect');
-            var originalDateValue = dateSelect ? dateSelect.value : null;
-            var selectDefault = "<?= htmlspecialchars($changeSince, ENT_QUOTES, 'UTF-8') ?>";
             var toolbar = document.querySelector('.dashboard-toolbar');
             var panelHost = document.getElementById('dashboardDropdownPanels');
-            if (dateSelect && selectDefault) {
-                dateSelect.value = selectDefault;
-                originalDateValue = selectDefault;
-            }
-            window.toggleDateSelect = function () {
-                if (!dateSelect) {
-                    return;
-                }
-                dateSelect.classList.toggle('hidden');
-                if (!dateSelect.classList.contains('hidden')) {
-                    dateSelect.focus();
-                }
-            };
-            window.reloadWithDate = function () {
-                if (!dateSelect) {
-                    return;
-                }
-                var params = new URLSearchParams(window.location.search);
-                var selectedValue = dateSelect.value;
-                if (!selectedValue || selectedValue === 'lastlogin') {
-                    params.delete('changessince');
-                } else {
-                    params.set('changessince', selectedValue);
-                }
-                var query = params.toString();
-                var newUrl = window.location.pathname + (query ? '?' + query : '');
-                window.location.href = newUrl;
-            };
-            window.storeOriginalValue = function () {
-                if (dateSelect) {
-                    originalDateValue = dateSelect.value;
-                }
-            };
-            window.hideIfSameOption = function () {
-                if (dateSelect && dateSelect.value === originalDateValue) {
-                    dateSelect.classList.add('hidden');
-                }
-            };
             function positionPanel(button, panel) {
                 if (!toolbar || !panelHost || !panel) {
                     return;
@@ -724,6 +1065,3 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
     </section>
 
 <?php endif; ?>
-
-
-

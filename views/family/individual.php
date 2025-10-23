@@ -77,7 +77,7 @@ if (isset($_GET['item_group_id'])) {
 if(isset($_GET['tab'])) {
     $requestedTab = $_GET['tab'];
     if ($requestedTab === 'generaltab') {
-        $requestedTab = 'storiestab';
+        $requestedTab = 'timelinetab';
     }
     ?>
     <script>

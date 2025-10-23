@@ -439,8 +439,8 @@ if ($deathInfo) {
     $deathDescriptionParts = [];
     $deathDescriptionPartsHtml = [];
     if ($deathLocationText) {
-        $deathDescriptionParts[] = 'Remembered in ' . $deathLocationText;
-        $deathDescriptionPartsHtml[] = 'Remembered in ' . htmlspecialchars($deathLocationText, ENT_QUOTES, 'UTF-8');
+        $deathDescriptionParts[] = 'Left us at ' . $deathLocationText;
+        $deathDescriptionPartsHtml[] = 'Left us at ' . htmlspecialchars($deathLocationText, ENT_QUOTES, 'UTF-8');
     }
     if ($assumedDeath) {
         $deathDescriptionParts[] = 'Date estimated using an 82-year lifespan';
@@ -584,6 +584,7 @@ foreach ($items ?? [] as $group) {
     if ($groupName === '' || in_array($groupName, $ignoredFactGroups, true)) {
         continue;
     }
+    $isBurialGroup = strcasecmp($groupName, 'Burial') === 0;
     $indexed = nvTimelineIndexGroupItems($group);
     $dateDetail = nvTimelineExtractDetail($indexed, $dateDetailTypes);
     $eventDate = null;
@@ -591,6 +592,25 @@ foreach ($items ?? [] as $group) {
         $eventDate = nvTimelineCreateDateFromString((string) $dateDetail['detail_value']);
     } elseif (!empty($group['sortDate'])) {
         $eventDate = nvTimelineCreateDateFromString((string) $group['sortDate']);
+    }
+    $eventDateWasDerived = false;
+    if (!$eventDate && $isBurialGroup && $deathInfo && ($deathInfo['date'] ?? null) instanceof DateTimeImmutable) {
+        $baseDeathDate = $deathInfo['date'];
+        try {
+            $burialDate = $baseDeathDate->add(new DateInterval('P1D'));
+        } catch (Exception $exception) {
+            $burialDate = $baseDeathDate;
+        }
+        $eventDate = [
+            'date' => $burialDate,
+            'label' => $deathInfo['precision'] === 'day'
+                ? $burialDate->format('j M Y')
+                : ($deathInfo['precision'] === 'month'
+                    ? $burialDate->format('M Y')
+                    : $burialDate->format('Y')),
+            'precision' => $deathInfo['precision'] ?? 'day',
+        ];
+        $eventDateWasDerived = true;
     }
     if (!$eventDate) {
         continue;
@@ -612,6 +632,10 @@ foreach ($items ?? [] as $group) {
             $descriptionParts[] = $value;
             $descriptionPartsHtml[] = nvTimelineSanitizeRichText($value);
         }
+    }
+    if ($eventDateWasDerived) {
+        $descriptionParts[] = 'Date approximated after their passing';
+        $descriptionPartsHtml[] = 'Date approximated after their passing';
     }
     $descriptionText = $descriptionParts ? implode(' - ', array_slice($descriptionParts, 0, 2)) : 'Recorded event for ' . $personName;
     $descriptionHtml = $descriptionPartsHtml ? implode(' - ', array_slice($descriptionPartsHtml, 0, 2)) : 'Recorded event for ' . nvTimelineBuildPersonLink($person, $personName);
@@ -666,7 +690,7 @@ foreach ($items ?? [] as $group) {
         'description_html' => $descriptionHtml,
         'date' => $eventDate['date'],
         'display_date' => $eventDate['label'],
-        'assumed' => false,
+        'assumed' => $eventDateWasDerived,
         'details_html' => $detailsHtml,
         'media_gallery' => $mediaGallery,
     ];
@@ -854,6 +878,21 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             .nv-timeline-pin {
                 left: 2.5rem;
                 transform: translate(-50%, -50%);
+            }
+        }
+        @media (max-width: 640px) {
+            .nv-timeline-wrapper {
+                padding: 2.5rem 1.5rem;
+            }
+            .nv-timeline-axis {
+                left: 1.9rem;
+            }
+            .nv-timeline-event {
+                padding: 0 1rem !important;
+                justify-content: flex-start;
+            }
+            .nv-timeline-pin {
+                left: 1.9rem;
             }
         }
         .nv-timeline-pin {

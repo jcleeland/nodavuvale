@@ -26,24 +26,27 @@ if($user_id) {
     //   or from the family/individual page.
 ?>
     <script type="text/javascript">
-        <?php 
-        if($user['individuals_id']) { 
-        ?>
-        //Wait until the document has finished loading:
+        <?php if($user['individuals_id']) { ?>
         document.addEventListener("DOMContentLoaded", function() {
-            console.log('Doing the buttons for individual options');
-            if(document.getElementById('individual-options')) {
-                document.getElementById('individual-options').innerHTML = '<button class="jason flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href=\'index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>\'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>';
+            var optionsContainer = document.getElementById('individual-options');
+            if (!optionsContainer) {
+                return;
             }
-            <?php 
-            if($_SESSION['user_id'] == $user_id || $auth->getUserRole() === 'admin') { ?>
-            if(document.getElementById('individual-options')) {
-                document.getElementById('individual-options').innerHTML += '<button class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href=\'index.php?to=account&user_id=<?= $user['user_id'] ?>\'"><i class="fas fa-users"></i></button>'+document.getElementById('individual-options').innerHTML;
-            } 
-            <?php } ?>
+
+            var treeButtonHtml = '<button class="jason flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="View <?= $user['first_name'] ?> in the family tree" onclick="window.location.href=\'index.php?to=family/tree&zoom=<?= $user['individuals_id'] ?>&root_id=<?php echo $web->getRootId() ?>\'"><i class="fas fa-network-wired" style="transform: rotate(180deg)"></i></button>';
+            var accountButtonHtml = '<button data-individual-account-button="1" class="flex-1 bg-gray-800 bg-opacity-50 text-white rounded-full py-2 px-6 mx-1" title="Edit <?= $user['first_name'] ?>&apos;s account" onclick="window.location.href=\'index.php?to=account&user_id=<?= $user['user_id'] ?>\'"><i class="fas fa-users"></i></button>';
+            var isAdmin = <?= $auth->getUserRole() === 'admin' ? 'true' : 'false' ?>;
+            var isOwner = <?= $_SESSION['user_id'] == $user_id ? 'true' : 'false' ?>;
+
+            if (!isAdmin) {
+                optionsContainer.innerHTML = treeButtonHtml;
+            }
+
+            if ((isAdmin || isOwner) && !optionsContainer.querySelector('[data-individual-account-button]')) {
+                optionsContainer.insertAdjacentHTML('afterbegin', accountButtonHtml);
+            }
         });
         <?php } ?>
-            
     </script>
 <?php 
 }

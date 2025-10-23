@@ -5,6 +5,15 @@ if(isset($_GET['individual_id'])) {
     $individual_id = $_GET['individual_id'];
     $pagetitlesuffix = Utils::getIndividualName($individual_id);
 }
+
+$bodyClasses = ['bg-cream', 'text-brown', 'font-sans'];
+$currentRoute = isset($_GET['to']) ? strtolower($_GET['to']) : '';
+$isIndividualPage = $currentRoute === 'family/individual';
+if ($isIndividualPage) {
+    $bodyClasses[] = 'individual-page';
+} else {
+    $bodyClasses[] = 'non-individual-page';
+}
 ?>
 
 <!DOCTYPE html>
@@ -16,7 +25,7 @@ if(isset($_GET['individual_id'])) {
     <!-- Tailwind CSS -->
     <link href="styles/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/font-awesome/css/all.min.css">
-    <link href="styles/styles.css" rel="stylesheet">
+    <link href="styles/styles.css?v=3" rel="stylesheet">
 
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="styles/dTree.css">
@@ -29,7 +38,7 @@ if(isset($_GET['individual_id'])) {
     <script src="js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
     
     <!-- Link to main js file -->
-    <script src="js/index.js"></script>
+    <script src="js/index.js?v=2"></script>
 
     <!-- Link to dTree JavaScript -->
     <script src="vendor/lodash/lodash.js"></script>
@@ -49,7 +58,7 @@ if($auth->getUserRole() == 'admin') {
 ?>
 
 
-<body class="bg-cream text-brown font-sans">
+<body class="<?= implode(' ', $bodyClasses) ?>">
 <input type='hidden' id='js_user_id' value='<?= isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '' ?>'>
 
     <!-- shared modal prompt for all pages --> 
@@ -73,8 +82,8 @@ if($auth->getUserRole() == 'admin') {
     </div>
 
     <!-- Header -->
-    <header class="bg-deep-green text-white p-4">
-        <div class="container mx-auto flex items-center justify-between">
+    <header class="site-header fixed top-0 left-0 right-0 bg-deep-green text-white shadow-lg z-50">
+        <div class="container mx-auto flex items-center justify-between p-4 relative">
             <!-- Sitename -->
             <div class="text-left whitespace-nowrap">
                 <h1 class="text-xl font-bold"><a href="index.php"><?= $site_name ?></a></h1>
@@ -102,7 +111,7 @@ if($auth->getUserRole() == 'admin') {
             </div>
             
             <!-- Mobile Navigation Menu -->
-            <div id="nav-menu" class="hidden md:hidden flex-grow absolute top-16 right-0 w-full bg-deep-green text-white z-30 text-center">
+            <div id="nav-menu" class="hidden sm:hidden flex-grow absolute top-[calc(100%+0.5rem)] right-0 w-full bg-deep-green text-white z-40 text-center rounded-b-lg shadow-lg">
                 <a href='?to=origins/' class="block px-4 py-2 text-white">Origins</a>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white">Tree</a>
@@ -224,23 +233,188 @@ if($auth->getUserRole() == 'admin') {
     </div>      
 
     <script>
-        document.getElementById('nav-toggle').addEventListener('click', function() {
-            var navMenu = document.getElementById('nav-menu');
-            if (navMenu.classList.contains('hidden')) {
-                navMenu.classList.remove('hidden');
-            } else {
-                navMenu.classList.add('hidden');
+        (function () {
+            function onReady(callback) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', callback, { once: true });
+                } else {
+                    callback();
+                }
             }
-        });
-        document.addEventListener('DOMContentLoaded', function() {
-            var userMenuButton = document.getElementById('user-menu-button');
-            if (userMenuButton) {
-                userMenuButton.addEventListener('click', function() {
-                    var menu = document.getElementById('user-menu');
-                    if (menu) {
-                        menu.classList.toggle('hidden');
+
+            onReady(function () {
+                var header = document.querySelector('.site-header');
+                function getHeaderHeight() {
+                    return header ? header.offsetHeight : 0;
+                }
+
+                function applyHeaderOffset() {
+                    if (!header) {
+                        header = document.querySelector('.site-header');
                     }
-                });
-            }
-        });
+                    if (!header) {
+                        return;
+                    }
+                    document.body.classList.add('has-fixed-header');
+                    document.body.style.setProperty('--header-height', getHeaderHeight() + 'px');
+                }
+
+                applyHeaderOffset();
+                window.addEventListener('resize', applyHeaderOffset);
+
+                var navToggle = document.getElementById('nav-toggle');
+                var navMenu = document.getElementById('nav-menu');
+
+                function positionNavMenu() {
+                    if (!navMenu || navMenu.classList.contains('hidden')) {
+                        return;
+                    }
+                    var headerHeight = getHeaderHeight();
+                    navMenu.style.position = 'fixed';
+                    navMenu.style.top = headerHeight + 8 + 'px';
+                    navMenu.style.left = '0';
+                    navMenu.style.right = '0';
+                    navMenu.style.zIndex = '900';
+                    navMenu.style.maxHeight = 'calc(100vh - ' + (headerHeight + 12) + 'px)';
+                    navMenu.style.overflowY = 'auto';
+                }
+
+                function closeNavMenu() {
+                    if (!navMenu || navMenu.classList.contains('hidden')) {
+                        return;
+                    }
+                    navMenu.classList.add('hidden');
+                    navMenu.style.position = '';
+                    navMenu.style.top = '';
+                    navMenu.style.left = '';
+                    navMenu.style.right = '';
+                    navMenu.style.maxHeight = '';
+                    navMenu.style.overflowY = '';
+                }
+
+                if (navToggle && navMenu) {
+                    navToggle.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (navMenu.classList.contains('hidden')) {
+                            navMenu.classList.remove('hidden');
+                            requestAnimationFrame(positionNavMenu);
+                        } else {
+                            closeNavMenu();
+                        }
+                    });
+
+                    navMenu.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                    });
+
+                    document.addEventListener('click', function (event) {
+                        if (navMenu.classList.contains('hidden')) {
+                            return;
+                        }
+                        if (!navMenu.contains(event.target) && !navToggle.contains(event.target)) {
+                            closeNavMenu();
+                        }
+                    });
+
+                    window.addEventListener('resize', function () {
+                        if (!navMenu.classList.contains('hidden')) {
+                            positionNavMenu();
+                        }
+                    });
+
+                    window.addEventListener('scroll', function () {
+                        if (!navMenu.classList.contains('hidden')) {
+                            positionNavMenu();
+                        }
+                    }, true);
+                }
+
+                var userMenuButton = document.getElementById('user-menu-button');
+                var userMenu = document.getElementById('user-menu');
+
+                function positionUserMenu() {
+                    if (!userMenu || userMenu.classList.contains('hidden')) {
+                        return;
+                    }
+                    var headerHeight = getHeaderHeight();
+                    var buttonRect = userMenuButton.getBoundingClientRect();
+                    var topOffset = headerHeight + 8;
+                    var menuWidth = userMenu.offsetWidth || 192;
+                    var leftOffset = buttonRect.right - menuWidth;
+                    if (leftOffset + menuWidth > window.innerWidth - 8) {
+                        leftOffset = window.innerWidth - menuWidth - 8;
+                    }
+                    if (leftOffset < 8) {
+                        leftOffset = 8;
+                    }
+                    userMenu.style.position = 'fixed';
+                    userMenu.style.zIndex = '1000';
+                    userMenu.style.top = Math.max(8, topOffset) + 'px';
+                    userMenu.style.left = leftOffset + 'px';
+                    userMenu.style.right = 'auto';
+                    userMenu.style.maxHeight = '';
+                    userMenu.style.overflowY = '';
+                    var menuRect = userMenu.getBoundingClientRect();
+                    if (menuRect.bottom > window.innerHeight - 8) {
+                        var availableHeight = window.innerHeight - menuRect.top - 12;
+                        if (availableHeight > 120) {
+                            userMenu.style.maxHeight = availableHeight + 'px';
+                            userMenu.style.overflowY = 'auto';
+                        }
+                    }
+                }
+
+                function closeUserMenu() {
+                    if (!userMenu || userMenu.classList.contains('hidden')) {
+                        return;
+                    }
+                    userMenu.classList.add('hidden');
+                    userMenu.style.position = '';
+                    userMenu.style.top = '';
+                    userMenu.style.left = '';
+                    userMenu.style.right = '';
+                    userMenu.style.maxHeight = '';
+                    userMenu.style.overflowY = '';
+                }
+
+                if (userMenuButton && userMenu) {
+                    userMenuButton.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (userMenu.classList.contains('hidden')) {
+                            userMenu.classList.remove('hidden');
+                            requestAnimationFrame(positionUserMenu);
+                        } else {
+                            closeUserMenu();
+                        }
+                    });
+
+                    userMenu.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                    });
+
+                    document.addEventListener('click', function (event) {
+                        if (userMenu.classList.contains('hidden')) {
+                            return;
+                        }
+                        if (!userMenu.contains(event.target) && !userMenuButton.contains(event.target)) {
+                            closeUserMenu();
+                        }
+                    });
+
+                    window.addEventListener('resize', function () {
+                        if (!userMenu.classList.contains('hidden')) {
+                            positionUserMenu();
+                        }
+                    });
+
+                    window.addEventListener('scroll', function () {
+                        if (!userMenu.classList.contains('hidden')) {
+                            positionUserMenu();
+                        }
+                    }, true);
+                }
+            });
+        })();
     </script>

@@ -1,3 +1,44 @@
+﻿body.has-fixed-header {
+    padding-top: var(--header-height, 72px);
+}
+
+.site-header {
+    backdrop-filter: blur(6px);
+    background-color: rgba(var(--deep-green-red), var(--deep-green-green), var(--deep-green-blue), 0.95);
+}
+
+.site-header .container {
+    align-items: center;
+}
+
+body.non-individual-page .hero {
+    padding-top: 5rem !important;
+    padding-bottom: 5rem !important;
+}
+
+body.non-individual-page .hero h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+}
+
+@media (max-width: 768px) {
+    body.non-individual-page .hero {
+        padding-top: 3.5rem !important;
+        padding-bottom: 3.5rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    body.non-individual-page .hero {
+        padding-top: 2.5rem !important;
+        padding-bottom: 2.5rem !important;
+    }
+    body.non-individual-page .hero h2 {
+        font-size: 1.75rem;
+    }
+    body.non-individual-page .hero p {
+        font-size: 1rem;
+    }
+}
 /* Custom Fijian-Inspired Colors */
 :root {
     --brown: RGB(107, 66, 38);
@@ -516,6 +557,50 @@ section.content a {
     border-radius: 8px;  /* Rounded corners for a cleaner look */
     max-width: 80%;  /* Restrict content width */
     margin: 0 auto;  /* Center the content */
+    transition: padding 1.4s ease-in-out;
+}
+
+.hero-collapsible {
+    overflow: hidden;
+    transition: max-height 4.2s ease-in-out, padding 4.2s ease-in-out;
+}
+
+@media (max-width: 640px) {
+    .hero-collapsible {
+        max-height: 999px;
+    }
+
+    .hero-collapsible.hero-collapsed {
+        max-height: 6.75rem;
+        padding-top: 0 !important;
+        padding-bottom: 0.75rem !important;
+        cursor: pointer;
+    }
+
+    .hero-collapsible.hero-collapsed .hero-content {
+        padding: 1.5rem 1.5rem 1rem;
+        margin-top: 0;
+        max-width: 92%;
+    }
+
+    .hero-collapsible .hero-content > h2 {
+        transition: font-size 1.4s ease-in-out, line-height 1.4s ease-in-out;
+    }
+
+    .hero-collapsible.hero-collapsed .hero-content > h2 {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+
+.hero-collapsible:not(.hero-collapsed) .hero-content > h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+}
+
+.feed-sentinel {
+    height: 1px;
+    width: 100%;
+}
 }
 
 .hero-image {
@@ -1439,3 +1524,4 @@ section.content a {
 .nv-timeline-text h4 {
     margin-top: 0;
 }
+

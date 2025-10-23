@@ -73,6 +73,7 @@ if (substr($page, -1) == "/") {
 }
 // Construct the full path for the page to be included
 $pagePath = 'views/' . $page . '.php';
+//echo "<pre>"; print_r($pagePath); echo "</pre>";
 
 // Extract the directory from the requested page (e.g., 'family' from 'views/family/tree.php')
 $path_parts = explode('/', $page);
