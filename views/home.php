@@ -1,5 +1,30 @@
-<?php
+﻿<?php
 
+if (!function_exists('nvFeedSanitizeHtml')) {
+    function nvFeedSanitizeHtml(string $html): string
+    {
+        $allowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><span>';
+        $clean = strip_tags($html, $allowed);
+        if ($clean === null || $clean === '') {
+            return '';
+        }
+        $clean = preg_replace_callback('/<a\b[^>]*>/i', static function ($matches) {
+            $tag = $matches[0];
+            $hasTarget = stripos($tag, 'target=') !== false;
+            $hasRel = stripos($tag, 'rel=') !== false;
+            $result = rtrim($tag, '>');
+            if (!$hasTarget) {
+                $result .= ' target="_blank"';
+            }
+            if (!$hasRel) {
+                $result .= ' rel="noopener"';
+            }
+            $result .= '>';
+            return $result;
+        }, $clean);
+        return $clean;
+    }
+}
 // Check if the user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
 // Set the default "view new" as being the last login time
@@ -109,10 +134,24 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
             continue;
         }
         $isTreeDiscussion = !empty($discussion['individual_id']);
+        $discussionContentRaw = isset($discussion['content']) ? stripslashes($discussion['content']) : '';
+        $discussionSnippetHtml = '';
+        if ($discussionContentRaw !== '') {
+            $discussionSnippetHtml = nvFeedSanitizeHtml(
+                $web->truncateText(
+                    nl2br($discussionContentRaw),
+                    80,
+                    'Read more',
+                    'feed_discussion_' . $discussion['discussionId'],
+                    'expand'
+                )
+            );
+        }
         $feedEntries[] = [
             'type'      => $discussion['change_type'] === 'comment' ? 'comment' : 'discussion',
             'title'     => stripslashes($discussion['title']),
-            'content'   => $createSnippet($discussion['content'], 28),
+            'content'   => $createSnippet($discussionContentRaw, 28),
+            'content_html' => $discussionSnippetHtml,
             'meta'      => [
                 'actor_name' => trim(($discussion['user_first_name'] ?? '') . ' ' . ($discussion['user_last_name'] ?? '')),
                 'actor_id'   => $discussion['user_id'] ?? null,
@@ -480,7 +519,9 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
                                     <?php endif; ?>
                                 </h4>
                             <?php endif; ?>
-                            <?php if (!empty($entry['content'])): ?>
+                            <?php if (!empty($entry['content_html'])): ?>
+                                <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
+                            <?php elseif (!empty($entry['content'])): ?>
                                 <p class="feed-item-summary text-sm text-gray-600 mb-3"><?= htmlspecialchars($entry['content']) ?></p>
                             <?php endif; ?>
                             <?php if ($type === 'item' && !empty($entry['media'])): ?>
@@ -683,4 +724,6 @@ if(isset($_GET['changessince']) && $_GET['changessince'] != "lastlogin") {
     </section>
 
 <?php endif; ?>
+
+
 

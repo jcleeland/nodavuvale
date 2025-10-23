@@ -905,6 +905,28 @@ if ($individual_id) {
                                             </div>
                                             <div class="hidden" id="hiddenStory_<?= $item['item_id'] ?>"><?= nl2br(htmlspecialchars(stripslashes($item['detail_value']))) ?></div>                                                    
 
+                                        <?php elseif(strcasecmp($itemname, 'GPS') === 0 && !empty(trim((string) $item['detail_value']))): ?>
+                                            <?php
+                                                $coordinates = trim((string) $item['detail_value']);
+                                                $mapUrl = '';
+                                                if (strpos($coordinates, ',') !== false) {
+                                                    [$lat, $lng] = array_map('trim', explode(',', $coordinates, 2));
+                                                    if (is_numeric($lat) && is_numeric($lng)) {
+                                                        $mapUrl = 'https://www.google.com/maps?q=' . urlencode($lat . ',' . $lng);
+                                                    }
+                                                }
+                                            ?>
+                                            <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
+                                                <span id="item_<?= $item['item_id'] ?>" class="mb-2 text-gray-600 text-xs inline-flex items-center gap-2" title="Double click to edit this GPS value" onDblClick="triggerEditItemDescription('item_<?= $item['item_id'] ?>')">
+                                                    <?= htmlspecialchars($coordinates, ENT_QUOTES, 'UTF-8') ?>
+                                                    <?php if ($mapUrl): ?>
+                                                        <a href="<?= htmlspecialchars($mapUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="text-ocean-blue hover:text-burnt-orange" title="View on Google Maps">
+                                                            <i class="fas fa-map-location-dot"></i>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </span>
+                                            </div>
+
                                         <?php elseif($item_styles[$itemname] == "date" && $item['detail_value'] && preg_match("/\d{4}-\d{2}-\d{2}/", $item['detail_value'])) : ?>
                                     
                                             <div class="float-left w-2/3 overflow-auto overflow-scroll max-h-32 leading-tight">
