@@ -675,7 +675,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     $dashboardDropdownPanels = trim(ob_get_clean());
     $hasDropdownPanels = trim($dashboardDropdownPanels) !== '';
 
-    $descendancy = null;
+    $descendancy = [];
     if($user && !empty($user['individuals_id'])) {
         $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
     }

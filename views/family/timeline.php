@@ -331,11 +331,25 @@ $deathInfo = nvTimelineCreateDateFromParts(
 );
 $assumedBirth = false;
 $assumedDeath = false;
+$descendantGenerations = 0;
+$descendantData = Utils::getDescendantsByGeneration($individualId);
+if (!empty($descendantData) && is_array($descendantData)) {
+    $descendantGenerations = (int) max(array_keys($descendantData));
+}
+$descendantGenerations = min(3, max(0, $descendantGenerations));
+$descendantAgeRanges = [
+    0 => [28, 36],
+    1 => [33, 42],
+    2 => [50, 70],
+    3 => [80, 100],
+];
+$birthOffsetRange = $descendantAgeRanges[$descendantGenerations];
 if (!$birthInfo && $deathInfo) {
-    $fallbackDate = $deathInfo['date']->sub(new DateInterval('P82Y'));
+    $randomYears = random_int($birthOffsetRange[0], $birthOffsetRange[1]);
+    $fallbackDate = $deathInfo['date']->sub(new DateInterval('P' . $randomYears . 'Y'));
     $birthInfo = [
         'date' => $fallbackDate,
-        'label' => $fallbackDate->format('Y'),
+        'label' => 'Estimated birth year',
         'precision' => 'year',
     ];
     $assumedBirth = true;
@@ -353,7 +367,7 @@ if (!$birthInfo && !$deathInfo) {
     $now = new DateTimeImmutable('now');
     $birthInfo = [
         'date' => $now->sub(new DateInterval('P50Y')),
-        'label' => $now->sub(new DateInterval('P50Y'))->format('Y'),
+        'label' => 'Estimated birth year',
         'precision' => 'year',
     ];
     $deathInfo = [
@@ -724,27 +738,41 @@ if ($nvTimelineDebug) {
 }
 $firstOriginalEvent = $timelineEvents[0] ?? null;
 $lastOriginalEvent = !empty($timelineEvents) ? $timelineEvents[count($timelineEvents) - 1] : null;
-$rangeStartLabel = $birthInfo['label'] ?? ($firstOriginalEvent['display_date'] ?? '');
+$knownBirthYear = (!$assumedBirth && $birthInfo && isset($birthInfo['date'])) ? $birthInfo['date']->format('Y') : null;
+$knownDeathYear = (!$assumedDeath && $deathInfo && isset($deathInfo['date'])) ? $deathInfo['date']->format('Y') : null;
+$rangeStartLabel = '';
 $rangeEndLabel = '';
-if ($deathEventIncluded && $deathInfo) {
-    $rangeEndLabel = $deathInfo['label'];
-} elseif ($lastOriginalEvent && !empty($lastOriginalEvent['display_date'])) {
-    $rangeEndLabel = $lastOriginalEvent['display_date'];
+
+if ($knownBirthYear) {
+    $rangeStartLabel = $knownBirthYear;
+} elseif ($birthInfo) {
+    $rangeStartLabel = 'Birth';
 }
-if (!$rangeEndLabel) {
+if ($rangeStartLabel === '') {
+    $rangeStartLabel = 'Birth';
+}
+
+if ($knownDeathYear) {
+    $rangeEndLabel = $knownDeathYear;
+} elseif ($deathInfo) {
+    $deathDate = $deathInfo['date'] ?? null;
+    if ($deathDate instanceof DateTimeImmutable && isset($birthInfo['date']) && $birthInfo['date'] instanceof DateTimeImmutable) {
+        $expectedLifespan = $birthInfo['date']->add(new DateInterval('P105Y'));
+        $rangeEndLabel = (nvTimelineCompareDates($expectedLifespan, new DateTimeImmutable('now')) >= 0) ? 'Present' : 'Estimated death';
+    } else {
+        $rangeEndLabel = 'Present';
+    }
+} else {
     $rangeEndLabel = 'Present';
 }
-if (!$rangeStartLabel) {
-    $rangeStartLabel = $rangeEndLabel !== 'Present' ? $rangeEndLabel : $personName;
+if ($rangeEndLabel === '') {
+    $rangeEndLabel = 'Estimated death';
 }
-if ($rangeStartLabel === $rangeEndLabel) {
-    $rangeLabel = $rangeStartLabel;
-} else {
-    $rangeLabel = trim($rangeStartLabel . ' - ' . $rangeEndLabel, ' -');
-    if ($rangeLabel === '') {
-        $rangeLabel = 'Timeline';
-    }
-}
+
+$rangeLabelParts = array_filter([$rangeStartLabel, $rangeEndLabel], static function ($part) {
+    return $part !== '' && stripos($part, 'estimated birth year') === false;
+});
+$rangeLabel = implode(' - ', $rangeLabelParts);
 $renderEvents = [];
 if (!empty($timelineEvents)) {
     $currentY = 56.0;
@@ -1131,7 +1159,13 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
     <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/90 p-6 shadow-lg ring-1 ring-slate-100">
         <div>
             <h3 class="text-2xl font-semibold text-slate-800">Life Timeline</h3>
-            <p class="text-sm text-slate-500"><?= htmlspecialchars($rangeLabel, ENT_QUOTES) ?> - <?= htmlspecialchars($personName, ENT_QUOTES) ?></p>
+            <p class="text-sm text-slate-500">
+                <?php if ($rangeLabel !== '' && strcasecmp($rangeLabel, 'Timeline') !== 0): ?>
+                    <?= htmlspecialchars($rangeLabel, ENT_QUOTES) ?>
+                    <span aria-hidden="true">&mdash;</span>
+                <?php endif; ?>
+                <?= htmlspecialchars($personName, ENT_QUOTES) ?>
+            </p>
         </div>
         <div class="flex flex-wrap items-center gap-6 text-sm text-slate-600">
             <label class="flex items-center gap-2 font-medium">
