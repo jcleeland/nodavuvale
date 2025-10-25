@@ -701,7 +701,7 @@ if ($individual_id) {
                                                         Added by <b><?= htmlspecialchars($comment['first_name']) ?> <?= $comment['last_name'] ?></b><br />
                                                         <span title="<?= date('F j, Y, g:i a', strtotime($comment['created_at'])) ?>"><?= $web->timeSince($comment['created_at']); ?></span>
                                                         <?php if ($is_admin || $_SESSION['user_id'] == $comment['user_id']): ?>
-                                                            <button type="button" title="Delete this story" onClick="deleteStoryComment(<?= $comment['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
+                                                            <button type="button" title="Delete this comment" onClick="deleteIndividualComment(<?= $comment['id'] ?>, <?= (int) $individual['id'] ?>);" class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-2 top-2 font-normal text-xs">
                                                                 Delete
                                                             </button>
                                                         <?php endif; ?>                                                        

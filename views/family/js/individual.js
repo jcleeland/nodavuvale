@@ -1229,6 +1229,34 @@ function deleteComment(commentId) {
     }
 }
 
+function deleteIndividualComment(commentId, individualId) {
+    if (!commentId || !individualId) {
+        return;
+    }
+    if (!confirm('Are you sure you want to delete this comment?')) {
+        return;
+    }
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '?to=family/individual&individual_id=' + individualId;
+
+    var deleteInput = document.createElement('input');
+    deleteInput.type = 'hidden';
+    deleteInput.name = 'delete_comment';
+    deleteInput.value = 'true';
+    form.appendChild(deleteInput);
+
+    var idInput = document.createElement('input');
+    idInput.type = 'hidden';
+    idInput.name = 'commentId';
+    idInput.value = commentId;
+    form.appendChild(idInput);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
 function deleteRelationship(relationshipId, individualCardId, relationshipType) {
     if (confirm('Are you sure you want to delete this relationship? This will not change any of the individual records, just the connection between the two.')) {
         // Perform the deletion via AJAX or redirect to a URL with the necessary parameters

@@ -1510,6 +1510,175 @@ class Utils {
     }
 
     /**
+     * Returns a list of discussion comments grouped by discussion ID.
+     *
+     * @param array $discussionIds
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public static function getDiscussionCommentsByIds(array $discussionIds): array
+    {
+        $discussionIds = array_values(array_unique(array_filter(array_map('intval', $discussionIds))));
+        if (empty($discussionIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($discussionIds), '?'));
+        $sql = "
+            SELECT discussion_comments.*, users.first_name, users.last_name, users.avatar
+            FROM discussion_comments
+            JOIN users ON discussion_comments.user_id = users.id
+            WHERE discussion_comments.discussion_id IN ($placeholders)
+            ORDER BY discussion_comments.created_at ASC
+        ";
+
+        $db = Database::getInstance();
+        $rows = $db->fetchAll($sql, $discussionIds);
+        $grouped = [];
+        foreach ($rows as $row) {
+            $discussionId = (int) $row['discussion_id'];
+            if (!isset($grouped[$discussionId])) {
+                $grouped[$discussionId] = [];
+            }
+            $grouped[$discussionId][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Returns reaction summaries for discussions keyed by discussion ID.
+     *
+     * @param array $discussionIds
+     * @return array<int, array<string, int>>
+     */
+    public static function getDiscussionReactionSummaryByIds(array $discussionIds): array
+    {
+        $discussionIds = array_values(array_unique(array_filter(array_map('intval', $discussionIds))));
+        if (empty($discussionIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($discussionIds), '?'));
+        $sql = "
+            SELECT discussion_id, reaction_type, COUNT(*) AS reaction_count
+            FROM discussion_reactions
+            WHERE discussion_id IN ($placeholders)
+            GROUP BY discussion_id, reaction_type
+        ";
+
+        $db = Database::getInstance();
+        $rows = $db->fetchAll($sql, $discussionIds);
+        $baseline = self::getReactionBaseline();
+        $summaries = [];
+
+        foreach ($discussionIds as $discussionId) {
+            $summaries[$discussionId] = $baseline;
+        }
+
+        foreach ($rows as $row) {
+            $discussionId = (int) $row['discussion_id'];
+            if (!isset($summaries[$discussionId])) {
+                $summaries[$discussionId] = $baseline;
+            }
+            $reactionType = strtolower((string) $row['reaction_type']);
+            if ($reactionType === '') {
+                continue;
+            }
+
+            if (!array_key_exists($reactionType, $summaries[$discussionId])) {
+                $summaries[$discussionId][$reactionType] = 0;
+            }
+            $summaries[$discussionId][$reactionType] = (int) $row['reaction_count'];
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * Returns a list of item comments grouped by item ID.
+     *
+     * @param array $itemIds
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public static function getItemCommentsByItemIds(array $itemIds): array
+    {
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds))));
+        if (empty($itemIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+        $sql = "
+            SELECT item_comments.*, users.first_name, users.last_name, users.avatar
+            FROM item_comments
+            JOIN users ON item_comments.user_id = users.id
+            WHERE item_comments.item_id IN ($placeholders)
+            ORDER BY item_comments.created_at ASC
+        ";
+
+        $db = Database::getInstance();
+        $rows = $db->fetchAll($sql, $itemIds);
+        $grouped = [];
+        foreach ($rows as $row) {
+            $itemId = (int) $row['item_id'];
+            if (!isset($grouped[$itemId])) {
+                $grouped[$itemId] = [];
+            }
+            $grouped[$itemId][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Returns reaction summaries for items keyed by item ID.
+     *
+     * @param array $itemIds
+     * @return array<int, array<string, int>>
+     */
+    public static function getItemReactionSummaryByItemIds(array $itemIds): array
+    {
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds))));
+        if (empty($itemIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+        $sql = "
+            SELECT item_id, reaction_type, COUNT(*) AS reaction_count
+            FROM item_reactions
+            WHERE item_id IN ($placeholders)
+            GROUP BY item_id, reaction_type
+        ";
+
+        $db = Database::getInstance();
+        $rows = $db->fetchAll($sql, $itemIds);
+        $baseline = self::getReactionBaseline();
+        $summaries = [];
+
+        foreach ($itemIds as $itemId) {
+            $summaries[$itemId] = $baseline;
+        }
+
+        foreach ($rows as $row) {
+            $itemId = (int) $row['item_id'];
+            if (!isset($summaries[$itemId])) {
+                $summaries[$itemId] = $baseline;
+            }
+            $reactionType = strtolower((string) $row['reaction_type']);
+            if ($reactionType === '') {
+                continue;
+            }
+            if (!array_key_exists($reactionType, $summaries[$itemId])) {
+                $summaries[$itemId][$reactionType] = 0;
+            }
+            $summaries[$itemId][$reactionType] = (int) $row['reaction_count'];
+        }
+
+        return $summaries;
+    }
+
+    /**
      * Get the name of an individual given their ID.
      * 
      * @param int $individual_id The ID of the individual.
@@ -2164,5 +2333,23 @@ class Utils {
         return $privacy_settings;
 
         
+    }
+
+    /**
+     * Returns a baseline reaction map with supported reactions set to zero.
+     *
+     * @return array<string, int>
+     */
+    protected static function getReactionBaseline(): array
+    {
+        return [
+            'like'  => 0,
+            'love'  => 0,
+            'haha'  => 0,
+            'wow'   => 0,
+            'sad'   => 0,
+            'angry' => 0,
+            'care'  => 0,
+        ];
     }
 }

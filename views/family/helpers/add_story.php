@@ -67,6 +67,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_comment'])) {
     }
 }
 
+//Deleting a comment
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment']) && $_POST['delete_comment'] === 'true') {
+    $commentId = isset($_POST['commentId']) ? (int) $_POST['commentId'] : 0;
+    $currentUserId = $_SESSION['user_id'] ?? 0;
+
+    if ($commentId > 0 && $currentUserId) {
+        $comment = $db->fetchOne("SELECT user_id FROM discussion_comments WHERE id = ?", [$commentId]);
+        if ($comment && ($comment['user_id'] == $currentUserId || $auth->getUserRole() === 'admin')) {
+            try {
+                $db->beginTransaction();
+                $db->query("DELETE FROM comment_reactions WHERE comment_id = ?", [$commentId]);
+                $db->query("DELETE FROM discussion_comments WHERE id = ?", [$commentId]);
+                $db->commit();
+            } catch (Exception $e) {
+                if (method_exists($db, 'rollBack')) {
+                    $db->rollBack();
+                }
+                error_log($e->getMessage());
+            }
+        }
+    }
+    ?>
+    <script>
+        window.location = '?to=family/individual&individual_id=<?= $individual_id ?>';
+    </script>
+    <?php
+}
+
 ?>
     <div id="storyModal" class="modal">
         <div class="modal-content w-4/5 sm:w-3/5 min-w-15 max-w-20 max-h-screen my-5 overflow-y-auto">

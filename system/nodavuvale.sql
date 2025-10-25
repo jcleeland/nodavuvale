@@ -120,6 +120,43 @@ CREATE TABLE IF NOT EXISTS `discussion_reactions` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 -- --------------------------------------------------------
+--
+-- Table structure for table `item_reactions`
+--
+DROP TABLE IF EXISTS `item_reactions`;
+CREATE TABLE IF NOT EXISTS `item_reactions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `item_id` int NOT NULL,
+  `item_identifier` int DEFAULT NULL,
+  `user_id` int NOT NULL,
+  `reaction_type` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
+  `reacted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `item_id` (`item_id`),
+  KEY `item_identifier` (`item_identifier`),
+  KEY `user_id` (`user_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+
+-- --------------------------------------------------------
+--
+-- Table structure for table `item_comments`
+--
+DROP TABLE IF EXISTS `item_comments`;
+CREATE TABLE IF NOT EXISTS `item_comments` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `item_id` int NOT NULL,
+  `item_identifier` int DEFAULT NULL,
+  `user_id` int NOT NULL,
+  `comment` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `item_id` (`item_id`),
+  KEY `item_identifier` (`item_identifier`),
+  KEY `user_id` (`user_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+
+-- --------------------------------------------------------
 
 --
 -- Table structure for table `files`

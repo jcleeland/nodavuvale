@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 if (!function_exists('nvFeedSanitizeHtml')) {
     function nvFeedSanitizeHtml(string $html): string
@@ -349,6 +349,29 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         'visitor'    => ['label' => 'Latest visit',      'icon' => 'fas fa-door-open'],
     ];
 
+    $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
+    $isCurrentUserAdmin = ($auth->getUserRole() === 'admin');
+    $reactionEmojiMap = [
+        'like'  => '👍',
+        'love'  => '❤️',
+        'haha'  => '😂',
+        'wow'   => '😮',
+        'sad'   => '😢',
+        'angry' => '😡',
+        'care'  => '🤗',
+    ];
+
+
+    $discussionIds = [];
+    foreach ($changes['discussions'] as $discussionMeta) {
+        if (!empty($discussionMeta['discussionId'])) {
+            $discussionIds[] = (int) $discussionMeta['discussionId'];
+        }
+    }
+    $discussionIds = array_values(array_unique(array_filter($discussionIds)));
+    $discussionReactionSummaries = Utils::getDiscussionReactionSummaryByIds($discussionIds);
+    $discussionCommentsLookup = Utils::getDiscussionCommentsByIds($discussionIds);
+
     $createSnippet = function ($text, $wordLimit = 24) {
         $clean = trim(strip_tags((string) $text));
         if ($clean === '') {
@@ -427,6 +450,12 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 : "?to=communications/discussions&discussion_id={$discussion['discussionId']}",
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
+            'interactions' => [
+                'type'             => 'discussion',
+                'target_id'        => (int) $discussion['discussionId'],
+                'reaction_summary' => $discussionReactionSummaries[(int) $discussion['discussionId']] ?? [],
+                'comments'         => $discussionCommentsLookup[(int) $discussion['discussionId']] ?? [],
+            ],
         ];
     }
 
@@ -484,7 +513,46 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         }
     }
 
-    foreach ($itemGroupings as $itemGroup) {
+    $itemInteractionMeta = [];
+    $itemTargetIds = [];
+    foreach ($itemGroupings as $groupKey => $group) {
+        if (empty($group['items']) || !is_array($group['items'])) {
+            $itemInteractionMeta[$groupKey] = null;
+            continue;
+        }
+        $primaryItemId = null;
+        $itemIdentifier = null;
+        foreach ($group['items'] as $groupItem) {
+            if ($itemIdentifier === null && !empty($groupItem['item_identifier'])) {
+                $itemIdentifier = (int) $groupItem['item_identifier'];
+            }
+            if (!empty($groupItem['item_id'])) {
+                $candidateId = (int) $groupItem['item_id'];
+                if ($primaryItemId === null) {
+                    $primaryItemId = $candidateId;
+                }
+                if (isset($groupItem['detail_type']) && strtolower((string) $groupItem['detail_type']) === 'story') {
+                    $primaryItemId = $candidateId;
+                }
+            }
+        }
+        if ($primaryItemId !== null) {
+            $itemInteractionMeta[$groupKey] = [
+                'item_id' => $primaryItemId,
+                'item_identifier' => $itemIdentifier,
+                'group_name' => $group['item_group_name'] ?? '',
+            ];
+            $itemTargetIds[$primaryItemId] = true;
+        } else {
+            $itemInteractionMeta[$groupKey] = null;
+        }
+    }
+    $itemTargetIdList = array_keys($itemTargetIds);
+    $itemReactionSummaries = Utils::getItemReactionSummaryByItemIds($itemTargetIdList);
+    $itemCommentsLookup = Utils::getItemCommentsByItemIds($itemTargetIdList);
+    $nonInteractiveItemGroups = ['Birth', 'Death', 'Name'];
+
+    foreach ($itemGroupings as $groupKey => $itemGroup) {
         if (empty($itemGroup['items'])) {
             continue;
         }
@@ -501,6 +569,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         $groupTitle = !empty($firstItem['item_group_name'])
             ? $firstItem['item_group_name']
             : ($firstItem['detail_type'] ?? 'Update');
+        $groupTitleTrimmed = trim($groupTitle);
         $snippet = '';
         $detailRows = [];
         $detailRowKeys = [];
@@ -613,9 +682,21 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         if ($snippet === '' && !empty($firstItem['file_path'])) {
             $snippet = 'New file attached.';
         }
+        $interaction = null;
+        $interactionMeta = $itemInteractionMeta[$groupKey] ?? null;
+        if ($interactionMeta && !in_array($groupTitleTrimmed, $nonInteractiveItemGroups, true)) {
+            $itemTargetId = $interactionMeta['item_id'];
+            $interaction = [
+                'type'             => 'item',
+                'target_id'        => $itemTargetId,
+                'item_identifier'  => $interactionMeta['item_identifier'],
+                'reaction_summary' => $itemReactionSummaries[$itemTargetId] ?? [],
+                'comments'         => $itemCommentsLookup[$itemTargetId] ?? [],
+            ];
+        }
         $feedEntries[] = [
             'type'      => 'item',
-            'title'     => trim($groupTitle) !== '' ? $groupTitle . ' update for ' . $personName : 'New update for ' . $personName,
+            'title'     => $groupTitleTrimmed !== '' ? $groupTitleTrimmed . ' update for ' . $personName : 'New update for ' . $personName,
             'content'   => $snippet,
             'meta'      => [
                 'actor_name'   => trim(($firstItem['first_name'] ?? '') . ' ' . ($firstItem['last_name'] ?? '')),
@@ -623,12 +704,13 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 'subject_name' => $personName,
                 'privacy'      => $itemGroup['privacy'] ?? 'private',
             ],
-            'url'       => "?to=family/individual&individual_id={$firstItem['individualId']}&tab=timelinetab",
+            'url'       => "?to=family/individual&individual_id={$firstItem['individualId']}&tab=eventstab",
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
             'details'   => $detailRows,
             'media'     => $mediaItems,
             'files'     => $fileLinks,
+            'interactions' => $interaction,
         ];
     }
 
@@ -734,7 +816,19 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             </h3>
         </div>
         <?php
-            $renderFeedEntry = static function (array $entry) use ($feedTypeMeta, $web) {
+            $renderReactionSummary = static function (array $summary, array $emojiMap): string {
+                $html = '';
+                foreach ($emojiMap as $reactionType => $emoji) {
+                    $count = isset($summary[$reactionType]) ? (int) $summary[$reactionType] : 0;
+                    if ($count > 0) {
+                        $html .= '<span class="reaction-item" title="' . htmlspecialchars(ucfirst($reactionType), ENT_QUOTES, 'UTF-8') . '">' .
+                            $emoji . ' <span class="reaction-count">' . $count . '</span></span> ';
+                    }
+                }
+                return trim($html);
+            };
+
+            $renderFeedEntry = static function (array $entry) use ($feedTypeMeta, $web, $currentUserId, $isCurrentUserAdmin, $reactionEmojiMap, $renderReactionSummary) {
                 $type = $entry['type'];
                 $meta = $feedTypeMeta[$type] ?? ['label' => ucfirst($type), 'icon' => 'fas fa-circle'];
                 $timestampLabel = isset($entry['timestamp']) ? date('l, d F Y g:ia', $entry['timestamp']) : '';
@@ -831,6 +925,89 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                                 <img src="<?= htmlspecialchars($entry['cover']) ?>" alt="Profile" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
                             <?php endif; ?>
                         </div>
+                    <?php
+                        $interaction = $entry['interactions'] ?? null;
+                        if ($interaction && !empty($interaction['type']) && !empty($interaction['target_id'])):
+                            $interactionType = $interaction['type'];
+                            $isDiscussionInteraction = ($interactionType === 'discussion');
+                            $targetId = (int) $interaction['target_id'];
+                            $reactionContainerClass = $isDiscussionInteraction ? 'discussion-reactions' : 'item-reactions';
+                            $targetAttributeName = $isDiscussionInteraction ? 'data-discussion-id' : 'data-item-id';
+                            $itemIdentifierAttribute = (!$isDiscussionInteraction && !empty($interaction['item_identifier']))
+                                ? ' data-item-identifier="' . (int) $interaction['item_identifier'] . '"'
+                                : '';
+                            $reactionSummaryHtml = $renderReactionSummary($interaction['reaction_summary'] ?? [], $reactionEmojiMap);
+                            $comments = is_array($interaction['comments'] ?? null) ? $interaction['comments'] : [];
+                    ?>
+                        <div class="feed-item-interactions mt-4" data-feed-interaction="<?= htmlspecialchars($interactionType, ENT_QUOTES, 'UTF-8') ?>" <?= $targetAttributeName ?>="<?= $targetId ?>">
+                            <div class="<?= $reactionContainerClass ?> feed-reactions flex items-center gap-3" <?= $targetAttributeName ?>="<?= $targetId ?>"<?= $itemIdentifierAttribute ?>>
+                                <button type="button" class="like-image inline-flex items-center justify-center pl-2 h-8 w-8 rounded-full bg-gray-100 text-lg" title="React">
+                                    <svg alt="Like" class="like-image flex-item" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
+                                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                        <g id="SVGRepo_iconCarrier">
+                                            <style type="text/css">
+                                                .st0{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+                                                .st1{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+                                                .st2{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5.2066,0;}
+                                            </style>
+                                            <path class="st0" d="M11,24V14H5v12h6v-2.4l0,0c1.5,1.6,4.1,2.4,6.2,2.4h6.5c1.1,0,2.1-0.8,2.3-2l1.5-8.6c0.3-1.5-0.9-2.4-2.3-2.4H20V6.4C20,5.1,18.7,4,17.4,4h0C16.1,4,15,5.1,15,6.4v0c0,1.6-0.5,3.1-1.4,4.4L11,13.8"></path>
+                                        </g>
+                                    </svg>
+                                </button>
+                                <div class="reaction-buttons" title="Reactions">
+                                    <?php foreach ($reactionEmojiMap as $reactionKey => $emoji): ?>
+                                        <button class="reaction-btn" data-reaction="<?= htmlspecialchars($reactionKey, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars(ucfirst($reactionKey), ENT_QUOTES, 'UTF-8') ?>"><?= $emoji ?></button>
+                                    <?php endforeach; ?>
+                                    <button class="reaction-btn" data-reaction="remove" title="Remove reaction">&times;</button>
+                                </div>
+                                <div class="reaction-summary-container">
+                                    <div class="reaction-summary"><?= $reactionSummaryHtml ?></div>
+                                </div>
+                            </div>
+                            <div class="feed-comments mt-3">
+                                <div class="feed-comment-list space-y-3<?= empty($comments) ? ' hidden' : '' ?>" data-comment-list>
+                                    <?php foreach ($comments as $comment): ?>
+                                        <?php
+                                            $commentUserId = (int) ($comment['user_id'] ?? 0);
+                                            $commentId = (int) ($comment['id'] ?? 0);
+                                            $commentName = trim(($comment['first_name'] ?? '') . ' ' . ($comment['last_name'] ?? ''));
+                                            $commentCreatedAt = $comment['created_at'] ?? '';
+                                            $canDeleteComment = ($commentUserId === $currentUserId) || $isCurrentUserAdmin;
+                                        ?>
+                                        <div class="feed-comment flex items-start gap-3" data-comment-id="<?= $commentId ?>" data-user-id="<?= $commentUserId ?>">
+                                            <div class="feed-comment-avatar">
+                                                <?php if ($commentUserId > 0): ?>
+                                                    <?= $web->getAvatarHTML($commentUserId, "xs", "feed-comment-avatar"); ?>
+                                                <?php else: ?>
+                                                    <div class="feed-comment-avatar-placeholder">?</div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="feed-comment-body flex-1">
+                                                <div class="feed-comment-meta text-xs text-gray-500 flex items-center gap-2">
+                                                    <span class="font-semibold text-gray-700"><?= htmlspecialchars($commentName) ?></span>
+                                                    <?php if ($commentCreatedAt !== ''): ?>
+                                                        <span class="feed-comment-timestamp"><?= $web->timeSince($commentCreatedAt) ?></span>
+                                                    <?php endif; ?>
+                                                    <?php if ($canDeleteComment): ?>
+                                                        <button type="button" class="feed-comment-delete ml-auto text-gray-400 hover:text-warm-red" title="Delete comment" data-comment-delete>&times;</button>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="feed-comment-text text-sm text-gray-700"><?= nl2br(htmlspecialchars($comment['comment'] ?? '')) ?></div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="feed-comment-empty text-xs text-gray-400<?= empty($comments) ? '' : ' hidden' ?>" data-comment-empty>No comments yet.</div>
+                                <form class="feed-comment-form mt-2 flex gap-2" data-comment-form>
+                                    <textarea class="flex-1 border rounded-lg p-2 text-sm" placeholder="Add a comment..." required data-comment-input></textarea>
+                                    <button type="submit" class="px-3 py-2 text-sm text-white bg-ocean-blue rounded-md hover:bg-ocean-blue-700" title="Post comment">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     </div>
                 </article>
                 <?php
@@ -1035,6 +1212,14 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             }, true);
         })();
     </script>
+    <script>
+        window.NV_FEED_CONFIG = {
+            currentUserId: <?= (int) $currentUserId ?>,
+            isAdmin: <?= $isCurrentUserAdmin ? 'true' : 'false' ?>,
+            emoji: <?= json_encode($reactionEmojiMap, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+        };
+    </script>
+    <script src="js/feed_interactions.js?v=<?= file_exists('js/feed_interactions.js') ? filemtime('js/feed_interactions.js') : '1' ?>"></script>
 <?php else: ?>
 
     <!-- Public Information for Visitors -->

@@ -1010,7 +1010,7 @@ section.content a {
     overflow: hidden;
 }
 
-.discussion-reactions, .comment-reactions {
+.discussion-reactions, .comment-reactions, .item-reactions {
     display: flex;
     align-items: center;
     position: relative;
@@ -1038,6 +1038,32 @@ section.content a {
 .remove-reaction-image:hover + .reaction-buttons,
 .reaction-buttons:hover {
     display: block;
+}
+
+.feed-item-interactions .like-image {
+    border: none;
+    background: #f1f5f9;
+    cursor: pointer;
+}
+
+.feed-comment-avatar-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    object-fit: cover;
+}
+
+.feed-comment-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: #cbd5f5;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
 }
 
 
