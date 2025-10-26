@@ -51,9 +51,9 @@ if ($isIndividualPage) {
 <?php
 //If user is admin show the SESSION information
 if($auth->getUserRole() == 'admin') {
-    echo "<!-- SESSION INFO: ";
+    /* echo "<!-- SESSION INFO: ";
     print_r($_SESSION);
-    echo " -->";
+    echo " -->"; */
 }
 ?>
 
@@ -177,6 +177,8 @@ if($auth->getUserRole() == 'admin') {
                         <?php
                             foreach($individuals as $individual) {
                                 $thisname=$individual['first_names']." ".$individual['last_name'];
+                                // Escape any apostrophes in the name:
+                                $thisname = str_replace("'", "\'", $thisname);
                                 if($individual['birth_year'] && $individual['birth_year'] != "") {
                                     $thisname .= " (b.".$individual['birth_year'].")";
                                 }

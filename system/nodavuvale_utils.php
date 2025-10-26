@@ -791,7 +791,7 @@ class Utils {
      */
     public static function getIndividualsList() {
         $db = Database::getInstance();
-        $query = "SELECT id, REPLACE(first_names, '_', '&nbsp;') AS first_names, last_name
+        $query = "SELECT id, REPLACE(first_names, '_', ' ') AS first_names, last_name, birth_year
                     FROM individuals
                     ORDER BY last_name, first_names;";
         $individuals = $db->fetchAll($query);

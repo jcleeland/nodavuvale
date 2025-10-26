@@ -54,23 +54,33 @@ class Web {
         if(empty($individuals)) {
             return "NO PEOPLE!";
         }
+        $safeFieldName = htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8');
+        $safeSubmitField = htmlspecialchars($submitFieldName, ENT_QUOTES, 'UTF-8');
+        $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+
         $lookahead = "";
-        $lookahead .= '<label for="'.$fieldName.'" class="block text-gray-700">'.$label.'</label>'."\n";
-        $lookahead .= '<input type="text" id="'.$fieldName.'" name="'.$fieldName.'" class="findindividual_lookup w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";
-        $lookahead .= '<div id="'.$submitFieldName.'_dropdown" class="findindividual_connect_to w-full px-4 py-2 border rounded-lg mt-2" style="display: none; max-height: 200px; overflow-y: auto;">'."\n";
+        $lookahead .= '<label for="'.$safeFieldName.'" class="block text-gray-700">'.$safeLabel.'</label>'."\n";
+        $lookahead .= '<input type="text" id="'.$safeFieldName.'" name="'.$safeFieldName.'" class="findindividual_lookup w-full px-4 py-2 border rounded-lg" placeholder="Type to search...">'."\n";
+        $lookahead .= '<div id="'.$safeSubmitField.'_dropdown" class="findindividual_connect_to w-full px-4 py-2 border rounded-lg mt-2" style="display: none; max-height: 200px; overflow-y: auto;">'."\n";
         foreach ($individuals as $indi):
-            $thisname = $indi['first_names']." ".$indi['last_name'];
-            if($indi['birth_year'] && $indi['birth_year'] != "") {
-                $thisname .= " (b.".$indi['birth_year'].")";
+            $firstNames = isset($indi['first_names']) ? str_replace('_', ' ', (string) $indi['first_names']) : '';
+            $lastName = isset($indi['last_name']) ? (string) $indi['last_name'] : '';
+            $fullName = trim($firstNames . ' ' . $lastName);
+            if (!empty($indi['birth_year'])) {
+                $fullName .= ' (b.' . $indi['birth_year'] . ')';
             }
+            $displayName = htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8');
             $imageTag = '';
-            if($indi['keyimagepath'] && $indi['keyimagepath'] != "") {
-                $imageTag = '<img src="'.$indi['keyimagepath'].'" class="w-8 h-8 object-cover rounded-full inline-block mr-2">';
+            if (!empty($indi['keyimagepath'])) {
+                $imageSrc = htmlspecialchars($indi['keyimagepath'], ENT_QUOTES, 'UTF-8');
+                $imageAlt = $displayName !== '' ? $displayName : 'Individual';
+                $imageTag = '<img src="'.$imageSrc.'" alt="'.$imageAlt.'" class="w-8 h-8 object-cover rounded-full inline-block mr-2">';
             }
-            $lookahead .= '<div class="dropdown-item flex items-center p-2 cursor-pointer" data-value="'.$indi['id'].'">'.$imageTag.'<span>'.$thisname.'</span></div>'."\n";
+            $idValue = isset($indi['id']) ? (int) $indi['id'] : 0;
+            $lookahead .= '<div class="dropdown-item flex items-center p-2 cursor-pointer" data-value="'.$idValue.'">'.$imageTag.'<span>'.$displayName.'</span></div>'."\n";
         endforeach;
         $lookahead .= '</div>'."\n";
-        $lookahead .= '<input type="hidden" name="'.$submitFieldName.'" id="'.$submitFieldName.'">'."\n";
+        $lookahead .= '<input type="hidden" name="'.$safeSubmitField.'" id="'.$safeSubmitField.'">'."\n";
         return($lookahead);
     }
     /**

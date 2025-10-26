@@ -24,6 +24,21 @@
 // Get a list of pre-defined item types
 $item_types = Utils::getItemTypes();
 $item_styles= Utils::getItemStyles();
+$lookupIndividuals = Utils::getIndividualsList();
+$individualLookupData = array_map(function ($indi) {
+    $firstNames = isset($indi['first_names']) ? trim((string) $indi['first_names']) : '';
+    $lastName = isset($indi['last_name']) ? trim((string) $indi['last_name']) : '';
+    $fullName = trim($firstNames . ' ' . $lastName);
+    if (!empty($indi['birth_year'])) {
+        $fullName .= ' (b.' . $indi['birth_year'] . ')';
+    }
+    $searchable = function_exists('mb_strtolower') ? mb_strtolower($fullName) : strtolower($fullName);
+    return [
+        'id'     => (int) ($indi['id'] ?? 0),
+        'name'   => $fullName,
+        'search' => $searchable,
+    ];
+}, $lookupIndividuals);
 
 
 // Check if the form has been submitted
@@ -213,6 +228,7 @@ if (isset($_GET['item_id'])) {
                             foreach($item_styles as $iskey=>$isval) {
                                 $fieldinputs[$iskey]="";
                             }
+                            $individualSuggestionsInitialized = false;
                             foreach ($fieldlist as $field=>$types) :
                                 $style = $item_styles[$field];
                                 $class = "event-field ";
@@ -220,47 +236,87 @@ if (isset($_GET['item_id'])) {
                                 $class .= " hidden";
                                 
                                 if($style == "individual") :
-                                    $fieldinputs[$field] = "<div class='$class'><label for='{$field}_display'>$field</label><input type='text' placeholder='Find another individual..' id='{$field}_name' name='{$field}_name' class='w-full border rounded-lg p-2 mb-2' oninput='showSuggestions(this.value)'><div id='{$field}_suggestions' class='autocomplete-suggestions'></div></div>";
-                                    ?>
-                                    <script type='text/javascript'>
+                                    if (!$individualSuggestionsInitialized) {
+                                        $individualSuggestionsInitialized = true;
+                                        ?>
+                                        <script type="text/javascript">
+                                            (function () {
+                                                const individualLookup = <?= json_encode($individualLookupData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 
+                                                window.nvShowIndividualSuggestions = function (inputEl) {
+                                                    if (!inputEl) {
+                                                        return;
+                                                    }
+                                                    const field = inputEl.getAttribute('data-field');
+                                                    if (!field) {
+                                                        return;
+                                                    }
+                                                    const container = document.getElementById(field + '_suggestions');
+                                                    if (!container) {
+                                                        return;
+                                                    }
+                                                    const hiddenInput = inputEl.parentNode.querySelector('input[type="hidden"][name="' + field + '"]');
+                                                    if (hiddenInput) {
+                                                        hiddenInput.value = '';
+                                                    }
+                                                    const value = inputEl.value ? inputEl.value.trim().toLowerCase() : '';
+                                                    container.innerHTML = '';
+                                                    if (!value) {
+                                                        container.style.display = 'none';
+                                                        return;
+                                                    }
+                                                    const matches = individualLookup.filter(function (ind) {
+                                                        return ind.search.indexOf(value) !== -1;
+                                                    }).slice(0, 20);
+                                                    matches.forEach(function (ind) {
+                                                        const suggestion = document.createElement('div');
+                                                        suggestion.className = 'autocomplete-suggestion';
+                                                        suggestion.textContent = ind.name;
+                                                        suggestion.addEventListener('click', function () {
+                                                            window.nvSelectIndividualSuggestion(field, ind);
+                                                        });
+                                                        container.appendChild(suggestion);
+                                                    });
+                                                    container.style.display = matches.length ? 'block' : 'none';
+                                                };
 
-                                    function showSuggestions(value) {
-                                        const suggestionsContainer = document.getElementById('<?= $field ?>_suggestions');
-                                        suggestionsContainer.innerHTML = '';
-                                        if (value.length === 0) {
-                                            return;
-                                        }
+                                                window.nvSelectIndividualSuggestion = function (field, individual) {
+                                                    if (!field || !individual) {
+                                                        return;
+                                                    }
+                                                    const input = document.getElementById(field + '_name');
+                                                    if (!input) {
+                                                        return;
+                                                    }
+                                                    input.value = individual.name;
+                                                    let hiddenInput = input.parentNode.querySelector('input[type="hidden"][name="' + field + '"]');
+                                                    if (!hiddenInput) {
+                                                        hiddenInput = document.createElement('input');
+                                                        hiddenInput.type = 'hidden';
+                                                        hiddenInput.name = field;
+                                                        input.parentNode.appendChild(hiddenInput);
+                                                    }
+                                                    hiddenInput.value = individual.id;
+                                                    const container = document.getElementById(field + '_suggestions');
+                                                    if (container) {
+                                                        container.innerHTML = '';
+                                                        container.style.display = 'none';
+                                                    }
+                                                };
 
-                                        const filteredIndividuals = individuals.filter(ind => ind.name.toLowerCase().includes(value.toLowerCase()));
-                                        filteredIndividuals.forEach(ind => {
-                                            const suggestion = document.createElement('div');
-                                            suggestion.className = 'autocomplete-suggestion';
-                                            suggestion.innerHTML = ind.name;
-                                            suggestion.onclick = () => selectSuggestion(ind);
-                                            suggestionsContainer.appendChild(suggestion);
-                                        });
+                                                document.addEventListener('click', function (event) {
+                                                    if (event.target.closest('.autocomplete-suggestions[data-owner="nv-add-item"]') || event.target.closest('[data-field]')) {
+                                                        return;
+                                                    }
+                                                    document.querySelectorAll('.autocomplete-suggestions[data-owner="nv-add-item"]').forEach(function (container) {
+                                                        container.style.display = 'none';
+                                                    });
+                                                });
+                                            })();
+                                        </script>
+                                        <?php
                                     }
-
-                                    function selectSuggestion(individual) {
-                                        const input = document.getElementById('<?= $field ?>_name');
-                                        // Create a temporary DOM element to parse the HTML
-                                        const tempElement = document.createElement('div');
-                                        tempElement.innerHTML = individual.name;
-                                        const textContent = tempElement.textContent || tempElement.innerText || '';
-
-                                        // Assign the text content to the input value
-                                        input.value = textContent;                                        
-
-                                        const hiddenInput = document.createElement('input');
-                                        hiddenInput.type = 'hidden';
-                                        hiddenInput.name = '<?= $field ?>';
-                                        hiddenInput.value = individual.id;
-                                        input.parentNode.appendChild(hiddenInput);
-                                        document.getElementById('<?= $field ?>_suggestions').innerHTML = '';
-                                    }                                        
-                                    </script>
-                                    <?php
+                                    $fieldinputs[$field] = "<div class='$class'><label for='{$field}_name'>$field</label><input type='text' placeholder='Find another individual..' id='{$field}_name' name='{$field}_name' class='w-full border rounded-lg p-2 mb-2' data-field='{$field}' autocomplete='off' oninput='nvShowIndividualSuggestions(this)'><div id='{$field}_suggestions' class='autocomplete-suggestions' data-owner='nv-add-item' style='display:none;'></div></div>";
                                 elseif($style == "date") :
                                     $fieldinputs[$field] = "<div class='$class'><label for='$field'>$field</label><input type='text' name='$field' placeholder='YYYY-MM-DD' pattern='\\d{4}(-\\d{2})?(-\\d{2})?' class='w-full border rounded-lg p-2 mb-2'></div>";
                                 elseif($style == "text") :

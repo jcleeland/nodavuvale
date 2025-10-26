@@ -361,6 +361,33 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         'care'  => '🤗',
     ];
 
+    $rootIndividualId = (int) Web::getRootId();
+    $currentUserIndividualId = (int) ($_SESSION['individuals_id'] ?? 0);
+    $descendancyCache = [];
+    $getDescendancyTrail = static function ($individualId) use (&$descendancyCache, $rootIndividualId) {
+        $individualId = (int) $individualId;
+        if ($individualId <= 0 || $rootIndividualId <= 0) {
+            return [];
+        }
+        if (!array_key_exists($individualId, $descendancyCache)) {
+            $line = Utils::getLineOfDescendancy($rootIndividualId, $individualId);
+            $descendancyCache[$individualId] = is_array($line) ? $line : [];
+        }
+        return $descendancyCache[$individualId];
+    };
+    $relationshipCache = [];
+    $getRelationshipToUser = static function ($individualId) use (&$relationshipCache, $currentUserIndividualId) {
+        $individualId = (int) $individualId;
+        if ($individualId <= 0 || $currentUserIndividualId <= 0 || $individualId === $currentUserIndividualId) {
+            return '';
+        }
+        if (!array_key_exists($individualId, $relationshipCache)) {
+            $label = Utils::getRelationshipLabel($currentUserIndividualId, $individualId);
+            $relationshipCache[$individualId] = is_string($label) ? trim($label) : '';
+        }
+        return $relationshipCache[$individualId];
+    };
+
 
     $discussionIds = [];
     foreach ($changes['discussions'] as $discussionMeta) {
@@ -450,6 +477,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 : "?to=communications/discussions&discussion_id={$discussion['discussionId']}",
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
+            'descendancy' => $isTreeDiscussion ? $getDescendancyTrail($discussion['individual_id']) : [],
             'interactions' => [
                 'type'             => 'discussion',
                 'target_id'        => (int) $discussion['discussionId'],
@@ -482,6 +510,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'url'        => "?to=family/individual&individual_id={$individual['individualId']}",
             'timestamp'  => $timestamp,
             'raw_time'   => $timestampString,
+            'descendancy' => $getDescendancyTrail($individual['individualId'] ?? 0),
         ];
     }
 
@@ -710,6 +739,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'details'   => $detailRows,
             'media'     => $mediaItems,
             'files'     => $fileLinks,
+            'descendancy' => $getDescendancyTrail($firstItem['individualId'] ?? 0),
             'interactions' => $interaction,
         ];
     }
@@ -738,6 +768,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
             'media'     => $file['file_path'] ?? '',
+            'descendancy' => $getDescendancyTrail($file['individualId'] ?? 0),
         ];
     }
 
@@ -828,13 +859,29 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 return trim($html);
             };
 
-            $renderFeedEntry = static function (array $entry) use ($feedTypeMeta, $web, $currentUserId, $isCurrentUserAdmin, $reactionEmojiMap, $renderReactionSummary) {
+            $renderFeedEntry = static function (array $entry) use ($feedTypeMeta, $web, $currentUserId, $isCurrentUserAdmin, $reactionEmojiMap, $renderReactionSummary, $getRelationshipToUser) {
                 $type = $entry['type'];
                 $meta = $feedTypeMeta[$type] ?? ['label' => ucfirst($type), 'icon' => 'fas fa-circle'];
                 $timestampLabel = isset($entry['timestamp']) ? date('l, d F Y g:ia', $entry['timestamp']) : '';
                 $actorInitial = '';
                 if (empty($entry['meta']['actor_id']) && !empty($entry['meta']['actor_name'])) {
                     $actorInitial = strtoupper(substr($entry['meta']['actor_name'], 0, 1));
+                }
+                $descendancyTrail = [];
+                if (!empty($entry['descendancy']) && is_array($entry['descendancy'])) {
+                    foreach ($entry['descendancy'] as $descendant) {
+                        $label = trim((string) ($descendant[0] ?? ''));
+                        $id = isset($descendant[1]) ? (int) $descendant[1] : 0;
+                        if ($label === '') {
+                            continue;
+                        }
+                        $relationship = $getRelationshipToUser($id);
+                        $descendancyTrail[] = [
+                            'label' => $label,
+                            'id'    => $id,
+                            'relationship' => $relationship,
+                        ];
+                    }
                 }
 
                 ob_start();
@@ -863,6 +910,26 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                                 </span>
                             <?php endif; ?>
                         </div>
+                        <?php if (!empty($descendancyTrail)): ?>
+                            <div class="feed-item-descendancy text-xs text-gray-500 mb-2">
+                                <span class="font-semibold text-brown mr-1">Line:</span>
+                                <?php foreach ($descendancyTrail as $index => $descendant): ?>
+                                    <?php if ($descendant['id'] > 0): ?>
+                                        <a href="?to=family/individual&individual_id=<?= $descendant['id'] ?>" class="hover:text-burnt-orange"><?= htmlspecialchars($descendant['label']) ?></a>
+                                    <?php else: ?>
+                                        <span><?= htmlspecialchars($descendant['label']) ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($descendant['relationship'])): ?>
+                                        <span class="text-gray-400"> (<?= htmlspecialchars($descendant['relationship']) ?>)</span>
+                                    <?php endif; ?>
+                                    <?php if ($index < count($descendancyTrail) - 1): ?>
+                                        <span class="mx-1 text-gray-400">
+                                            <i class="fas fa-angle-right"></i>
+                                        </span>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                         <?php if (!empty($entry['title'])): ?>
                             <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
                                 <?php if (!empty($entry['url'])): ?>
@@ -1196,6 +1263,14 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                     }
                 });
             });
+            panels.forEach(function (panel) {
+                panel.addEventListener('click', function (event) {
+                    var closeTarget = event.target.closest('[data-dashboard-close], a[href]:not([href="#"]), button[type="submit"], button[data-dashboard-close], [role="menuitem"]');
+                    if (closeTarget) {
+                        closePanels();
+                    }
+                });
+            });
             document.addEventListener('click', function (event) {
                 if (!event.target.closest('.dashboard-toolbar') && !event.target.closest('.dashboard-dropdown-panel')) {
                     closePanels();
@@ -1206,9 +1281,32 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                     closePanels();
                 }
             });
-            window.addEventListener('resize', closePanels);
+            function repositionActivePanels() {
+                panels.forEach(function (panel) {
+                    if (!panel.classList.contains('active')) {
+                        return;
+                    }
+                    var panelKey = panel.getAttribute('data-panel');
+                    if (!panelKey) {
+                        return;
+                    }
+                    var trigger = document.querySelector('[data-dashboard-trigger="' + panelKey + '"]');
+                    if (trigger) {
+                        positionPanel(trigger, panel);
+                    }
+                });
+            }
+            window.addEventListener('resize', repositionActivePanels);
+            var scrollScheduled = false;
             window.addEventListener('scroll', function () {
-                closePanels();
+                if (scrollScheduled) {
+                    return;
+                }
+                scrollScheduled = true;
+                requestAnimationFrame(function () {
+                    repositionActivePanels();
+                    scrollScheduled = false;
+                });
             }, true);
         })();
     </script>
