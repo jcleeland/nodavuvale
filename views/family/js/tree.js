@@ -32,80 +32,102 @@ document.addEventListener("DOMContentLoaded", function() {
     var toggleAkaButton = document.getElementById('toggle-aka');
     var akaDiv = document.getElementById('aka');
 
-    toggleAkaButton.addEventListener('click', function() {
-        if (akaDiv.style.display === 'none' || akaDiv.style.display === '') {
-            akaDiv.style.display = 'block';
-        } else {
-            akaDiv.style.display = 'none';
-        }
-    });    
+    if (toggleAkaButton && akaDiv) {
+        toggleAkaButton.addEventListener('click', function() {
+            if (akaDiv.style.display === 'none' || akaDiv.style.display === '') {
+                akaDiv.style.display = 'block';
+            } else {
+                akaDiv.style.display = 'none';
+            }
+        });
+    }    
 
    
 
     //Add a listener to the #new-individual-type select so that when it changes we can show/hide the additional fields div
-    document.getElementById('new-individual-type').addEventListener('change', function() {
-        var selectedType = this.value;
-        if(selectedType === 'existing') {
-            document.getElementById('existing-individuals').style.display = 'block';
-            document.getElementById('relationships').style.display = 'block';
-            document.getElementById('additional-fields').style.display = 'none';
-            document.getElementById('submit_add_relationship_btn').style.display='inline';
+    var newIndividualType = document.getElementById('new-individual-type');
+    if (newIndividualType) {
+        newIndividualType.addEventListener('change', function() {
+            var selectedType = this.value;
+            var existingIndividuals = document.getElementById('existing-individuals');
+            var relationshipsEl = document.getElementById('relationships');
+            var additionalFields = document.getElementById('additional-fields');
+            var submitButton = document.getElementById('submit_add_relationship_btn');
+            var relationshipAction = document.getElementById('relationship-form-action');
+            var firstNames = document.getElementById('first_names');
+            var lastName = document.getElementById('last_name');
+
+            if (!existingIndividuals || !relationshipsEl || !additionalFields || !submitButton || !relationshipAction || !firstNames || !lastName) {
+                return;
+            }
+
+            if(selectedType === 'existing') {
+                existingIndividuals.style.display = 'block';
+                relationshipsEl.style.display = 'block';
+                additionalFields.style.display = 'none';
+                submitButton.style.display='inline';
     
-            document.getElementById('relationship-form-action').value = 'link_relationship';
-            document.getElementById('first_names').removeAttribute('required');
-            document.getElementById('last_name').removeAttribute('required');
-            document.getElementById('additional-fields').style.display = 'none';   
-        } else if(selectedType === 'new') {
-            document.getElementById('existing-individuals').style.display = 'none';
-            document.getElementById('relationships').style.display = 'block';
-            document.getElementById('additional-fields').style.display = 'block';
-            document.getElementById('submit_add_relationship_btn').style.display='inline';
+                relationshipAction.value = 'link_relationship';
+                firstNames.removeAttribute('required');
+                lastName.removeAttribute('required');
+            } else if(selectedType === 'new') {
+                existingIndividuals.style.display = 'none';
+                relationshipsEl.style.display = 'block';
+                additionalFields.style.display = 'block';
+                submitButton.style.display='inline';
     
-            document.getElementById('relationship-form-action').value = 'add_relationship';
-            document.getElementById('first_names').setAttribute('required', '');
-            document.getElementById('last_name').setAttribute('required', '');
-            document.getElementById('additional-fields').style.display = 'block'; 
-        } else {
-            document.getElementById('existing-individuals').style.display = 'none';
-            document.getElementById('additional-fields').style.display = 'none';    
-            document.getElementById('submit_add_relationship_btn').style.display='none';
-        }
-    });     
+                relationshipAction.value = 'add_relationship';
+                firstNames.setAttribute('required', '');
+                lastName.setAttribute('required', '');
+            } else {
+                existingIndividuals.style.display = 'none';
+                additionalFields.style.display = 'none';    
+                submitButton.style.display='none';
+            }
+        });     
+    }
 
     //Add a listener to the "relationship" select so that when it changes we can show/hide the "second-parent" select
-    document.getElementById('relationship').addEventListener('change', function() {
-        var selectedRelationship = this.value;
-        if(selectedRelationship === 'child') {
-            var thisId=document.getElementById('related-individual').value;
-            getSpouses(thisId).then(spouses => {
-                //console.log('Found spouses', spouses);
-                var select = document.getElementById('second-parent');
-                select.innerHTML = '';
-                var option = document.createElement('option');
-                option.value = '';
-                option.text = 'None or not known';
-                select.add(option);
-                spouses.forEach(spouse => {
-                    //console.log('Processing sppouse', spouse);
+    var relationshipSelect = document.getElementById('relationship');
+    if (relationshipSelect) {
+        relationshipSelect.addEventListener('change', function() {
+            var selectedRelationship = this.value;
+            var secondParentWrapper = document.getElementById('choose-second-parent');
+            var secondParentSelect = document.getElementById('second-parent');
+            var relatedIndividualInput = document.getElementById('related-individual');
+
+            if (!secondParentWrapper || !secondParentSelect || !relatedIndividualInput) {
+                return;
+            }
+
+            if(selectedRelationship === 'child') {
+                var thisId=relatedIndividualInput.value;
+                getSpouses(thisId).then(spouses => {
+                    secondParentSelect.innerHTML = '';
                     var option = document.createElement('option');
-                    option.value = spouse.parent_id;
-                    option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
-                    //console.log('Option built:', option);
-                    select.add(option);
-                });
-            });            
-            document.getElementById('choose-second-parent').style.display = 'block';
-        } else {
-            document.getElementById('choose-second-parent').style.display = 'none';
-        }
+                    option.value = '';
+                    option.text = 'None or not known';
+                    secondParentSelect.add(option);
+                    spouses.forEach(spouse => {
+                        var option = document.createElement('option');
+                        option.value = spouse.parent_id;
+                        option.text = spouse.spouse_first_names + ' ' + spouse.spouse_last_name;
+                        secondParentSelect.add(option);
+                    });
+                });            
+                secondParentWrapper.style.display = 'block';
+            } else {
+                secondParentWrapper.style.display = 'none';
+            }
+        });
     }
-    );
 
- 
-
-    document.querySelector('.add-new-btn').addEventListener('click', function() {
-        openModal('add_individual', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
-    });
+    var addNewButton = document.querySelector('.add-new-btn');
+    if (addNewButton) {
+        addNewButton.addEventListener('click', function() {
+            openModal('add_individual', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
+        });
+    }
     // Add event listeners to dropdown options
     dropdownMenu.querySelector('.add-father-btn').addEventListener('click', function() {
         openModal('add_father', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
@@ -123,40 +145,46 @@ document.addEventListener("DOMContentLoaded", function() {
         openModal('add_daughter', dropdownMenu.getAttribute('data-individual-id'), dropdownMenu.getAttribute('data-individual-gender'));
     });
 
-    document.getElementById('exportTree').addEventListener('click', function() {
-        var svgElement = document.querySelector('#family-tree svg');
-        inlineStyles(svgElement);
-        var svgData = new XMLSerializer().serializeToString(svgElement);
-        var canvas = document.createElement('canvas');
-        var ctx = canvas.getContext('2d');
+    var exportButton = document.getElementById('exportTree');
+    if (exportButton) {
+        exportButton.addEventListener('click', function() {
+            var svgElement = document.querySelector('#family-tree svg');
+            if (!svgElement) {
+                return;
+            }
+            inlineStyles(svgElement);
+            var svgData = new XMLSerializer().serializeToString(svgElement);
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
     
-        // Get the full dimensions of the SVG content
-        var viewBox = svgElement.viewBox.baseVal;
-        canvas.width = viewBox.width;
-        canvas.height = viewBox.height;
+            // Get the full dimensions of the SVG content
+            var viewBox = svgElement.viewBox.baseVal;
+            canvas.width = viewBox.width;
+            canvas.height = viewBox.height;
     
-        // Use canvg to render the SVG onto the canvas
-        canvg.Canvg.fromString(ctx, svgData).then(function(instance) {
-            instance.render();
+            // Use canvg to render the SVG onto the canvas
+            canvg.Canvg.fromString(ctx, svgData).then(function(instance) {
+                instance.render();
     
-            // Create a link element
-            var imgData = canvas.toDataURL('image/png');
-            var link = document.createElement('a');
-            link.href = imgData;
-            link.download = 'tree.png';
+                // Create a link element
+                var imgData = canvas.toDataURL('image/png');
+                var link = document.createElement('a');
+                link.href = imgData;
+                link.download = 'tree.png';
     
-            // Append the link to the body
-            document.body.appendChild(link);
+                // Append the link to the body
+                document.body.appendChild(link);
     
-            // Trigger the download
-            link.click();
+                // Trigger the download
+                link.click();
     
-            // Remove the link from the document
-            document.body.removeChild(link);
-        }).catch(function(error) {
-            console.error('Error rendering SVG:', error);
+                // Remove the link from the document
+                document.body.removeChild(link);
+            }).catch(function(error) {
+                console.error('Error rendering SVG:', error);
+            });
         });
-    });
+    }
     
     function inlineStyles(svg) {
         const styleSheets = Array.from(document.styleSheets);

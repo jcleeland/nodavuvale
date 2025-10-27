@@ -46,6 +46,30 @@ if(isset($_SESSION['treeSettings'])) {
 }
 
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['treeWizardAction'])) {
+    $selectedRootId = isset($_POST['treeWizardRootId']) ? (int) $_POST['treeWizardRootId'] : 0;
+    if ($selectedRootId <= 0) {
+        $selectedRootId = Web::getRootId();
+    }
+    $_SESSION['rootId'] = $selectedRootId;
+    if (!isset($_SESSION['treeSettings'])) {
+        $_SESSION['treeSettings'] = $defaultTreeSettings;
+    }
+    $_SESSION['treeSettings']['rootId'] = $selectedRootId;
+    $_SESSION['treeWizardCompleted'] = true;
+    echo '<script>window.location.href = "?to=family/tree";</script>';
+    echo '<noscript><meta http-equiv="refresh" content="0;url=?to=family/tree"></noscript>';
+    return;
+}
+
+if (isset($_GET['wizard']) && $_GET['wizard'] === 'restart') {
+    unset($_SESSION['treeWizardCompleted']);
+    header("Location: ?to=family/tree");
+    exit;
+}
+
+$showWizard = empty($_SESSION['treeWizardCompleted']);
+
 //Handle form submission for updating individuals
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_individual') {
     include("helpers/update_individual.php");
@@ -60,11 +84,91 @@ $relationships = $db->fetchAll("SELECT * FROM relationships");
 $quickindividuallist = $db->fetchAll("SELECT id, first_names, last_name FROM individuals ORDER BY last_name, first_names");
 $quicklist=array();
 foreach($quickindividuallist as $individualperson) {
-    $quicklist[$individualperson['id']] = $individualperson;
+$quicklist[$individualperson['id']] = $individualperson;
 } 
 */
 
-$rootId=isset($_SESSION['rootId']) ? $_SESSION['rootId'] : Web::getRootId();
+$defaultRootId = Web::getRootId();
+$rootId=isset($_SESSION['rootId']) ? (int) $_SESSION['rootId'] : $defaultRootId;
+$treeSettings['rootId'] = $rootId;
+$_SESSION['treeSettings']['rootId'] = $rootId;
+
+
+// Build data for the tree wizard
+$individualLookup = [];
+$formatIndividualName = static function (array $person = null): string {
+    if (!$person) {
+        return 'Unknown';
+    }
+    $first = trim((string) ($person['first_names'] ?? $person['first_name'] ?? ''));
+    $last = trim((string) ($person['last_name'] ?? ''));
+    $name = trim($first . ' ' . $last);
+    if ($name === '') {
+        $name = trim((string) ($person['display_name'] ?? 'Unnamed'));
+    }
+    return $name === '' ? 'Unnamed' : $name;
+};
+foreach ($individuals as $individualRow) {
+    $individualLookup[(int) $individualRow['id']] = $individualRow;
+}
+$parentToChildren = [];
+foreach ($relationships as $relation) {
+    if (strtolower((string) ($relation['relationship_type'] ?? '')) !== 'child') {
+        continue;
+    }
+    $parentId = (int) ($relation['individual_id_1'] ?? 0);
+    $childId = (int) ($relation['individual_id_2'] ?? 0);
+    if ($parentId <= 0 || $childId <= 0) {
+        continue;
+    }
+    $parentToChildren[$parentId][] = $childId;
+}
+$generationAssignments = [];
+$descendantsByGeneration = [];
+$namesMap = [];
+$queue = new SplQueue();
+$visited = [];
+if ($defaultRootId > 0) {
+    $queue->enqueue([$defaultRootId, 1]);
+    $visited[$defaultRootId] = true;
+}
+while (!$queue->isEmpty()) {
+    [$currentId, $generation] = $queue->dequeue();
+    $generationAssignments[$currentId] = $generation;
+    $namesMap[$currentId] = $formatIndividualName($individualLookup[$currentId] ?? null);
+    $descendantsByGeneration[$generation][] = [
+        'id'   => $currentId,
+        'name' => $namesMap[$currentId],
+    ];
+    if (!empty($parentToChildren[$currentId])) {
+        $nextGeneration = $generation + 1;
+        foreach ($parentToChildren[$currentId] as $childId) {
+            if (isset($visited[$childId])) {
+                continue;
+            }
+            $visited[$childId] = true;
+            $queue->enqueue([$childId, $nextGeneration]);
+        }
+    }
+}
+ksort($descendantsByGeneration);
+foreach ($descendantsByGeneration as &$generationList) {
+    usort($generationList, static function ($a, $b) {
+        return strcasecmp((string) $a['name'], (string) $b['name']);
+    });
+}
+unset($generationList);
+$treeWizardData = [
+    'defaultRootId' => $defaultRootId,
+    'defaultRootName' => $formatIndividualName($individualLookup[$defaultRootId] ?? null),
+    'currentRootId' => $rootId,
+    'currentRootName' => $formatIndividualName($individualLookup[$rootId] ?? null),
+    'generations' => $descendantsByGeneration,
+    'children' => $parentToChildren,
+    'names' => $namesMap,
+    'generationMap' => $generationAssignments,
+];
+$treeWizardJson = json_encode($treeWizardData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 
 
 include("helpers/quickedit.php");
@@ -176,37 +280,413 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
 </div>
     
 
+<div id="treeWizardOverlay" class="tree-wizard-overlay <?= $showWizard ? '' : 'hidden' ?>">
+    <div class="tree-wizard-modal">
+        <button type="button" class="tree-wizard-close<?= $showWizard ? ' hidden' : '' ?>" id="treeWizardClose" aria-label="Close wizard">&times;</button>
+        <h2 class="wizard-step-title" id="treeWizardTitle">Family Tree Wizard</h2>
+        <div id="treeWizardBody"></div>
+    </div>
+</div>
+<form id="treeWizardForm" method="post" class="hidden">
+    <input type="hidden" name="treeWizardAction" value="set_root">
+    <input type="hidden" name="treeWizardRootId" id="treeWizardRootId" value="">
+</form>
+<script>
+    window.addEventListener('DOMContentLoaded', function () {
+        var wizardData = <?= $treeWizardJson ?>;
+        var wizardOverlay = document.getElementById('treeWizardOverlay');
+        var wizardBody = document.getElementById('treeWizardBody');
+        var wizardTitle = document.getElementById('treeWizardTitle');
+        var wizardForm = document.getElementById('treeWizardForm');
+        var wizardRootInput = document.getElementById('treeWizardRootId');
+        var wizardOpenButton = document.getElementById('treeWizardOpen');
+        var wizardCloseButton = document.getElementById('treeWizardClose');
+        var treeSection = document.getElementById('treeSection');
+        var wizardInitial = <?= $showWizard ? 'true' : 'false' ?>;
+        var generationKeys = Object.keys(wizardData.generations || {}).map(Number).sort(function (a, b) { return a - b; });
+        var namesMap = wizardData.names || {};
+        var childrenLookup = wizardData.children || {};
+        var generationMap = wizardData.generationMap || {};
+
+        var state = {
+            isInitial: wizardInitial,
+            mode: null,
+            generation: null,
+            currentRootId: null,
+            path: []
+        };
+
+        function escapeHtml(str) {
+            if (typeof str !== 'string') {
+                return '';
+            }
+            return str.replace(/[&<>"'`]/g, function (c) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                    '`': '&#96;'
+                }[c];
+            });
+        }
+
+        function setTitle(text) {
+            wizardTitle.textContent = text;
+        }
+
+        function pathSummaryHtml() {
+            if (!state.path.length) {
+                return '';
+            }
+            var summaryIds = state.path.slice();
+            if (wizardData.defaultRootId && summaryIds[0] !== wizardData.defaultRootId) {
+                summaryIds.unshift(wizardData.defaultRootId);
+            }
+            var parts = summaryIds.map(function (id) {
+                return escapeHtml(namesMap[id] || ('#' + id));
+            });
+            return '<div class="wizard-path"><strong>Selected path:</strong> ' + parts.join(' <span aria-hidden="true">&rsaquo;</span> ') + '</div>';
+        }
+        function submitWizard(rootId) {
+            if (!rootId) {
+                rootId = wizardData.defaultRootId || wizardData.currentRootId || 0;
+            }
+            wizardRootInput.value = rootId;
+            wizardForm.submit();
+        }
+
+        function renderModeStep() {
+            setTitle('How would you like to explore the tree?');
+            wizardBody.innerHTML = '<div class="wizard-option-grid">\
+                <button type="button" class="wizard-option" id="wizardModeFull">\
+                    <strong>Display full tree</strong><br>\
+                    <span class="text-sm text-slate-600">Show the complete tree for ' + escapeHtml(wizardData.defaultRootName || 'the root ancestor') + '.</span>\
+                </button>\
+                <button type="button" class="wizard-option" id="wizardModeCustom">\
+                    <strong>Select a descendancy path</strong><br>\
+                    <span class="text-sm text-slate-600">Focus on a branch by choosing a generation and descendants.</span>\
+                </button>\
+            </div>';
+            document.getElementById('wizardModeFull').addEventListener('click', function () {
+                submitWizard(wizardData.defaultRootId || wizardData.currentRootId || 0);
+            });
+            document.getElementById('wizardModeCustom').addEventListener('click', function () {
+                state.mode = 'custom';
+                renderGenerationStep();
+            });
+        }
+
+        function renderGenerationStep() {
+            state.path = [];
+            state.currentRootId = null;
+            setTitle('Select a generation');
+            var buttons = generationKeys.map(function (gen) {
+                var labelName = '';
+                var generationList = wizardData.generations[gen] || [];
+                if (generationList.length === 1) {
+                    labelName = ' (' + escapeHtml(generationList[0].name) + ')';
+                }
+                return '<button type="button" class="wizard-option" data-generation="' + gen + '">\
+                            <strong>Generation ' + gen + '</strong>' + (labelName ? '<br><span class="text-sm text-slate-600">' + labelName + '</span>' : '') + '\
+                        </button>';
+            }).join('');
+            wizardBody.innerHTML = '<p class="wizard-path text-sm text-slate-500">Root ancestor: ' + escapeHtml(wizardData.defaultRootName || 'Unknown') + '</p>\
+                <div class="wizard-option-grid">' + buttons + '</div>' + (state.mode ? '<button type="button" class="wizard-option wizard-back" id="wizardBackToMode">Back</button>' : '');
+            wizardBody.querySelectorAll('[data-generation]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var gen = parseInt(this.getAttribute('data-generation'), 10);
+                    state.generation = gen;
+                    renderIndividualStep();
+                });
+            });
+            var backBtn = document.getElementById('wizardBackToMode');
+            if (backBtn) {
+                backBtn.addEventListener('click', renderModeStep);
+            }
+        }
+
+        function renderIndividualStep() {
+            state.path = [];
+            state.currentRootId = null;
+            setTitle('Choose someone in generation ' + state.generation);
+            var people = wizardData.generations[state.generation] || [];
+            wizardBody.innerHTML =
+                '<input type="search" class="wizard-search w-full border rounded-lg p-2" placeholder="Search generation ' + state.generation + '..." id="wizardIndividualSearch">' +
+                '<div id="wizardIndividualList" class="wizard-option-grid"></div>' +
+                '<button type="button" class="wizard-option wizard-back" id="wizardBackToGeneration">Back</button>';
+            var listEl = document.getElementById('wizardIndividualList');
+            function renderList(filter) {
+                listEl.innerHTML = '';
+                var normalized = (filter || '').trim().toLowerCase();
+                people.filter(function (person) {
+                    if (!normalized) {
+                        return true;
+                    }
+                    return (person.name || '').toLowerCase().includes(normalized);
+                }).forEach(function (person) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'wizard-option';
+                    btn.textContent = person.name;
+                    btn.addEventListener('click', function () {
+                        state.currentRootId = person.id;
+                        state.generation = generationMap[person.id] || state.generation;
+                        state.path = [person.id];
+                        renderBranchOptions();
+                    });
+                    listEl.appendChild(btn);
+                });
+            }
+            renderList('');
+            document.getElementById('wizardIndividualSearch').addEventListener('input', function () {
+                renderList(this.value);
+            });
+            document.getElementById('wizardBackToGeneration').addEventListener('click', renderGenerationStep);
+        }
+
+        function renderBranchOptions() {
+            setTitle('Refine the descendancy path');
+            wizardBody.innerHTML = pathSummaryHtml() + '<div class="wizard-option-grid">\
+                <button type="button" class="wizard-option" id="wizardShowAll">\
+                    <strong>Show all descendants & generations</strong><br>\
+                    <span class="text-sm text-slate-600">View everyone descended from this person.</span>\
+                </button>\
+                <button type="button" class="wizard-option" id="wizardNarrow">\
+                    <strong>Narrow down the descendancy path</strong><br>\
+                    <span class="text-sm text-slate-600">Choose someone from the next generation to focus further.</span>\
+                </button>\
+            </div>\
+            <button type="button" class="wizard-option wizard-back" id="wizardBackToIndividuals">Back</button>';
+            document.getElementById('wizardShowAll').addEventListener('click', function () {
+                submitWizard(state.currentRootId);
+            });
+            document.getElementById('wizardNarrow').addEventListener('click', function () {
+                renderChildSelection();
+            });
+            document.getElementById('wizardBackToIndividuals').addEventListener('click', renderIndividualStep);
+        }
+
+        function renderChildSelection() {
+            var children = childrenLookup[state.currentRootId] || [];
+            children = children.filter(function (id) {
+                return !!namesMap[id];
+            });
+            if (!children.length) {
+                wizardBody.innerHTML = pathSummaryHtml() + '<p class="text-sm text-red-600 mb-3">No further descendants were found for this person.</p>\
+                    <div class="wizard-option-grid">\
+                        <button type="button" class="wizard-option" id="wizardFinishNoChildren"><strong>Show tree with current selection</strong></button>\
+                    </div>\
+                    <button type="button" class="wizard-option wizard-back" id="wizardBackToBranch">Back</button>';
+                document.getElementById('wizardFinishNoChildren').addEventListener('click', function () {
+                    submitWizard(state.currentRootId);
+                });
+                document.getElementById('wizardBackToBranch').addEventListener('click', renderBranchOptions);
+                return;
+            }
+            var nextGeneration = (generationMap[state.currentRootId] || 1) + 1;
+            setTitle('Pick someone in generation ' + nextGeneration);
+            var options = children.map(function (id) {
+                return '<button type="button" class="wizard-option" data-child="' + id + '">\
+                            <strong>' + escapeHtml(namesMap[id] || ('#' + id)) + '</strong>\
+                        </button>';
+            }).join('');
+            wizardBody.innerHTML = pathSummaryHtml() + '<div class="wizard-option-grid">' + options + '</div>\
+                <button type="button" class="wizard-option wizard-back" id="wizardBackToBranch">Back</button>';
+            wizardBody.querySelectorAll('[data-child]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var childId = parseInt(this.getAttribute('data-child'), 10);
+                    state.currentRootId = childId;
+                    state.generation = generationMap[childId] || (state.generation + 1);
+                    state.path.push(childId);
+                    renderBranchOptions();
+                });
+            });
+            document.getElementById('wizardBackToBranch').addEventListener('click', renderBranchOptions);
+        }
+
+        function openWizard() {
+            state.isInitial = false;
+            if (wizardOverlay) {
+                wizardOverlay.classList.remove('hidden');
+            }
+            if (wizardCloseButton) {
+                wizardCloseButton.classList.remove('hidden');
+            }
+            if (treeSection) {
+                treeSection.style.display = 'none';
+            }
+            state.mode = null;
+            state.generation = null;
+            state.currentRootId = null;
+            state.path = [];
+            renderModeStep();
+        }
+
+        function closeWizard() {
+            if (state.isInitial) {
+                return;
+            }
+            if (wizardOverlay) {
+                wizardOverlay.classList.add('hidden');
+            }
+            if (treeSection) {
+                treeSection.style.display = '';
+            }
+        }
+
+        if (wizardOpenButton) {
+            wizardOpenButton.addEventListener('click', function () {
+                openWizard();
+            });
+        }
+
+        if (wizardCloseButton) {
+            wizardCloseButton.addEventListener('click', function () {
+                closeWizard();
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeWizard();
+            }
+        });
+
+        if (wizardInitial) {
+            if (treeSection) {
+                treeSection.style.display = 'none';
+            }
+            renderModeStep();
+        }
+    });
+</script>
+
 <style>
-    .familytree-fullscreen {
+    .tree-wizard-overlay {
         position: fixed;
         inset: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 2000;
-        background: rgba(15, 23, 42, 0.96);
-        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.65);
+        z-index: 3000;
+    }
+    .tree-wizard-overlay.hidden {
+        display: none;
+    }
+    .tree-wizard-modal {
+        width: min(90vw, 560px);
+        max-height: 90vh;
         overflow: auto;
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 25px 45px rgba(15, 23, 42, 0.2);
+        padding: 1.5rem;
+        position: relative;
     }
-    .familytree-fullscreen svg {
+    .tree-wizard-close {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: #1f2937;
+        background: none;
+        border: none;
+    }
+    .wizard-step-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #1f2937;
+    }
+    .wizard-option-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .wizard-option {
+        display: block;
         width: 100%;
-        height: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        text-align: left;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
     }
-    body.tree-no-scroll {
+    .wizard-option:hover {
+        background: #e2e8f0;
+        border-color: rgba(15, 23, 42, 0.25);
+    }
+    .wizard-search {
+        margin-bottom: 0.75rem;
+    }
+    .wizard-path {
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+        color: #475569;
+    }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
         overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .wizard-back {
+        margin-top: 1rem;
     }
 </style>
 
 
-<section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View insights" id="treeInsightsToggle"><i class="fas fa-chart-pie"></i></button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View tree full screen" id="treeFullScreenToggle"><i class="fas fa-expand"></i></button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How to use the family tree" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right hidden" title="Print" id="exportTree" ><i class="fas fa-print"></i></button>
-    <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" onclick="navigator.clipboard.writeText(JSON.stringify(tree))">&#128203;</button>
-    <button class="hidden add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Add new individual"><i class="fas fa-plus"></i></button>
-    <button class="treesettings bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Tree settings" onclick="document.getElementById('treeSettingsModal').style.display='block';"><i class="fas fa-cog"></i></button>
-    <img class="border-blue-500 border-2 object-cover cursor-pointer ml-1 float-right" style="width: 50px; height: 40px; border-radius: 30%;" src="images/default_avatar.webp" title="Reset the tree to the default view" onclick="window.location.href='?to=family/tree&view=default'" />
+<section id="treeSection" class="mx-auto py-12 px-4 sm:px-6 lg:px-8" <?= $showWizard ? 'style="display:none;"' : '' ?>>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="How to use the family tree" onclick="showHelp()">
+        <i class="fas fa-question-circle"></i>
+    </button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="View insights" id="treeInsightsToggle">
+        <i class="fas fa-chart-pie"></i>
+    </button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="Find person in tree" onclick="viewTreeSearch()">
+        <i class="fas fa-search"></i>
+    </button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right hidden" 
+            title="Print" id="exportTree" >
+        <i class="fas fa-print"></i>
+    </button>
+    <button class="hidden bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            onclick="navigator.clipboard.writeText(JSON.stringify(tree))">
+        &#128203;
+    </button>
+    <button class="hidden add-new-btn bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="Add new individual">
+        <i class="fas fa-plus"></i>
+    </button>
+    <button class="treesettings bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="Tree settings" onclick="document.getElementById('treeSettingsModal').style.display='block';">
+        <i class="fas fa-cog"></i>
+    </button>
+    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="Open tree wizard" type="button" id="treeWizardOpen">
+        <i class="fas fa-magic"></i><span class="sr-only">Open tree wizard</span>
+    </button>
+    <button class="bg-deep-green hover:bg-deep-green-dark text-white px-4 py-2 ml-1 rounded-lg float-right" 
+            title="Reset the tree to the default view" onclick="window.location.href='?to=family/tree&view=default'">
+        <i class="fas fa-home"></i>
+    </button>
+
     <h1 class="text-3xl font-bold mb-4">Family Tree</h1>
 
     <form method='post' id='treeSettingsModal' class='hidden' action='?to=family/tree'>
@@ -358,35 +838,9 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
         });
 
 var familyTreeContainer = document.getElementById('family-tree');
-var fullScreenToggleButton = document.getElementById('treeFullScreenToggle');
 var insightsPanel = document.getElementById('tree-insights-panel');
 var insightsToggleButton = document.getElementById('treeInsightsToggle');
 var insightsCloseButton = document.getElementById('treeInsightsClose');
-
-if (fullScreenToggleButton && familyTreeContainer) {
-    fullScreenToggleButton.addEventListener('click', function () {
-        var isFull = familyTreeContainer.classList.toggle('familytree-fullscreen');
-        if (isFull) {
-            document.body.classList.add('tree-no-scroll');
-                    this.innerHTML = "<i class='fas fa-compress'></i>";
-                    this.setAttribute('title', 'Exit full screen');
-                    setTimeout(function () {
-                        if (tree && tree.zoomToFit) {
-                            tree.zoomToFit(250);
-                        }
-                    }, 150);
-                } else {
-                    document.body.classList.remove('tree-no-scroll');
-                    this.innerHTML = "<i class='fas fa-expand'></i>";
-                    this.setAttribute('title', 'View tree full screen');
-                    setTimeout(function () {
-                        if (tree && tree.resetZoom) {
-                            tree.resetZoom(250);
-                        }
-                    }, 150);
-        }
-    });
-}
 
 if (insightsToggleButton && insightsPanel) {
     insightsToggleButton.addEventListener('click', function () {
