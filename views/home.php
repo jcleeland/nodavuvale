@@ -375,6 +375,22 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         }
         return $descendancyCache[$individualId];
     };
+    $indirectConnectionCache = [];
+    $getIndirectConnection = static function ($individualId) use (&$indirectConnectionCache, $rootIndividualId) {
+        $individualId = (int) $individualId;
+        if ($individualId <= 0 || $rootIndividualId <= 0) {
+            return [];
+        }
+        if (!array_key_exists($individualId, $indirectConnectionCache)) {
+            $result = Utils::getExtendedConnectionPath($individualId, $rootIndividualId, ['max_depth' => 5]);
+            if (is_array($result) && !empty($result['found'])) {
+                $indirectConnectionCache[$individualId] = $result;
+            } else {
+                $indirectConnectionCache[$individualId] = [];
+            }
+        }
+        return $indirectConnectionCache[$individualId];
+    };
     $relationshipCache = [];
     $getRelationshipToUser = static function ($individualId) use (&$relationshipCache, $currentUserIndividualId) {
         $individualId = (int) $individualId;
@@ -462,6 +478,15 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 )
             );
         }
+        $discussionDescendancy = [];
+        $discussionIndirectConnection = [];
+        if ($isTreeDiscussion && !empty($discussion['individual_id'])) {
+            $discussionDescendancy = $getDescendancyTrail($discussion['individual_id']);
+            if (empty($discussionDescendancy)) {
+                $discussionIndirectConnection = $getIndirectConnection($discussion['individual_id']);
+            }
+        }
+
         $feedEntries[] = [
             'type'      => $discussion['change_type'] === 'comment' ? 'comment' : 'discussion',
             'title'     => stripslashes($discussion['title']),
@@ -478,7 +503,8 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
             'relationship_to_user' => $isTreeDiscussion ? $getRelationshipToUser($discussion['individual_id']) : '',
-            'descendancy' => $isTreeDiscussion ? $getDescendancyTrail($discussion['individual_id']) : [],
+            'descendancy' => $discussionDescendancy,
+            'indirect_connection' => $discussionIndirectConnection,
             'interactions' => [
                 'type'             => 'discussion',
                 'target_id'        => (int) $discussion['discussionId'],
@@ -498,6 +524,12 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             continue;
         }
         $personName = trim(($individual['tree_first_name'] ?? '') . ' ' . ($individual['tree_last_name'] ?? ''));
+        $individualDescendancy = $getDescendancyTrail($individual['individualId'] ?? 0);
+        $individualIndirect = [];
+        if (empty($individualDescendancy)) {
+            $individualIndirect = $getIndirectConnection($individual['individualId'] ?? 0);
+        }
+
         $feedEntries[] = [
             'type'       => 'individual',
             'title'      => $personName !== '' ? $personName : 'New family member',
@@ -512,7 +544,8 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'timestamp'  => $timestamp,
             'raw_time'   => $timestampString,
             'relationship_to_user' => $getRelationshipToUser($individual['individualId'] ?? 0),
-            'descendancy' => $getDescendancyTrail($individual['individualId'] ?? 0),
+            'descendancy' => $individualDescendancy,
+            'indirect_connection' => $individualIndirect,
         ];
     }
 
@@ -773,7 +806,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                     $snippet = ($personName !== '' ? $personName . ' married ' . $spouseSummary : 'Married ' . $spouseSummary) . '.';
                 } elseif ($normalizedTitle === 'divorce') {
                     $snippet = ($personName !== '' ? $personName . ' divorced ' . $spouseSummary : 'Divorced ' . $spouseSummary) . '.';
-                }
+                }           
             }
         }
         if (!empty($gpsDetails)) {
@@ -799,6 +832,13 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 'comments'         => $itemCommentsLookup[$itemTargetId] ?? [],
             ];
         }
+        $primaryIndividualId = $firstItem['individualId'] ?? 0;
+        $primaryDescendancy = $getDescendancyTrail($primaryIndividualId);
+        $primaryIndirect = [];
+        if (empty($primaryDescendancy)) {
+            $primaryIndirect = $getIndirectConnection($primaryIndividualId);
+        }
+
         $feedEntries[] = [
             'type'      => 'item',
             'title'     => $groupTitleTrimmed !== '' ? $groupTitleTrimmed . ' update for ' . $personName : 'New update for ' . $personName,
@@ -817,7 +857,8 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'files'     => $fileLinks,
             'content_html' => $contentHtml,
             'relationship_to_user' => $getRelationshipToUser($firstItem['individualId'] ?? 0),
-            'descendancy' => $getDescendancyTrail($firstItem['individualId'] ?? 0),
+            'descendancy' => $primaryDescendancy,
+            'indirect_connection' => $primaryIndirect,
             'interactions' => $interaction,
         ];
     }
@@ -832,6 +873,13 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             continue;
         }
         $personName = trim(($file['tree_first_name'] ?? '') . ' ' . ($file['tree_last_name'] ?? ''));
+        $fileIndividualId = $file['individualId'] ?? 0;
+        $fileDescendancy = $getDescendancyTrail($fileIndividualId);
+        $fileIndirect = [];
+        if (empty($fileDescendancy)) {
+            $fileIndirect = $getIndirectConnection($fileIndividualId);
+        }
+
         $feedEntries[] = [
             'type'      => 'file',
             'title'     => $personName !== '' ? $personName . ' media added' : 'New media uploaded',
@@ -847,7 +895,8 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'raw_time'  => $timestampString,
             'media'     => $file['file_path'] ?? '',
             'relationship_to_user' => $getRelationshipToUser($file['individualId'] ?? 0),
-            'descendancy' => $getDescendancyTrail($file['individualId'] ?? 0),
+            'descendancy' => $fileDescendancy,
+            'indirect_connection' => $fileIndirect,
         ];
     }
 
@@ -966,6 +1015,11 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                         }
                     }
                 }
+                $indirectConnection = [];
+                if (!empty($entry['indirect_connection']) && is_array($entry['indirect_connection'])) {
+                    $indirectConnection = $entry['indirect_connection'];
+                }
+
                 $relationshipToUser = '';
                 if (!empty($entry['relationship_to_user'])) {
                     $relationshipToUser = trim((string) $entry['relationship_to_user']);
@@ -975,6 +1029,85 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                         $relationshipToUser = $getRelationshipToUser($lastDescendant['id']);
                     }
                     reset($descendancyTrail);
+                }
+
+                if (!empty($indirectConnection['descendancy_path']) && is_array($indirectConnection['descendancy_path'])) {
+                    foreach ($indirectConnection['descendancy_path'] as $node) {
+                        $nodeName = isset($node['name']) ? trim((string) $node['name']) : '';
+                        $nodeId = isset($node['id']) ? (int) $node['id'] : 0;
+                        if ($nodeName === '') {
+                            continue;
+                        }
+                        if ($nodeId > 0) {
+                            $descendancyLineSegments[] = '<a href="?to=family/individual&individual_id=' . $nodeId . '" class="hover:text-burnt-orange">' . htmlspecialchars($nodeName, ENT_QUOTES, 'UTF-8') . '</a>';
+                        } else {
+                            $descendancyLineSegments[] = htmlspecialchars($nodeName, ENT_QUOTES, 'UTF-8');
+                        }
+                    }
+                }
+
+                $relationshipLine = '';
+                if (!empty($descendancyLineSegments) && $relationshipToUser !== '') {
+                    if (function_exists('mb_strtolower')) {
+                        $relationshipLine = 'Your ' . mb_strtolower($relationshipToUser, 'UTF-8');
+                    } else {
+                        $relationshipLine = 'Your ' . strtolower($relationshipToUser);
+                    }
+                } elseif (empty($descendancyLineSegments) && !empty($indirectConnection)) {
+                    $indirectText = trim((string) ($indirectConnection['explanation'] ?? ''));
+                    $viaId = isset($indirectConnection['via_individual_id']) ? (int) $indirectConnection['via_individual_id'] : 0;
+                    $viaRelationship = '';
+                    if ($viaId > 0) {
+                        $viaRelationship = $getRelationshipToUser($viaId);
+                    }
+                    if ($indirectText !== '') {
+                        $relationshipLine = $indirectText;
+                    }
+                    if ($viaRelationship !== '') {
+                        if (function_exists('mb_strtolower')) {
+                            $viaRelationship = mb_strtolower($viaRelationship, 'UTF-8');
+                        } else {
+                            $viaRelationship = strtolower($viaRelationship);
+                        }
+                        $relationshipLine = rtrim($relationshipLine, '. ');
+                        if ($relationshipLine !== '') {
+                            $relationshipLine .= ' ';
+                        }
+                        $relationshipLine .= 'who is your ' . $viaRelationship;
+                    }
+                    $relationshipLine = trim($relationshipLine);
+                    if ($relationshipLine !== '') {
+                        $relationshipLine = rtrim($relationshipLine, '.');
+                    }
+                } elseif (!empty($indirectConnection['explanation'])) {
+                    $indirectText = trim((string) $indirectConnection['explanation']);
+                    $closestId = 0;
+                    $path = $indirectConnection['descendancy_path'] ?? [];
+                    if (is_array($path) && !empty($path)) {
+                        $lastNode = end($path);
+                        if (is_array($lastNode)) {
+                            $closestId = isset($lastNode['id']) ? (int) $lastNode['id'] : (isset($lastNode[1]) ? (int) $lastNode[1] : 0);
+                        }
+                    }
+                    if (!$closestId && !empty($indirectConnection['via_individual_id'])) {
+                        $closestId = (int) $indirectConnection['via_individual_id'];
+                    }
+                    $closestRelationship = $closestId > 0 ? $getRelationshipToUser($closestId) : '';
+                    if ($closestRelationship !== '') {
+                        if (function_exists('mb_strtolower')) {
+                            $closestRelationship = mb_strtolower($closestRelationship, 'UTF-8');
+                        } else {
+                            $closestRelationship = strtolower($closestRelationship);
+                        }
+                        $relationshipLine = rtrim($indirectText, '. ');
+                        if ($relationshipLine !== '') {
+                            $relationshipLine .= ', your ' . $closestRelationship;
+                        } else {
+                            $relationshipLine = 'Your ' . $closestRelationship;
+                        }
+                    } elseif ($indirectText !== '') {
+                        $relationshipLine = rtrim($indirectText, '. ');
+                    }
                 }
 
                 ob_start();
@@ -1012,29 +1145,17 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                                 <?php endif; ?>
                             </h4>
                         <?php endif; ?>
+                        <?php if ($relationshipLine !== ''): ?>
+                            <p class="feed-item-relationship text-xs text-gray-500 mb-2">
+                                <span class="font-semibold text-brown mr-1">Relationship:</span>
+                                <?= htmlspecialchars(rtrim($relationshipLine, '.') . '.') ?>
+                            </p>
+                        <?php endif; ?>
                         <?php if (!empty($descendancyLineSegments)): ?>
                             <p class="feed-item-descendancy text-xs text-gray-500 mb-1">
                                 <span class="font-semibold text-brown mr-1">Line:</span>
                                 <?= implode(' <span class="mx-1 text-gray-400">&gt;</span> ', $descendancyLineSegments) ?>
                             </p>
-                        <?php endif; ?>
-                        <?php if ($relationshipToUser !== ''): ?>
-                            <?php
-                                $relationshipDisplay = '';
-                                if ($relationshipToUser !== '') {
-                                    if (function_exists('mb_strtolower')) {
-                                        $relationshipDisplay = 'Your ' . mb_strtolower($relationshipToUser, 'UTF-8');
-                                    } else {
-                                        $relationshipDisplay = 'Your ' . strtolower($relationshipToUser);
-                                    }
-                                }
-                            ?>
-                            <?php if (trim($relationshipDisplay) !== ''): ?>
-                                <p class="feed-item-relationship text-xs text-gray-500 mb-2">
-                                    <span class="font-semibold text-brown mr-1">Relationship:</span>
-                                    <?= htmlspecialchars($relationshipDisplay) ?>
-                                </p>
-                            <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($entry['content_html'])): ?>
                             <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>

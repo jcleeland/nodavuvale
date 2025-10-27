@@ -514,6 +514,278 @@ class Utils {
         }
     }
 
+    /**
+     * Attempts to explain how an individual who is not in the direct line of descendancy is connected to the root line.
+     *
+     * This performs a breadth-first search across parent/child and spouse relationships until it finds
+     * an individual who *does* have a direct line of descendancy to the supplied root. It then returns the chain
+     * of intermediate relationships together with the root-bound lineage.
+     *
+     * @param int      $individualId The individual whose indirect connection we want to explain.
+     * @param int|null $rootId       The root individual id. Must be provided explicitly here to avoid coupling to the Web layer.
+     * @param array    $options      Optional settings. Supported: max_depth (default 6)
+     *
+     * @return array{
+     *     found: bool,
+     *     type?: string,
+     *     depth?: int,
+     *     via_individual_id?: int,
+     *     via_individual_name?: string,
+     *     steps?: array<int, array<string, mixed>>,
+     *     descendancy_path?: array<int, array{name:string,id:int}>,
+     *     explanation?: string,
+     *     reason?: string
+     * }
+     */
+    public static function getExtendedConnectionPath($individualId, $rootId = null, array $options = array()) {
+        $individualId = (int) $individualId;
+        $rootId = $rootId !== null ? (int) $rootId : 0;
+        if ($individualId <= 0) {
+            return array('found' => false, 'reason' => 'invalid_individual');
+        }
+        if ($rootId <= 0) {
+            return array('found' => false, 'reason' => 'invalid_root');
+        }
+
+        $maxDepth = isset($options['max_depth']) ? (int) $options['max_depth'] : 6;
+        if ($maxDepth < 1) {
+            $maxDepth = 1;
+        }
+
+        $directLine = self::getLineOfDescendancy($rootId, $individualId);
+        if (!empty($directLine)) {
+            return array(
+                'found' => true,
+                'type'  => 'direct',
+                'depth' => 0,
+                'via_individual_id'   => $individualId,
+                'via_individual_name' => self::getIndividualName($individualId),
+                'steps' => array(),
+                'descendancy_path' => self::normalizeDescendancyPath($directLine),
+                'explanation'      => 'Direct descendant of root.'
+            );
+        }
+
+        $db = Database::getInstance();
+        $descendancyCache = array($individualId => $directLine);
+        $neighborCache = array();
+        $nameCache = array();
+        $fetchIndividualName = static function ($id) use (&$nameCache, $db) {
+            $id = (int) $id;
+            if ($id <= 0) {
+                return '';
+            }
+            if (!isset($nameCache[$id])) {
+                $row = $db->fetchOne(
+                    "SELECT first_names, last_name FROM individuals WHERE id = ?",
+                    array($id)
+                );
+                if ($row) {
+                    $first = trim((string) ($row['first_names'] ?? ''));
+                    $last  = trim((string) ($row['last_name'] ?? ''));
+                    $nameCache[$id] = trim($first . ' ' . $last);
+                } else {
+                    $nameCache[$id] = '';
+                }
+            }
+            return $nameCache[$id];
+        };
+
+        $getNeighbors = static function ($id) use (&$neighborCache, $db) {
+            if (isset($neighborCache[$id])) {
+                return $neighborCache[$id];
+            }
+            $rows = $db->fetchAll(
+                "SELECT individual_id_1, individual_id_2, relationship_type
+                 FROM relationships
+                 WHERE individual_id_1 = ? OR individual_id_2 = ?",
+                array($id, $id)
+            );
+            $neighbors = array();
+            foreach ($rows as $row) {
+                $relType = strtolower((string) ($row['relationship_type'] ?? ''));
+                $leftId  = (int) ($row['individual_id_1'] ?? 0);
+                $rightId = (int) ($row['individual_id_2'] ?? 0);
+                if ($leftId <= 0 || $rightId <= 0) {
+                    continue;
+                }
+
+                if ($leftId === $id) {
+                    $neighborId = $rightId;
+                    $direction = 'outbound';
+                } else {
+                    $neighborId = $leftId;
+                    $direction = 'inbound';
+                }
+
+                if ($neighborId === $id || $neighborId <= 0) {
+                    continue;
+                }
+
+                $neighborLabel = 'related';
+                if ($relType === 'spouse' || $relType === 'partner') {
+                    $neighborLabel = 'spouse';
+                } elseif ($relType === 'child') {
+                    $neighborLabel = ($direction === 'inbound') ? 'parent' : 'child';
+                }
+
+                $neighbors[] = array(
+                    'neighbor_id' => $neighborId,
+                    'relationship_type' => $relType,
+                    'direction' => $neighborLabel
+                );
+            }
+            $neighborCache[$id] = $neighbors;
+            return $neighbors;
+        };
+
+        $queue = new SplQueue();
+        $queue->enqueue(array(
+            'id' => $individualId,
+            'path' => array()
+        ));
+        $visited = array($individualId => true);
+
+        while (!$queue->isEmpty()) {
+            $node = $queue->dequeue();
+            $currentId = (int) $node['id'];
+            $currentPath = $node['path'];
+
+            if (count($currentPath) > $maxDepth) {
+                continue;
+            }
+
+            if (!isset($descendancyCache[$currentId])) {
+                $descendancyCache[$currentId] = self::getLineOfDescendancy($rootId, $currentId);
+            }
+            $currentLine = $descendancyCache[$currentId];
+
+            if (!empty($currentLine)) {
+                $steps = array();
+                foreach ($currentPath as $step) {
+                    $steps[] = array(
+                        'from_id'   => (int) $step['from_id'],
+                        'from_name' => $fetchIndividualName($step['from_id']),
+                        'to_id'     => (int) $step['to_id'],
+                        'to_name'   => $fetchIndividualName($step['to_id']),
+                        'relationship_type' => $step['relationship_type'],
+                        'direction' => $step['direction'],
+                        'label'     => self::summarizeRelationshipStep($step['direction'], $step['relationship_type'])
+                    );
+                }
+
+                $explanation = self::buildConnectionExplanation(
+                    $fetchIndividualName($individualId),
+                    $steps,
+                    $currentLine
+                );
+
+                return array(
+                    'found' => true,
+                    'type'  => 'indirect',
+                    'depth' => count($steps),
+                    'via_individual_id'   => $currentId,
+                    'via_individual_name' => $fetchIndividualName($currentId),
+                    'steps'               => $steps,
+                    'descendancy_path'    => self::normalizeDescendancyPath($currentLine),
+                    'explanation'         => $explanation
+                );
+            }
+
+            if (count($currentPath) >= $maxDepth) {
+                continue;
+            }
+
+            $neighbors = $getNeighbors($currentId);
+            foreach ($neighbors as $neighbor) {
+                $neighborId = (int) $neighbor['neighbor_id'];
+                if ($neighborId <= 0 || isset($visited[$neighborId])) {
+                    continue;
+                }
+                $visited[$neighborId] = true;
+                $extendedPath = $currentPath;
+                $extendedPath[] = array(
+                    'from_id' => $currentId,
+                    'to_id' => $neighborId,
+                    'relationship_type' => $neighbor['relationship_type'],
+                    'direction' => $neighbor['direction']
+                );
+                $queue->enqueue(array(
+                    'id' => $neighborId,
+                    'path' => $extendedPath
+                ));
+            }
+        }
+
+        return array('found' => false, 'reason' => 'no_connection_within_depth', 'depth' => $maxDepth);
+    }
+
+    private static function summarizeRelationshipStep($direction, $relationshipType) {
+        switch ($direction) {
+            case 'spouse':
+                return 'spouse of';
+            case 'parent':
+                return 'parent of';
+            case 'child':
+                return 'child of';
+            default:
+                if ($relationshipType !== '') {
+                    return $relationshipType . ' of';
+                }
+                return 'related to';
+        }
+    }
+
+    private static function buildConnectionExplanation($originName, array $steps, array $descendancyLine) {
+        $originName = trim((string) $originName);
+        $fragments = array();
+        foreach ($steps as $step) {
+            $label = isset($step['label']) ? $step['label'] : '';
+            $targetName = isset($step['to_name']) ? trim((string) $step['to_name']) : '';
+            if ($label === '' || $targetName === '') {
+                continue;
+            }
+            $fragments[] = $label . ' ' . $targetName;
+        }
+
+        $normalizedLine = self::normalizeDescendancyPath($descendancyLine);
+
+        if (!empty($fragments)) {
+            if ($originName !== '') {
+                $fragments[0] = $originName . ' is ' . $fragments[0];
+            }
+        } elseif ($originName !== '') {
+            $fragments[] = $originName . ' is connected to the root line.';
+        }
+
+        return implode(', who is ', $fragments);
+    }
+
+    private static function normalizeDescendancyPath($path) {
+        $normalized = array();
+        foreach ((array) $path as $node) {
+            if (is_array($node)) {
+                if (isset($node['name'], $node['id'])) {
+                    $normalized[] = array(
+                        'name' => (string) $node['name'],
+                        'id'   => (int) $node['id']
+                    );
+                } elseif (isset($node[0], $node[1])) {
+                    $normalized[] = array(
+                        'name' => (string) $node[0],
+                        'id'   => (int) $node[1]
+                    );
+                } elseif (isset($node['0'], $node['1'])) {
+                    $normalized[] = array(
+                        'name' => (string) $node['0'],
+                        'id'   => (int) $node['1']
+                    );
+                }
+            }
+        }
+        return $normalized;
+    }
+
     public static function getAscendancyPath($individualId) {
         if (!$individualId || !is_numeric($individualId)) {
             return array();
