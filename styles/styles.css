@@ -1303,6 +1303,7 @@ section.content a {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
+    justify-content: flex-end;
 }
 
 .dashboard-toolbar-button {

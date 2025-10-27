@@ -430,12 +430,24 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         return implode(' ', array_slice($words, 0, $wordLimit)) . '...';
     };
 
-    foreach ($changes['visitors'] as $visitor) {
-        $timestampString = $visitor['last_view'] ?? null;
-        if (!$timestampString) {
-            continue;
-        }
-        $timestamp = strtotime($timestampString);
+    $buildFeedEntries = static function () use (
+        &$feedEntries,
+        $changes,
+        $createSnippet,
+        $web,
+        $discussionReactionSummaries,
+        $discussionCommentsLookup,
+        $getDescendancyTrail,
+        $getIndirectConnection,
+        $getRelationshipToUser,
+        $item_styles
+    ) {
+        foreach ($changes['visitors'] as $visitor) {
+            $timestampString = $visitor['last_view'] ?? null;
+            if (!$timestampString) {
+                continue;
+            }
+            $timestamp = strtotime($timestampString);
         if (!$timestamp) {
             continue;
         }
@@ -455,12 +467,12 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         ];
     }
 
-    foreach ($changes['discussions'] as $discussion) {
-        $timestampString = $discussion['updated_at'] ?? null;
-        if (!$timestampString) {
-            continue;
-        }
-        $timestamp = strtotime($timestampString);
+        foreach ($changes['discussions'] as $discussion) {
+            $timestampString = $discussion['updated_at'] ?? null;
+            if (!$timestampString) {
+                continue;
+            }
+            $timestamp = strtotime($timestampString);
         if (!$timestamp) {
             continue;
         }
@@ -514,12 +526,12 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         ];
     }
 
-    foreach ($changes['individuals'] as $individual) {
-        $timestampString = $individual['updated'] ?? $individual['created'] ?? null;
-        if (!$timestampString) {
-            continue;
-        }
-        $timestamp = strtotime($timestampString);
+        foreach ($changes['individuals'] as $individual) {
+            $timestampString = $individual['updated'] ?? $individual['created'] ?? null;
+            if (!$timestampString) {
+                continue;
+            }
+            $timestamp = strtotime($timestampString);
         if (!$timestamp) {
             continue;
         }
@@ -549,13 +561,13 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         ];
     }
 
-    $itemGroupings = [];
-    foreach ($changes['items'] as $key => $itemGroup) {
-        if (isset($itemGroup['items']) && is_array($itemGroup['items']) && count($itemGroup['items']) > 0) {
-            foreach ($itemGroup['items'] as $item) {
-                $groupKey = 'group_' . ($item['unique_id'] ?? $item['item_id']);
-                if (!isset($itemGroupings[$groupKey])) {
-                    $itemGroupings[$groupKey] = [
+        $itemGroupings = [];
+        foreach ($changes['items'] as $key => $itemGroup) {
+            if (isset($itemGroup['items']) && is_array($itemGroup['items']) && count($itemGroup['items']) > 0) {
+                foreach ($itemGroup['items'] as $item) {
+                    $groupKey = 'group_' . ($item['unique_id'] ?? $item['item_id']);
+                    if (!isset($itemGroupings[$groupKey])) {
+                        $itemGroupings[$groupKey] = [
                         'items'            => [],
                         'privacy'          => $itemGroup['privacy'] ?? 'private',
                         'group_identifier' => $key,
@@ -577,14 +589,14 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         }
     }
 
-    $itemInteractionMeta = [];
-    $itemTargetIds = [];
-    foreach ($itemGroupings as $groupKey => $group) {
-        if (empty($group['items']) || !is_array($group['items'])) {
-            $itemInteractionMeta[$groupKey] = null;
-            continue;
-        }
-        $primaryItemId = null;
+        $itemInteractionMeta = [];
+        $itemTargetIds = [];
+        foreach ($itemGroupings as $groupKey => $group) {
+            if (empty($group['items']) || !is_array($group['items'])) {
+                $itemInteractionMeta[$groupKey] = null;
+                continue;
+            }
+            $primaryItemId = null;
         $itemIdentifier = null;
         foreach ($group['items'] as $groupItem) {
             if ($itemIdentifier === null && !empty($groupItem['item_identifier'])) {
@@ -616,12 +628,12 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     $itemCommentsLookup = Utils::getItemCommentsByItemIds($itemTargetIdList);
     $nonInteractiveItemGroups = ['Birth', 'Death', 'Name'];
 
-    foreach ($itemGroupings as $groupKey => $itemGroup) {
-        if (empty($itemGroup['items'])) {
-            continue;
-        }
-        $firstItem = $itemGroup['items'][0];
-        $timestampString = $firstItem['updated'] ?? $firstItem['item_updated'] ?? null;
+        foreach ($itemGroupings as $groupKey => $itemGroup) {
+            if (empty($itemGroup['items'])) {
+                continue;
+            }
+            $firstItem = $itemGroup['items'][0];
+            $timestampString = $firstItem['updated'] ?? $firstItem['item_updated'] ?? null;
         if (!$timestampString) {
             continue;
         }
@@ -863,12 +875,12 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         ];
     }
 
-    foreach ($changes['files'] as $file) {
-        $timestampString = $file['upload_date'] ?? $file['updated'] ?? null;
-        if (!$timestampString) {
-            continue;
-        }
-        $timestamp = strtotime($timestampString);
+        foreach ($changes['files'] as $file) {
+            $timestampString = $file['upload_date'] ?? $file['updated'] ?? null;
+            if (!$timestampString) {
+                continue;
+            }
+            $timestamp = strtotime($timestampString);
         if (!$timestamp) {
             continue;
         }
@@ -900,9 +912,10 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         ];
     }
 
-    usort($feedEntries, function ($a, $b) {
-        return ($b['timestamp'] ?? 0) <=> ($a['timestamp'] ?? 0);
-    });
+        usort($feedEntries, function ($a, $b) {
+            return ($b['timestamp'] ?? 0) <=> ($a['timestamp'] ?? 0);
+        });
+    };
 
     $user = Utils::getUser($user_id);
     $dashboardLayout = 'dropdown';
@@ -937,7 +950,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 <?php endif; ?>
 
 <?php if ($hasDropdownPanels): ?>
-    <section class="container mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <section class="container mx-auto pt-12 px-4 sm:px-6 lg:px-8 pt-4">
         <div class="dashboard-toolbar flex flex-wrap items-center gap-4">
             <button type="button" class="dashboard-toolbar-button" data-dashboard-trigger="notifications" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-bell"></i>
@@ -949,16 +962,10 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             <button type="button" class="dashboard-toolbar-button" data-dashboard-trigger="profile" aria-label="Your profile" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-user"></i>
                 <span class="dashboard-toolbar-label">Your profile</span>
-                <?php if (!empty($dashboardDropdownMeta['profile'])): ?>
-                    <span class="dashboard-badge"><?= (int) $dashboardDropdownMeta['profile'] ?></span>
-                <?php endif; ?>
             </button>
             <button type="button" class="dashboard-toolbar-button" data-dashboard-trigger="controls" aria-label="Your controls" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-cog"></i>
                 <span class="dashboard-toolbar-label">Your controls</span>
-                <?php if (!empty($dashboardDropdownMeta['controls'])): ?>
-                    <span class="dashboard-badge"><?= (int) $dashboardDropdownMeta['controls'] ?></span>
-                <?php endif; ?>
             </button>
         </div>
         <div class="dashboard-dropdown-panels mt-4" id="dashboardDropdownPanels">
@@ -967,13 +974,23 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     </section>
 <?php endif; ?>
 
-    <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8 pt-6">
+    <section class="container mx-auto py-2 px-4 sm:px-6 lg:px-8 pt-2">
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
             <h3 class="text-2xl font-bold text-ocean-blue flex items-center gap-3">
                 <i class="fas fa-stream"></i>
                 Latest updates
             </h3>
         </div>
+        <div id="feedSpinner" class="feed-loading text-center text-gray-500 py-12">
+            <i class="fas fa-circle-notch fa-spin mr-2"></i> Gathering updates&hellip;
+        </div>
+        <?php
+            if (function_exists('ob_flush')) {
+                ob_flush();
+            }
+            flush();
+            $buildFeedEntries();
+        ?>
         <?php
             $renderReactionSummary = static function (array $summary, array $emojiMap): string {
                 $html = '';
@@ -1329,6 +1346,14 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading more updates&hellip;
             </div>
         <?php endif; ?>
+        <script>
+            (function () {
+                var spinner = document.getElementById('feedSpinner');
+                if (spinner && spinner.parentNode) {
+                    spinner.parentNode.removeChild(spinner);
+                }
+            })();
+        </script>
         <script>
             (function () {
                 var feedStream = document.getElementById('feedStream');
