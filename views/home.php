@@ -477,6 +477,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 : "?to=communications/discussions&discussion_id={$discussion['discussionId']}",
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
+            'relationship_to_user' => $isTreeDiscussion ? $getRelationshipToUser($discussion['individual_id']) : '',
             'descendancy' => $isTreeDiscussion ? $getDescendancyTrail($discussion['individual_id']) : [],
             'interactions' => [
                 'type'             => 'discussion',
@@ -510,6 +511,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'url'        => "?to=family/individual&individual_id={$individual['individualId']}",
             'timestamp'  => $timestamp,
             'raw_time'   => $timestampString,
+            'relationship_to_user' => $getRelationshipToUser($individual['individualId'] ?? 0),
             'descendancy' => $getDescendancyTrail($individual['individualId'] ?? 0),
         ];
     }
@@ -600,12 +602,15 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             : ($firstItem['detail_type'] ?? 'Update');
         $groupTitleTrimmed = trim($groupTitle);
         $snippet = '';
+        $contentHtml = '';
         $detailRows = [];
         $detailRowKeys = [];
         $mediaItems = [];
         $mediaKeys = [];
         $fileLinks = [];
         $fileKeys = [];
+        $gpsDetails = [];
+        $spouseNames = [];
         $addDetailRow = function ($label, $value, $link = '', $isHtml = false) use (&$detailRows, &$detailRowKeys) {
             $normalizedLabel = trim((string) $label);
             $normalizedValue = is_string($value) ? trim($value) : (is_null($value) ? '' : (string) $value);
@@ -632,6 +637,10 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             $detailLabel = $detailType ? $detailType : ($item['item_group_name'] ?? $groupTitle);
             $detailStyle = $item_styles[$detailType] ?? 'text';
             $detailValue = isset($item['detail_value']) ? trim((string) $item['detail_value']) : '';
+            $labelLower = strtolower($detailLabel);
+            $isUrlDetail = ($labelLower === 'url');
+            $isGpsDetail = ($labelLower === 'gps');
+            $isSpouseDetail = in_array($labelLower, ['spouse', 'partner', 'husband', 'wife'], true);
 
             if (!empty($item['file_path'])) {
                 $fileDesc = trim((string) ($item['file_description'] ?? $detailLabel));
@@ -668,8 +677,27 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 continue;
             }
 
-            if ($snippet === '' && $detailValue !== '' && $detailType !== 'Private') {
-                $snippet = $createSnippet($detailValue, 20);
+            if ($isUrlDetail) {
+                $linkIconHtml = '<i class="fas fa-link" aria-hidden="true"></i><span class="sr-only">Open website</span>';
+                $addDetailRow($detailLabel, $linkIconHtml, $detailValue, true);
+                if ($snippet === '') {
+                    $snippet = 'New website link added.';
+                }
+                continue;
+            }
+
+            if ($isGpsDetail) {
+                $coordinateValue = preg_replace('/\s+/', ' ', $detailValue);
+                if ($coordinateValue !== '') {
+                    $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($coordinateValue);
+                    $mapIconHtml = '<i class="fas fa-map-marker-alt" aria-hidden="true"></i><span class="sr-only">View on Google Maps</span>';
+                    $addDetailRow('GPS', $mapIconHtml, $mapsUrl, true);
+                    $gpsDetails[] = [
+                        'url' => $mapsUrl,
+                        'coordinates' => $coordinateValue,
+                    ];
+                }
+                continue;
             }
 
             if ($detailStyle === 'file') {
@@ -682,16 +710,17 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                     : '';
                 $individualName = trim((string) ($item['individual_name'] ?? $detailValue));
                 $addDetailRow($detailLabel, $individualName, $linkTarget, false);
+                if ($isSpouseDetail && $individualName !== '') {
+                    $spouseNames[] = $individualName;
+                }
+                if ($snippet === '' && !$isSpouseDetail && $individualName !== '') {
+                    $snippet = $createSnippet($individualName, 20);
+                }
                 continue;
             }
 
-            if (strcasecmp($detailLabel, 'GPS') === 0) {
-                $coordinateValue = preg_replace('/\s+/', ' ', $detailValue);
-                if ($coordinateValue !== '') {
-                    $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($coordinateValue);
-                    $addDetailRow('GPS', $coordinateValue, $mapsUrl, false);
-                    continue;
-                }
+            if ($snippet === '' && $detailValue !== '' && $detailType !== 'Private' && !$isSpouseDetail) {
+                $snippet = $createSnippet($detailValue, 20);
             }
 
             $displayValue = $detailValue;
@@ -710,6 +739,53 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         }
         if ($snippet === '' && !empty($firstItem['file_path'])) {
             $snippet = 'New file attached.';
+        }
+        if (!empty($spouseNames)) {
+            $normalizedSpouses = array_map(static function ($name) {
+                if (!is_string($name)) {
+                    $name = (string) $name;
+                }
+                return trim($name);
+            }, $spouseNames);
+            $uniqueSpouses = array_values(array_unique($normalizedSpouses));
+            $primaryNormalized = '';
+            if ($personName !== '') {
+                $primaryNormalized = function_exists('mb_strtolower')
+                    ? mb_strtolower($personName, 'UTF-8')
+                    : strtolower($personName);
+            }
+            $uniqueSpouses = array_values(array_filter($uniqueSpouses, static function ($name) use ($primaryNormalized) {
+                if ($name === '') {
+                    return false;
+                }
+                if ($primaryNormalized === '') {
+                    return true;
+                }
+                $compareValue = function_exists('mb_strtolower')
+                    ? mb_strtolower($name, 'UTF-8')
+                    : strtolower($name);
+                return $compareValue !== $primaryNormalized;
+            }));
+            if (!empty($uniqueSpouses)) {
+                $spouseSummary = implode(' and ', $uniqueSpouses);
+                $normalizedTitle = strtolower($groupTitleTrimmed);
+                if ($normalizedTitle === 'marriage') {
+                    $snippet = ($personName !== '' ? $personName . ' married ' . $spouseSummary : 'Married ' . $spouseSummary) . '.';
+                } elseif ($normalizedTitle === 'divorce') {
+                    $snippet = ($personName !== '' ? $personName . ' divorced ' . $spouseSummary : 'Divorced ' . $spouseSummary) . '.';
+                }
+            }
+        }
+        if (!empty($gpsDetails)) {
+            $primaryGps = $gpsDetails[0];
+            $mapUrlEscaped = htmlspecialchars($primaryGps['url'], ENT_QUOTES, 'UTF-8');
+            $mapLinkHtml = '<a href="' . $mapUrlEscaped . '" target="_blank" rel="noopener" class="feed-item-location-link" aria-label="View location on Google Maps">&#128205;</a>';
+            if ($snippet !== '') {
+                $contentHtml = htmlspecialchars($snippet, ENT_QUOTES, 'UTF-8') . ' ' . $mapLinkHtml;
+                $snippet = '';
+            } else {
+                $contentHtml = 'A geographical location was added ' . $mapLinkHtml;
+            }
         }
         $interaction = null;
         $interactionMeta = $itemInteractionMeta[$groupKey] ?? null;
@@ -739,6 +815,8 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'details'   => $detailRows,
             'media'     => $mediaItems,
             'files'     => $fileLinks,
+            'content_html' => $contentHtml,
+            'relationship_to_user' => $getRelationshipToUser($firstItem['individualId'] ?? 0),
             'descendancy' => $getDescendancyTrail($firstItem['individualId'] ?? 0),
             'interactions' => $interaction,
         ];
@@ -768,6 +846,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             'timestamp' => $timestamp,
             'raw_time'  => $timestampString,
             'media'     => $file['file_path'] ?? '',
+            'relationship_to_user' => $getRelationshipToUser($file['individualId'] ?? 0),
             'descendancy' => $getDescendancyTrail($file['individualId'] ?? 0),
         ];
     }
@@ -868,6 +947,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                     $actorInitial = strtoupper(substr($entry['meta']['actor_name'], 0, 1));
                 }
                 $descendancyTrail = [];
+                $descendancyLineSegments = [];
                 if (!empty($entry['descendancy']) && is_array($entry['descendancy'])) {
                     foreach ($entry['descendancy'] as $descendant) {
                         $label = trim((string) ($descendant[0] ?? ''));
@@ -875,13 +955,26 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                         if ($label === '') {
                             continue;
                         }
-                        $relationship = $getRelationshipToUser($id);
                         $descendancyTrail[] = [
                             'label' => $label,
                             'id'    => $id,
-                            'relationship' => $relationship,
                         ];
+                        if ($id > 0) {
+                            $descendancyLineSegments[] = '<a href="?to=family/individual&individual_id=' . $id . '" class="hover:text-burnt-orange">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
+                        } else {
+                            $descendancyLineSegments[] = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+                        }
                     }
+                }
+                $relationshipToUser = '';
+                if (!empty($entry['relationship_to_user'])) {
+                    $relationshipToUser = trim((string) $entry['relationship_to_user']);
+                } elseif (!empty($descendancyTrail)) {
+                    $lastDescendant = end($descendancyTrail);
+                    if (is_array($lastDescendant) && !empty($lastDescendant['id'])) {
+                        $relationshipToUser = $getRelationshipToUser($lastDescendant['id']);
+                    }
+                    reset($descendancyTrail);
                 }
 
                 ob_start();
@@ -910,26 +1003,6 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                                 </span>
                             <?php endif; ?>
                         </div>
-                        <?php if (!empty($descendancyTrail)): ?>
-                            <div class="feed-item-descendancy text-xs text-gray-500 mb-2">
-                                <span class="font-semibold text-brown mr-1">Line:</span>
-                                <?php foreach ($descendancyTrail as $index => $descendant): ?>
-                                    <?php if ($descendant['id'] > 0): ?>
-                                        <a href="?to=family/individual&individual_id=<?= $descendant['id'] ?>" class="hover:text-burnt-orange"><?= htmlspecialchars($descendant['label']) ?></a>
-                                    <?php else: ?>
-                                        <span><?= htmlspecialchars($descendant['label']) ?></span>
-                                    <?php endif; ?>
-                                    <?php if (!empty($descendant['relationship'])): ?>
-                                        <span class="text-gray-400"> (<?= htmlspecialchars($descendant['relationship']) ?>)</span>
-                                    <?php endif; ?>
-                                    <?php if ($index < count($descendancyTrail) - 1): ?>
-                                        <span class="mx-1 text-gray-400">
-                                            <i class="fas fa-angle-right"></i>
-                                        </span>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
                         <?php if (!empty($entry['title'])): ?>
                             <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
                                 <?php if (!empty($entry['url'])): ?>
@@ -938,6 +1011,30 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                                     <?= htmlspecialchars($entry['title']) ?>
                                 <?php endif; ?>
                             </h4>
+                        <?php endif; ?>
+                        <?php if (!empty($descendancyLineSegments)): ?>
+                            <p class="feed-item-descendancy text-xs text-gray-500 mb-1">
+                                <span class="font-semibold text-brown mr-1">Line:</span>
+                                <?= implode(' <span class="mx-1 text-gray-400">&gt;</span> ', $descendancyLineSegments) ?>
+                            </p>
+                        <?php endif; ?>
+                        <?php if ($relationshipToUser !== ''): ?>
+                            <?php
+                                $relationshipDisplay = '';
+                                if ($relationshipToUser !== '') {
+                                    if (function_exists('mb_strtolower')) {
+                                        $relationshipDisplay = 'Your ' . mb_strtolower($relationshipToUser, 'UTF-8');
+                                    } else {
+                                        $relationshipDisplay = 'Your ' . strtolower($relationshipToUser);
+                                    }
+                                }
+                            ?>
+                            <?php if (trim($relationshipDisplay) !== ''): ?>
+                                <p class="feed-item-relationship text-xs text-gray-500 mb-2">
+                                    <span class="font-semibold text-brown mr-1">Relationship:</span>
+                                    <?= htmlspecialchars($relationshipDisplay) ?>
+                                </p>
+                            <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($entry['content_html'])): ?>
                             <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
@@ -957,7 +1054,17 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                                     <li class="feed-item-detail-row">
                                         <span class="feed-item-detail-label"><?= htmlspecialchars($detail['label']) ?>:</span>
                                         <?php if (!empty($detail['link'])): ?>
-                                            <a href="<?= htmlspecialchars($detail['link']) ?>" class="feed-item-detail-link hover:text-burnt-orange"><?= htmlspecialchars($detail['value']) ?></a>
+                                            <?php
+                                                $detailLink = (string) $detail['link'];
+                                                $isExternalDetailLink = preg_match('/^https?:/i', $detailLink) === 1;
+                                            ?>
+                                            <a href="<?= htmlspecialchars($detailLink) ?>" class="feed-item-detail-link hover:text-burnt-orange" <?= $isExternalDetailLink ? 'target="_blank" rel="noopener"' : '' ?>>
+                                                <?php if (!empty($detail['is_html'])): ?>
+                                                    <?= $detail['value'] ?>
+                                                <?php else: ?>
+                                                    <?= htmlspecialchars($detail['value']) ?>
+                                                <?php endif; ?>
+                                            </a>
                                         <?php else: ?>
                                             <span class="feed-item-detail-text">
                                                 <?php if (!empty($detail['is_html'])): ?>
