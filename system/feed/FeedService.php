@@ -22,7 +22,14 @@ if (!function_exists('nvFeedSanitizeHtml')) {
         }
 
         $allowedTags = [
-            'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'a', 'blockquote', 'span',
+            'p', 'br', 'div',
+            'strong', 'b', 'em', 'i', 'u',
+            'ul', 'ol', 'li',
+            'a', 'blockquote', 'span',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'pre', 'code',
+            'table', 'thead', 'tbody', 'tr', 'th', 'td',
+            'img', 'figure', 'figcaption',
         ];
         $allowedGlobalAttributes = ['class', 'id', 'title', 'data-*', 'aria-*'];
         $allowedAttributes = [
@@ -39,6 +46,23 @@ if (!function_exists('nvFeedSanitizeHtml')) {
             'i'           => $allowedGlobalAttributes,
             'u'           => $allowedGlobalAttributes,
             'div'         => $allowedGlobalAttributes,
+            'h1'          => $allowedGlobalAttributes,
+            'h2'          => $allowedGlobalAttributes,
+            'h3'          => $allowedGlobalAttributes,
+            'h4'          => $allowedGlobalAttributes,
+            'h5'          => $allowedGlobalAttributes,
+            'h6'          => $allowedGlobalAttributes,
+            'pre'         => $allowedGlobalAttributes,
+            'code'        => $allowedGlobalAttributes,
+            'table'       => $allowedGlobalAttributes,
+            'thead'       => $allowedGlobalAttributes,
+            'tbody'       => $allowedGlobalAttributes,
+            'tr'          => $allowedGlobalAttributes,
+            'th'          => $allowedGlobalAttributes,
+            'td'          => $allowedGlobalAttributes,
+            'img'         => array_merge($allowedGlobalAttributes, ['src', 'alt', 'title', 'width', 'height', 'loading', 'decoding']),
+            'figure'      => $allowedGlobalAttributes,
+            'figcaption'  => $allowedGlobalAttributes,
         ];
 
         $allowedTagLookup = array_flip($allowedTags);
@@ -61,7 +85,7 @@ if (!function_exists('nvFeedSanitizeHtml')) {
         if (!$loaded) {
             libxml_clear_errors();
             libxml_use_internal_errors($previousLibxml);
-            $fallbackAllowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><span>';
+            $fallbackAllowed = '<p><br><div><strong><b><em><i><u><ul><ol><li><a><blockquote><span><h1><h2><h3><h4><h5><h6><pre><code><table><thead><tbody><tr><th><td><img><figure><figcaption>';
             $clean = strip_tags($html, $fallbackAllowed);
             if ($clean === null || $clean === '') {
                 return '';
@@ -375,7 +399,7 @@ class FeedService
             'discussion' => ['label' => 'Discussion update', 'icon' => 'fas fa-comments'],
             'comment'    => ['label' => 'New comment',       'icon' => 'fas fa-comment-dots'],
             'individual' => ['label' => 'New family member', 'icon' => 'fas fa-user-plus'],
-            'item'       => ['label' => 'Story update',      'icon' => 'fas fa-book-open'],
+            'item'       => ['label' => 'Event update',      'icon' => 'fas fa-book-open'],
             'file'       => ['label' => 'New file',          'icon' => 'fas fa-photo-video'],
             'visitor'    => ['label' => 'Latest visit',      'icon' => 'fas fa-door-open'],
         ];
@@ -431,8 +455,29 @@ class FeedService
             return $relationshipCache[$individualId];
         };
 
+        $decorateIndirectConnection = static function ($connection) use ($getRelationshipToUser) {
+            if (!is_array($connection) || empty($connection)) {
+                return $connection;
+            }
+            $viaId = isset($connection['via_individual_id']) ? (int) $connection['via_individual_id'] : 0;
+            if ($viaId > 0) {
+                $relationship = $getRelationshipToUser($viaId);
+                if ($relationship !== '') {
+                    $connection['user_relationship'] = $relationship;
+                }
+            }
+            return $connection;
+        };
+
         $normalizeValue = static function ($value) {
             $value = (string) $value;
+            if ($value === '') {
+                return '';
+            }
+            $hasHtml = strip_tags($value) !== $value;
+            if ($hasHtml) {
+                return nvFeedSanitizeHtml($value);
+            }
             $value = preg_replace("/\r\n?/", "\n", $value);
             return nl2br(htmlspecialchars($value, ENT_QUOTES, 'UTF-8'));
         };
@@ -538,9 +583,37 @@ class FeedService
         $itemReactionSummaries = [];
         $itemCommentsLookup = [];
         $itemIds = [];
+        $extractItemId = static function (array $group): int {
+            if (!empty($group['item_id'])) {
+                $candidate = (int) $group['item_id'];
+                if ($candidate > 0) {
+                    return $candidate;
+                }
+            }
+            if (!empty($group['items']) && is_array($group['items'])) {
+                foreach ($group['items'] as $itemRow) {
+                    if (!is_array($itemRow)) {
+                        continue;
+                    }
+                    $candidates = [
+                        $itemRow['item_id'] ?? null,
+                        $itemRow['item_links_item_id'] ?? null,
+                        $itemRow['item_link_item_id'] ?? null,
+                    ];
+                    foreach ($candidates as $candidate) {
+                        $candidate = (int) $candidate;
+                        if ($candidate > 0) {
+                            return $candidate;
+                        }
+                    }
+                }
+            }
+            return 0;
+        };
         foreach ($changes['items'] as $itemGroup) {
-            if (!empty($itemGroup['item_id'])) {
-                $itemIds[] = (int) $itemGroup['item_id'];
+            $derivedItemId = $extractItemId($itemGroup);
+            if ($derivedItemId > 0) {
+                $itemIds[] = $derivedItemId;
             }
         }
         if (!empty($itemIds)) {
@@ -548,6 +621,8 @@ class FeedService
             $itemReactionSummaries = Utils::getItemReactionSummaryByItemIds($itemIds);
             $itemCommentsLookup = Utils::getItemCommentsByItemIds($itemIds);
         }
+
+        $itemGroupSeen = [];
 
         foreach ($changes['visitors'] as $visitor) {
             $timestampString = $visitor['last_view'] ?? null;
@@ -596,18 +671,20 @@ class FeedService
                 continue;
             }
             $isTreeDiscussion = !empty($discussion['individual_id']);
+            $changeType = $discussion['change_type'] ?? '';
             $discussionContentRaw = isset($discussion['content']) ? stripslashes($discussion['content']) : '';
+            $discussionPostRaw = isset($discussion['discussion_content']) ? stripslashes($discussion['discussion_content']) : '';
+            $discussionBodyForDisplay = $discussionPostRaw !== '' ? $discussionPostRaw : $discussionContentRaw;
             $discussionSnippetHtml = '';
-            if ($discussionContentRaw !== '') {
-                $discussionSnippetHtml = nvFeedSanitizeHtml(
-                    $this->web->truncateText(
-                        nl2br($discussionContentRaw),
-                        80,
-                        'Read more',
-                        'feed_discussion_' . $discussion['discussionId'],
-                        'expand'
-                    )
+            if ($discussionBodyForDisplay !== '') {
+                $truncatedDiscussion = $this->web->truncateText(
+                    nl2br($discussionBodyForDisplay),
+                    80,
+                    'Read more',
+                    'feed_discussion_' . $discussion['discussionId'],
+                    'expand'
                 );
+                $discussionSnippetHtml = nvFeedSanitizeHtml(stripslashes($truncatedDiscussion));
             }
             $discussionDescendancy = [];
             $discussionIndirectConnection = [];
@@ -616,11 +693,19 @@ class FeedService
                 if (empty($discussionDescendancy)) {
                     $discussionIndirectConnection = $getIndirectConnection($discussion['individual_id']);
                 }
+                $discussionIndirectConnection = $decorateIndirectConnection($discussionIndirectConnection);
             }
 
             $discussionId = (int) ($discussion['discussionId'] ?? 0);
             $reactionSummary = $discussionReactionSummaries[$discussionId] ?? [];
             $comments = $discussionCommentsLookup[$discussionId] ?? [];
+            $recentCommentIds = [];
+            if ($changeType === 'comment') {
+                $recentCommentId = (int) ($discussion['comment_id'] ?? 0);
+                if ($recentCommentId > 0) {
+                    $recentCommentIds[] = $recentCommentId;
+                }
+            }
             $discussionSubjectName = $resolveName(
                 $discussion,
                 ['tree_first_name', 'tree_first_names', 'first_names', 'first_name'],
@@ -628,15 +713,17 @@ class FeedService
             );
 
             $feedEntries[] = [
-                'type'      => $discussion['change_type'] === 'comment' ? 'comment' : 'discussion',
+                'type'      => $changeType === 'comment' ? 'comment' : 'discussion',
                 'title'     => stripslashes($discussion['title']),
-                'content'   => $createSnippet($discussionContentRaw, 28),
+                'content'   => $createSnippet($discussionBodyForDisplay, 28),
                 'content_html' => $discussionSnippetHtml,
                 'meta'      => [
                     'actor_name' => trim(($discussion['user_first_name'] ?? '') . ' ' . ($discussion['user_last_name'] ?? '')),
                     'actor_id'   => $discussion['user_id'] ?? null,
                     'context'    => $isTreeDiscussion ? 'Family Tree Chat' : 'Community Chat',
                     'subject_name' => $isTreeDiscussion ? $discussionSubjectName : '',
+                    'subject_id'   => $isTreeDiscussion ? (int) ($discussion['individual_id'] ?? 0) : null,
+                    'recent_comment_ids' => $recentCommentIds,
                 ],
                 'url'       => $isTreeDiscussion
                     ? "?to=family/individual&individual_id={$discussion['individual_id']}&discussion_id={$discussion['discussionId']}"
@@ -674,6 +761,7 @@ class FeedService
             if (empty($individualDescendancy)) {
                 $individualIndirectConnection = $getIndirectConnection($individualId);
             }
+            $individualIndirectConnection = $decorateIndirectConnection($individualIndirectConnection);
 
             $snippet = '';
             $lifeEvents = [];
@@ -703,6 +791,7 @@ class FeedService
                     'actor_name' => trim(($individual['user_first_name'] ?? '') . ' ' . ($individual['user_last_name'] ?? '')),
                     'actor_id'   => $individual['user_id'] ?? null,
                     'subject_name' => $individualName,
+                    'subject_id'   => (int) $individualId,
                 ],
                 'url'       => "?to=family/individual&individual_id={$individualId}",
                 'timestamp' => $timestamp,
@@ -733,6 +822,7 @@ class FeedService
             if (empty($relationshipDescendancy)) {
                 $relationshipIndirect = $getIndirectConnection($primaryIndividualId);
             }
+            $relationshipIndirect = $decorateIndirectConnection($relationshipIndirect);
 
             $relationshipLabel = $relationship['relationship_label'] ?? '';
             $content = '';
@@ -757,6 +847,7 @@ class FeedService
                     'actor_name' => trim(($relationship['user_first_name'] ?? '') . ' ' . ($relationship['user_last_name'] ?? '')),
                     'actor_id'   => $relationship['user_id'] ?? null,
                     'subject_name' => $relationshipName,
+                    'subject_id'   => (int) $primaryIndividualId,
                 ],
                 'url'       => "?to=family/individual&individual_id={$primaryIndividualId}&tab=relationshipstab",
                 'timestamp' => $timestamp,
@@ -793,23 +884,54 @@ class FeedService
                 continue;
             }
 
-            $groupTitle = trim((string) ($itemGroup['item_group_name'] ?? ''));
-            $groupTitleTrimmed = $groupTitle !== '' ? $groupTitle : 'New update';
-            $personName = $resolveName(
-                $firstItem,
-                ['tree_first_name', 'tree_first_names', 'first_names', 'first_name'],
-                ['tree_last_name', 'last_name']
-            );
+            $groupUniqueId = (string) ($firstItem['unique_id'] ?? ($firstItem['item_identifier'] ?? ''));
+            $groupIndividualId = (int) ($firstItem['item_links_individual_id'] ?? $firstItem['individualId'] ?? 0);
+            $itemGroupKey = $groupUniqueId !== '' ? $groupUniqueId . ':' . $groupIndividualId : null;
+            if ($itemGroupKey !== null) {
+                if (isset($itemGroupSeen[$itemGroupKey])) {
+                    continue;
+                }
+                $itemGroupSeen[$itemGroupKey] = true;
+            }
+
+        $groupTitle = trim((string) ($itemGroup['item_group_name'] ?? ''));
+        $groupTitleTrimmed = $groupTitle !== '' ? $groupTitle : 'New update';
+        $displayGroupTitle = $groupTitleTrimmed;
+        if (strcasecmp($groupTitleTrimmed, 'Key Image') === 0) {
+            $displayGroupTitle = 'Profile Picture';
+        }
+        $personName = $resolveName(
+            $firstItem,
+            ['tree_first_name', 'tree_first_names', 'first_names', 'first_name'],
+            ['tree_last_name', 'last_name']
+        );
+            $changedItemIds = [];
+            foreach ($itemGroup['items'] as $changedRow) {
+                $changedId = isset($changedRow['item_id']) ? (int) $changedRow['item_id'] : 0;
+                if ($changedId > 0) {
+                    $changedItemIds[$changedId] = true;
+                }
+            }
             $snippet = '';
             $mediaKeys = [];
             $fileKeys = [];
+            $detailRowLookup = [];
+            $processedItemIds = [];
 
-            $addDetailRow = static function ($label, $value, $link = '', $isHtml = false) use (&$detailRows) {
+            $addDetailRow = static function ($label, $value, $link = '', $isHtml = false, $isRecent = false) use (&$detailRows, &$detailRowLookup) {
+                $normalizedLabel = strtolower(trim((string) $label));
+                $normalizedValue = is_string($value) ? trim($value) : (is_array($value) ? json_encode($value) : (string) $value);
+                $lookupKey = $normalizedLabel . '|' . md5($normalizedValue . '|' . $link . '|' . ($isHtml ? '1' : '0'));
+                if (isset($detailRowLookup[$lookupKey])) {
+                    return;
+                }
+                $detailRowLookup[$lookupKey] = true;
                 $detailRows[] = [
-                    'label'   => $label,
-                    'value'   => $value,
-                    'link'    => $link,
-                    'is_html' => $isHtml,
+                    'label'     => $label,
+                    'value'     => $value,
+                    'link'      => $link,
+                    'is_html'   => $isHtml,
+                    'is_recent' => $isRecent,
                 ];
             };
 
@@ -817,6 +939,14 @@ class FeedService
                 if (!is_array($item)) {
                     continue;
                 }
+                $itemId = isset($item['item_id']) ? (int) $item['item_id'] : 0;
+                if ($itemId > 0 && isset($processedItemIds[$itemId])) {
+                    continue;
+                }
+                if ($itemId > 0) {
+                    $processedItemIds[$itemId] = true;
+                }
+                $isRecentChange = $itemId > 0 && isset($changedItemIds[$itemId]);
                 $detailType = $item['detail_type'] ?? '';
                 $detailLabel = $detailType ? $detailType : ($item['item_group_name'] ?? $groupTitle);
                 $detailStyle = $itemStyles[$detailType] ?? 'text';
@@ -864,7 +994,7 @@ class FeedService
 
                 if ($isUrlDetail) {
                     $linkIconHtml = '<i class="fas fa-link" aria-hidden="true"></i><span class="sr-only">Open website</span>';
-                    $addDetailRow($detailLabel, $linkIconHtml, $detailValue, true);
+                    $addDetailRow($detailLabel, $linkIconHtml, $detailValue, true, $isRecentChange);
                     if ($snippet === '') {
                         $snippet = 'New website link added.';
                     }
@@ -876,7 +1006,7 @@ class FeedService
                     if ($coordinateValue !== '') {
                         $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($coordinateValue);
                         $mapIconHtml = '<i class="fas fa-map-marker-alt" aria-hidden="true"></i><span class="sr-only">View on Google Maps</span>';
-                        $addDetailRow('GPS', $mapIconHtml, $mapsUrl, true);
+                        $addDetailRow('GPS', $mapIconHtml, $mapsUrl, true, $isRecentChange);
                         $gpsDetails[] = [
                             'url' => $mapsUrl,
                             'coordinates' => $coordinateValue,
@@ -894,7 +1024,7 @@ class FeedService
                         ? "?to=family/individual&individual_id={$item['individual_name_id']}"
                         : '';
                     $individualName = trim((string) ($item['individual_name'] ?? $detailValue));
-                    $addDetailRow($detailLabel, $individualName, $linkTarget, false);
+                    $addDetailRow($detailLabel, $individualName, $linkTarget, false, $isRecentChange);
                     if ($isSpouseDetail && $individualName !== '') {
                         $spouseNames[] = $individualName;
                     }
@@ -908,10 +1038,22 @@ class FeedService
                     $snippet = $createSnippet($detailValue, 20);
                 }
 
-                $displayValue = $detailValue;
                 $allowsBreaks = ($detailStyle === 'textarea');
+                if ($detailStyle === 'textarea') {
+                    $richValue = nvFeedSanitizeHtml($detailValue);
+                    if ($richValue === '') {
+                        $richValue = $normalizeValue($detailValue);
+                    }
+                    if ($richValue === '') {
+                        continue;
+                    }
+                    $addDetailRow($detailLabel, $richValue, '', true, $isRecentChange);
+                    continue;
+                }
+
+                $displayValue = $detailValue;
                 $detailLength = function_exists('mb_strlen') ? mb_strlen($detailValue) : strlen($detailValue);
-                if ($detailStyle === 'textarea' || $detailLength > 360) {
+                if ($detailLength > 360) {
                     $displayValue = $createSnippet($detailValue, 60);
                 } elseif ($detailStyle === 'date') {
                     $dateCandidate = strtotime($detailValue);
@@ -920,7 +1062,7 @@ class FeedService
                     }
                 }
 
-                $addDetailRow($detailLabel, $allowsBreaks ? $normalizeValue($displayValue) : (string) $displayValue, '', $allowsBreaks);
+                $addDetailRow($detailLabel, $allowsBreaks ? $normalizeValue($displayValue) : (string) $displayValue, '', $allowsBreaks, $isRecentChange);
             }
 
             if ($snippet === '' && !empty($firstItem['file_path'])) {
@@ -954,7 +1096,7 @@ class FeedService
                 }));
                 if (!empty($uniqueSpouses)) {
                     $spouseSummary = implode(' and ', $uniqueSpouses);
-                    $normalizedTitle = strtolower($groupTitleTrimmed);
+        $normalizedTitle = strtolower($groupTitleTrimmed);
                     if ($normalizedTitle === 'marriage') {
                         $snippet = ($personName !== '' ? $personName . ' married ' . $spouseSummary : 'Married ' . $spouseSummary) . '.';
                     } elseif ($normalizedTitle === 'divorce') {
@@ -975,7 +1117,7 @@ class FeedService
             }
 
             $interaction = null;
-            $itemId = (int) ($itemGroup['item_id'] ?? 0);
+            $itemId = $extractItemId($itemGroup);
             if ($itemId > 0 && !in_array($groupTitleTrimmed, $nonInteractiveItemGroups, true)) {
                 $interaction = [
                     'type'             => 'item',
@@ -992,10 +1134,11 @@ class FeedService
             if (empty($primaryDescendancy)) {
                 $primaryIndirect = $getIndirectConnection($primaryIndividualId);
             }
+            $primaryIndirect = $decorateIndirectConnection($primaryIndirect);
 
-            $feedEntries[] = [
-                'type'      => 'item',
-                'title'     => $groupTitleTrimmed !== '' ? $groupTitleTrimmed . ' update for ' . $personName : 'New update for ' . $personName,
+        $feedEntries[] = [
+            'type'      => 'item',
+            'title'     => $displayGroupTitle !== '' ? $displayGroupTitle . ' update for ' . $personName : 'New update for ' . $personName,
                 'content'   => $snippet,
                 'content_html' => $contentHtml,
                 'meta'      => [
@@ -1003,6 +1146,7 @@ class FeedService
                     'actor_id'     => $firstItem['user_id'] ?? null,
                     'subject_name' => $personName,
                     'privacy'      => $itemGroup['privacy'] ?? 'private',
+                    'subject_id'   => (int) $primaryIndividualId,
                 ],
                 'url'       => $primaryIndividualId > 0 ? "?to=family/individual&individual_id={$primaryIndividualId}&tab=eventstab" : '',
                 'timestamp' => $timestamp,
@@ -1039,6 +1183,7 @@ class FeedService
             if (empty($fileDescendancy)) {
                 $fileIndirect = $getIndirectConnection($fileIndividualId);
             }
+            $fileIndirect = $decorateIndirectConnection($fileIndirect);
 
             $feedEntries[] = [
                 'type'      => 'file',
@@ -1050,6 +1195,7 @@ class FeedService
                     'actor_id'     => $file['user_id'] ?? null,
                     'subject_name' => $personName,
                     'file_type'    => $file['file_type'] ?? '',
+                    'subject_id'   => (int) $fileIndividualId,
                 ],
                 'url'       => $fileIndividualId > 0 ? "?to=family/individual&individual_id={$fileIndividualId}&tab=mediatab&file_id={$file['id']}" : '',
                 'timestamp' => $timestamp,
@@ -1090,7 +1236,7 @@ class FeedService
             'Discussions'   => array('key' => 'discussions',   'singular' => 'discussion',   'plural' => 'discussions'),
             'Individuals'   => array('key' => 'individuals',   'singular' => 'individual',   'plural' => 'individuals'),
             'Relationships' => array('key' => 'relationships', 'singular' => 'relationship', 'plural' => 'relationships'),
-            'Items'         => array('key' => 'items',         'singular' => 'item',         'plural' => 'items'),
+            'Events'        => array('key' => 'items',         'singular' => 'event',        'plural' => 'events'),
             'Files'         => array('key' => 'files',         'singular' => 'file',         'plural' => 'files'),
         );
 
@@ -1115,6 +1261,8 @@ class FeedService
     private function buildEventDescriptors(array $changes): array
     {
         $events = [];
+        $itemDescriptorSeen = [];
+        $itemDescriptorSeen = [];
 
         foreach ($changes['visitors'] ?? [] as $visitor) {
             $timestampString = $visitor['last_view'] ?? null;
@@ -1179,6 +1327,15 @@ class FeedService
             $timestamp = strtotime($timestampString);
             if (!$timestamp) {
                 continue;
+            }
+            $descriptorSubject = (int) ($firstItem['item_links_individual_id'] ?? $firstItem['individualId'] ?? 0);
+            $descriptorUnique = (string) ($firstItem['unique_id'] ?? ($firstItem['item_identifier'] ?? ''));
+            $descriptorKey = $descriptorUnique !== '' ? $descriptorUnique . ':' . $descriptorSubject : null;
+            if ($descriptorKey !== null) {
+                if (isset($itemDescriptorSeen[$descriptorKey])) {
+                    continue;
+                }
+                $itemDescriptorSeen[$descriptorKey] = true;
             }
             $events[] = [
                 'bucket'    => 'items',
@@ -1247,6 +1404,16 @@ class FeedService
         if (empty($entry['meta']['actor_id']) && !empty($entry['meta']['actor_name'])) {
             $actorInitial = strtoupper(substr($entry['meta']['actor_name'], 0, 1));
         }
+        $recentCommentIds = [];
+        if (!empty($entry['meta']['recent_comment_ids']) && is_array($entry['meta']['recent_comment_ids'])) {
+            foreach ($entry['meta']['recent_comment_ids'] as $recentId) {
+                $recentId = (int) $recentId;
+                if ($recentId > 0) {
+                    $recentCommentIds[] = $recentId;
+                }
+            }
+            $recentCommentIds = array_values(array_unique($recentCommentIds));
+        }
 
         $descendancyLineSegments = [];
         if (!empty($entry['descendancy']) && is_array($entry['descendancy'])) {
@@ -1264,6 +1431,29 @@ class FeedService
             }
         }
 
+        $indirectConnection = (!empty($entry['indirect_connection']) && is_array($entry['indirect_connection']))
+            ? $entry['indirect_connection']
+            : null;
+
+        if (empty($descendancyLineSegments) && $indirectConnection && !empty($indirectConnection['descendancy_path'])) {
+            $indirectSegments = [];
+            foreach ((array) $indirectConnection['descendancy_path'] as $node) {
+                $nodeName = trim((string) ($node['name'] ?? ''));
+                if ($nodeName === '') {
+                    continue;
+                }
+                $nodeId = isset($node['id']) ? (int) $node['id'] : 0;
+                if ($nodeId > 0) {
+                    $indirectSegments[] = '<a href="?to=family/individual&individual_id=' . $nodeId . '" class="hover:text-burnt-orange">' . htmlspecialchars($nodeName, ENT_QUOTES, 'UTF-8') . '</a>';
+                } else {
+                    $indirectSegments[] = htmlspecialchars($nodeName, ENT_QUOTES, 'UTF-8');
+                }
+            }
+            if (!empty($indirectSegments)) {
+                $descendancyLineSegments = $indirectSegments;
+            }
+        }
+
         $relationshipLine = '';
         if (!empty($entry['relationship_to_user'])) {
             $relationshipLine = trim((string) $entry['relationship_to_user']);
@@ -1273,11 +1463,102 @@ class FeedService
                 $relationshipLine = $getRelationshipToUser((int) $lastDescendant[1]);
             }
         }
-        if (!empty($entry['indirect_connection']) && is_array($entry['indirect_connection'])) {
-            $indirectConnection = $entry['indirect_connection'];
-            $indirectText = trim((string) ($indirectConnection['summary'] ?? ''));
-            if ($indirectText !== '') {
-                $relationshipLine = $indirectText;
+        if ($indirectConnection) {
+            $rawSteps = (array) ($indirectConnection['steps'] ?? []);
+            $processedSteps = [];
+            $stepTotal = count($rawSteps);
+            for ($index = 0; $index < $stepTotal; $index++) {
+                $currentStep = $rawSteps[$index];
+                $label = trim((string) ($currentStep['label'] ?? ''));
+                if ($label === '') {
+                    continue;
+                }
+                if ($label === 'parent of') {
+                    $generationCount = 1;
+                    $targetName = trim((string) ($currentStep['to_name'] ?? ''));
+                    while (($index + 1) < $stepTotal) {
+                        $nextLabel = trim((string) ($rawSteps[$index + 1]['label'] ?? ''));
+                        if ($nextLabel !== 'parent of') {
+                            break;
+                        }
+                        $index++;
+                        $generationCount++;
+                        $targetName = trim((string) ($rawSteps[$index]['to_name'] ?? ''));
+                    }
+                    if ($targetName !== '') {
+                        $processedSteps[] = [
+                            'label' => $this->formatAncestorLabel($generationCount),
+                            'to_name' => $targetName,
+                        ];
+                    }
+                    continue;
+                }
+                if ($label === 'child of') {
+                    $generationCount = 1;
+                    $targetName = trim((string) ($currentStep['to_name'] ?? ''));
+                    while (($index + 1) < $stepTotal) {
+                        $nextLabel = trim((string) ($rawSteps[$index + 1]['label'] ?? ''));
+                        if ($nextLabel !== 'child of') {
+                            break;
+                        }
+                        $index++;
+                        $generationCount++;
+                        $targetName = trim((string) ($rawSteps[$index]['to_name'] ?? ''));
+                    }
+                    if ($targetName !== '') {
+                        $processedSteps[] = [
+                            'label' => $this->formatDescendantLabel($generationCount),
+                            'to_name' => $targetName,
+                        ];
+                    }
+                    continue;
+                }
+                $processedSteps[] = [
+                    'label' => $label,
+                    'to_name' => trim((string) ($currentStep['to_name'] ?? '')),
+                ];
+            }
+
+            $stepPhrases = [];
+            foreach ($processedSteps as $processed) {
+                $label = trim((string) ($processed['label'] ?? ''));
+                $targetName = trim((string) ($processed['to_name'] ?? ''));
+                if ($label === '' || $targetName === '') {
+                    continue;
+                }
+                $phraseLabel = $label;
+                $lowerLabel = strtolower($label);
+                if (strpos($lowerLabel, 'spouse of') === 0 || strpos($lowerLabel, 'partner of') === 0) {
+                    $phraseLabel = 'the ' . $label;
+                }
+                $stepPhrases[] = rtrim($phraseLabel) . ' ' . $targetName;
+            }
+            $connectionText = '';
+            if (!empty($stepPhrases)) {
+                foreach ($stepPhrases as $index => $phrase) {
+                    if ($index === 0) {
+                        $connectionText = $phrase;
+                    } else {
+                        $connectionText .= ', who is ' . $phrase;
+                    }
+                }
+            }
+            $relativeName = trim((string) ($indirectConnection['via_individual_name'] ?? ''));
+            $relativeRelationship = trim((string) ($indirectConnection['user_relationship'] ?? ''));
+            if ($relativeRelationship !== '') {
+                if ($connectionText !== '') {
+                    $connectionText .= ', who is your ' . $relativeRelationship;
+                } elseif ($relativeName !== '') {
+                    $connectionText = $relativeName . ' is your ' . $relativeRelationship;
+                } else {
+                    $connectionText = 'Your ' . $relativeRelationship;
+                }
+            }
+            if ($connectionText === '' && !empty($indirectConnection['explanation'])) {
+                $connectionText = trim((string) $indirectConnection['explanation']);
+            }
+            if ($connectionText !== '') {
+                $relationshipLine = $connectionText;
             }
         }
 
@@ -1313,6 +1594,21 @@ class FeedService
         }
 
         ob_start();
+        static $subjectImageCache = [];
+        $subjectId = isset($entry['meta']['subject_id']) ? (int) $entry['meta']['subject_id'] : 0;
+        $subjectName = trim((string) ($entry['meta']['subject_name'] ?? ''));
+        $subjectImagePath = '';
+        $subjectAlt = $subjectName !== '' ? $subjectName : 'Profile picture';
+        $hasSubjectImage = false;
+        if ($subjectId > 0) {
+            if (!array_key_exists($subjectId, $subjectImageCache)) {
+                $subjectImageCache[$subjectId] = Utils::getKeyImage($subjectId);
+            }
+            $subjectImagePath = (string) $subjectImageCache[$subjectId];
+            if ($subjectImagePath !== '') {
+                $hasSubjectImage = true;
+            }
+        }
         ?>
         <article class="feed-item bg-white shadow-sm border border-gray-200 rounded-lg p-4 flex gap-4 items-start" data-feed-type="<?= htmlspecialchars($type) ?>">
             <div class="feed-item-icon text-xl text-ocean-blue flex-shrink-0">
@@ -1330,14 +1626,10 @@ class FeedService
                         <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['context']) ?></span>
                     <?php endif; ?>
                     <?php
-                        $subjectName = trim((string) ($entry['meta']['subject_name'] ?? ''));
-                        if ($type === 'individual' && $subjectName !== '') {
+                        $metaSubjectName = trim((string) ($entry['meta']['subject_name'] ?? ''));
+                        if ($metaSubjectName !== '') {
                             ?>
-                            <span class="hidden sm:inline">&bull; <?= htmlspecialchars($subjectName, ENT_QUOTES, 'UTF-8') ?></span>
-                            <?php
-                        } elseif ($type !== 'individual' && $subjectName !== '') {
-                            ?>
-                            <span class="hidden sm:inline">&bull; <?= htmlspecialchars($subjectName, ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="hidden sm:inline">&bull; <?= htmlspecialchars($metaSubjectName, ENT_QUOTES, 'UTF-8') ?></span>
                             <?php
                         }
                     ?>
@@ -1347,26 +1639,37 @@ class FeedService
                         </span>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($entry['title'])): ?>
-                    <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
-                        <?php if (!empty($entry['url'])): ?>
-                            <a class="hover:text-burnt-orange" href="<?= $entry['url'] ?>"><?= htmlspecialchars($entry['title']) ?></a>
-                        <?php else: ?>
-                            <?= htmlspecialchars($entry['title']) ?>
+                <?php if ($hasSubjectImage || !empty($entry['title']) || $relationshipLine !== '' || !empty($descendancyLineSegments)): ?>
+                    <div class="feed-item-hero flex gap-3 items-start mb-3">
+                        <?php if ($hasSubjectImage): ?>
+                            <div class="feed-item-subject-image flex-shrink-0">
+                                <img src="<?= htmlspecialchars($subjectImagePath, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($subjectAlt, ENT_QUOTES, 'UTF-8') ?>" class="subject-key-image">
+                            </div>
                         <?php endif; ?>
-                    </h4>
-                <?php endif; ?>
-                <?php if ($relationshipLine !== ''): ?>
-                    <p class="feed-item-relationship text-xs text-gray-500 mb-2">
-                        <span class="font-semibold text-brown mr-1">Relationship:</span>
-                        <?= htmlspecialchars(rtrim($relationshipLine, '.') . '.') ?>
-                    </p>
-                <?php endif; ?>
-                <?php if (!empty($descendancyLineSegments)): ?>
-                    <p class="feed-item-descendancy text-xs text-gray-500 mb-1">
-                        <span class="font-semibold text-brown mr-1">Line:</span>
-                        <?= implode(' <span class="mx-1 text-gray-400">&gt;</span> ', $descendancyLineSegments) ?>
-                    </p>
+                        <div class="feed-item-heading-main flex-1">
+                            <?php if (!empty($entry['title'])): ?>
+                                <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
+                                    <?php if (!empty($entry['url'])): ?>
+                                        <a class="hover:text-burnt-orange" href="<?= $entry['url'] ?>"><?= htmlspecialchars($entry['title']) ?></a>
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($entry['title']) ?>
+                                    <?php endif; ?>
+                                </h4>
+                            <?php endif; ?>
+                            <?php if ($relationshipLine !== ''): ?>
+                                <p class="feed-item-relationship text-xs text-gray-500 mb-0">
+                                    <span class="font-semibold text-brown mr-1">Relationship:</span>
+                                    <?= htmlspecialchars(rtrim($relationshipLine, '.') . '.') ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php if (!empty($descendancyLineSegments)): ?>
+                                <p class="feed-item-descendancy text-xs text-gray-500 mb-1">
+                                    <span class="font-semibold text-brown mr-1">Line:</span>
+                                    <?= implode(' <span class="mx-1 text-gray-400">&gt;</span> ', $descendancyLineSegments) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 <?php endif; ?>
                 <?php if (!empty($entry['content_html'])): ?>
                     <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
@@ -1387,10 +1690,17 @@ class FeedService
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                <?php if ($type === 'item' && !empty($entry['details'])): ?>
-                    <ul class="feed-item-details text-sm text-gray-700 mb-3">
+                    <?php if ($type === 'item' && !empty($entry['details'])): ?>
+                        <ul class="feed-item-details text-sm text-gray-700 mb-3">
                         <?php foreach ($entry['details'] as $detail): ?>
-                            <li class="feed-item-detail-row">
+                            <?php
+                                $detailIsRecent = !empty($detail['is_recent']);
+                                $detailClasses = 'feed-item-detail-row';
+                                if ($detailIsRecent) {
+                                    $detailClasses .= ' feed-item-detail-row--recent';
+                                }
+                            ?>
+                            <li class="<?= $detailClasses ?>">
                                 <span class="feed-item-detail-label"><?= htmlspecialchars($detail['label']) ?>:</span>
                                 <?php if (!empty($detail['link'])): ?>
                                     <?php
@@ -1481,8 +1791,13 @@ class FeedService
                                         $commentName = trim(($comment['first_name'] ?? '') . ' ' . ($comment['last_name'] ?? ''));
                                         $commentCreatedAt = $comment['created_at'] ?? '';
                                         $canDeleteComment = ($commentUserId === $currentUserId) || $isCurrentUserAdmin;
+                                        $isRecentComment = in_array($commentId, $recentCommentIds, true);
+                                        $commentClasses = 'feed-comment flex items-start gap-3';
+                                        if ($isRecentComment) {
+                                            $commentClasses .= ' feed-comment--recent';
+                                        }
                                     ?>
-                                    <div class="feed-comment flex items-start gap-3" data-comment-id="<?= $commentId ?>" data-user-id="<?= $commentUserId ?>">
+                                    <div class="<?= $commentClasses ?>" data-comment-id="<?= $commentId ?>" data-user-id="<?= $commentUserId ?>"<?= $isRecentComment ? ' data-recent-comment="true"' : '' ?>>
                                         <div class="feed-comment-avatar">
                                             <?php if ($commentUserId > 0): ?>
                                                 <?= $web->getAvatarHTML($commentUserId, "xs", "feed-comment-avatar"); ?>
@@ -1519,6 +1834,30 @@ class FeedService
         </article>
         <?php
         return trim(ob_get_clean());
+    }
+
+    private function formatAncestorLabel(int $generations): string
+    {
+        if ($generations <= 1) {
+            return 'parent of';
+        }
+        if ($generations === 2) {
+            return 'grandparent of';
+        }
+        $greatCount = $generations - 2;
+        return str_repeat('great-', $greatCount) . 'grandparent of';
+    }
+
+    private function formatDescendantLabel(int $generations): string
+    {
+        if ($generations <= 1) {
+            return 'child of';
+        }
+        if ($generations === 2) {
+            return 'grandchild of';
+        }
+        $greatCount = $generations - 2;
+        return str_repeat('great-', $greatCount) . 'grandchild of';
     }
 
     private function renderReactionSummaryHtml(array $summary, array $emoji): string

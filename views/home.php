@@ -9,7 +9,14 @@ if (!function_exists('nvFeedSanitizeHtml')) {
         }
 
         $allowedTags = [
-            'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'a', 'blockquote', 'span',
+            'p', 'br', 'div',
+            'strong', 'b', 'em', 'i', 'u',
+            'ul', 'ol', 'li',
+            'a', 'blockquote', 'span',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'pre', 'code',
+            'table', 'thead', 'tbody', 'tr', 'th', 'td',
+            'img', 'figure', 'figcaption',
         ];
         $allowedGlobalAttributes = ['class', 'id', 'title', 'data-*', 'aria-*'];
         $allowedAttributes = [
@@ -26,6 +33,23 @@ if (!function_exists('nvFeedSanitizeHtml')) {
             'i'           => $allowedGlobalAttributes,
             'u'           => $allowedGlobalAttributes,
             'div'         => $allowedGlobalAttributes,
+            'h1'          => $allowedGlobalAttributes,
+            'h2'          => $allowedGlobalAttributes,
+            'h3'          => $allowedGlobalAttributes,
+            'h4'          => $allowedGlobalAttributes,
+            'h5'          => $allowedGlobalAttributes,
+            'h6'          => $allowedGlobalAttributes,
+            'pre'         => $allowedGlobalAttributes,
+            'code'        => $allowedGlobalAttributes,
+            'table'       => $allowedGlobalAttributes,
+            'thead'       => $allowedGlobalAttributes,
+            'tbody'       => $allowedGlobalAttributes,
+            'tr'          => $allowedGlobalAttributes,
+            'th'          => $allowedGlobalAttributes,
+            'td'          => $allowedGlobalAttributes,
+            'img'         => array_merge($allowedGlobalAttributes, ['src', 'alt', 'title', 'width', 'height', 'loading', 'decoding']),
+            'figure'      => $allowedGlobalAttributes,
+            'figcaption'  => $allowedGlobalAttributes,
         ];
 
         $allowedTagLookup = array_flip($allowedTags);
@@ -48,7 +72,7 @@ if (!function_exists('nvFeedSanitizeHtml')) {
         if (!$loaded) {
             libxml_clear_errors();
             libxml_use_internal_errors($previousLibxml);
-            $fallbackAllowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><span>';
+            $fallbackAllowed = '<p><br><div><strong><b><em><i><u><ul><ol><li><a><blockquote><span><h1><h2><h3><h4><h5><h6><pre><code><table><thead><tbody><tr><th><td><img><figure><figcaption>';
             $clean = strip_tags($html, $fallbackAllowed);
             if ($clean === null || $clean === '') {
                 return '';
@@ -342,17 +366,6 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     $reactionEmojiMap = $feedData['emoji'];
 
     $user = Utils::getUser($user_id);
-    $dashboardLayout = 'dropdown';
-    $dashboardDropdownMeta = [
-        'notifications' => 0,
-        'profile'       => 0,
-        'controls'      => 0,
-    ];
-    ob_start();
-    include("family/helpers/user.php");
-    $dashboardDropdownPanels = trim(ob_get_clean());
-    $hasDropdownPanels = $dashboardDropdownPanels !== '';
-
     $descendancy = [];
     if ($user && !empty($user['individuals_id'])) {
         $descendancy = Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
@@ -373,59 +386,39 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     </section>
 <?php endif; ?>
 
-<?php if ($hasDropdownPanels): ?>
-    <section class="container mx-auto pt-12 px-4 sm:px-6 lg:px-8 pt-4">
-        <div class="dashboard-toolbar flex flex-wrap items-center gap-4">
-            <button type="button" class="dashboard-toolbar-button" data-dashboard-trigger="notifications" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-bell"></i>
-                <span class="dashboard-toolbar-label">Notifications</span>
-                <?php if (!empty($dashboardDropdownMeta['notifications'])): ?>
-                    <span class="dashboard-badge"><?= (int) $dashboardDropdownMeta['notifications'] ?></span>
-                <?php endif; ?>
-            </button>
-            <button type="button" class="dashboard-toolbar-button" data-dashboard-trigger="profile" aria-label="Your profile" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-user"></i>
-                <span class="dashboard-toolbar-label">Your profile</span>
-            </button>
-            <button type="button" class="dashboard-toolbar-button" data-dashboard-trigger="controls" aria-label="Your controls" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-cog"></i>
-                <span class="dashboard-toolbar-label">Your controls</span>
-            </button>
-        </div>
-        <div class="dashboard-dropdown-panels mt-4" id="dashboardDropdownPanels">
-            <?= $dashboardDropdownPanels ?>
-        </div>
-    </section>
-<?php endif; ?>
-
 <?php
     $summaryCounts = $feedData['summary_counts'] ?? array();
     $summaryMeta = array(
         'discussions'   => array('label' => 'Discussions',   'icon' => 'fas fa-comments'),
         'individuals'   => array('label' => 'Individuals',   'icon' => 'fas fa-user-plus'),
         'relationships' => array('label' => 'Relationships', 'icon' => 'fas fa-link'),
-        'items'         => array('label' => 'Stories',       'icon' => 'fas fa-book-open'),
+        'items'         => array('label' => 'Events',        'icon' => 'fas fa-book-open'),
         'files'         => array('label' => 'Files',         'icon' => 'fas fa-photo-video'),
     );
 ?>
-<section class="container mx-auto pt-6 pb-4 px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-wrap gap-3 sm:gap-4">
+<section class="feed-summary-section" id="feedSummarySection">
+    <div class="feed-summary-surface shadow-sm">
         <?php foreach ($summaryMeta as $key => $meta): ?>
             <?php
                 $count = isset($summaryCounts[$key]) ? (int) $summaryCounts[$key] : 0;
                 $label = $meta['label'];
                 $summaryText = $summary[$label] ?? '';
-                $badgeClasses = $count > 0 ? 'bg-red-500 text-white' : 'bg-gray-300 text-gray-700';
             ?>
             <button type="button"
-                class="summary-filter relative flex items-center justify-between sm:flex-col sm:items-center sm:text-center bg-white border border-gray-200 shadow-sm rounded-lg px-4 py-3 sm:py-4 transition hover:border-ocean-blue focus:outline-none focus:ring-2 focus:ring-ocean-blue"
+                class="summary-filter bg-white border border-gray-200 shadow-sm rounded-lg px-4 py-3 transition hover:border-ocean-blue focus:outline-none focus:ring-2 focus:ring-ocean-blue"
                 aria-pressed="false"
                 data-feed-filter="<?= $key ?>">
-                <span class="summary-filter-icon text-xl sm:text-2xl text-ocean-blue"><i class="<?= $meta['icon'] ?>"></i></span>
-                <span class="summary-filter-label text-sm font-semibold text-brown sm:mt-2"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
-                <span class="summary-filter-badge <?= $badgeClasses ?> absolute -top-2 -right-2 inline-flex items-center justify-center h-6 px-2 rounded-full text-xs font-semibold" style="min-width:1.5rem;"><?= $count ?></span>
-                <?php if (!empty($summaryText)): ?>
-                    <span class="summary-filter-text hidden sm:block text-xs text-gray-500 sm:mt-1"><?= htmlspecialchars($summaryText, ENT_QUOTES, 'UTF-8') ?></span>
+                <div class="summary-filter-main">
+                    <span class="summary-filter-icon text-xl text-ocean-blue"><i class="<?= $meta['icon'] ?>"></i></span>
+                    <div class="summary-filter-copy">
+                        <span class="summary-filter-label text-sm font-semibold text-brown"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php if (!empty($summaryText)): ?>
+                            <span class="summary-filter-text text-xs text-gray-500"><?= htmlspecialchars($summaryText, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php if ($count > 0): ?>
+                    <span class="summary-filter-badge bg-red-500 text-white inline-flex items-center justify-center text-xs font-semibold"><?= $count ?></span>
                 <?php endif; ?>
             </button>
         <?php endforeach; ?>
@@ -591,7 +584,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 items: ['item'],
                 files: ['file']
             };
-            var activeFilters = new Set();
+            var activeFilters = new Set(Object.keys(filterTypeMap));
 
             function normalizeKey(rawKey) {
                 return (rawKey || '').toString().trim().toLowerCase();
@@ -658,7 +651,8 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 
             filterButtons.forEach(function (button) {
                 var key = normalizeKey(button.getAttribute('data-feed-filter'));
-                updateButtonState(button, false);
+                var initiallyActive = activeFilters.has(key);
+                updateButtonState(button, initiallyActive);
                 button.addEventListener('click', function () {
                     if (!key) {
                         return;

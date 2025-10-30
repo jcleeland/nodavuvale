@@ -2361,8 +2361,8 @@ class Utils {
         }
         $sql = "SELECT discussions.title, discussions.id as discussionId, users.first_name as user_first_name, 
                 users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name,
-                discussions.individual_id, discussion_comments.comment as content, discussion_comments.updated_at,
-                individuals.last_name as tree_last_name, users.id as user_id, 'comment' as change_type
+                discussions.individual_id, discussion_comments.id as comment_id, discussion_comments.comment as content, discussion_comments.updated_at,
+                discussions.content as discussion_content, individuals.last_name as tree_last_name, users.id as user_id, 'comment' as change_type
                 FROM discussion_comments
                 JOIN discussions ON discussion_comments.discussion_id = discussions.id
                 JOIN users ON discussion_comments.user_id=users.id
