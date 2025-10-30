@@ -1430,12 +1430,19 @@ class Utils {
      * @param string $since The date from which to fetch items.
      * @param string $order The order in which to fetch items. eg: "items.item_identifier ASC, items.updated ASC"
      */
-    public static function getItems($individual_id, $since='1900-01-01 00:00:00', $order='item_identifier ASC, items.updated ASC') {
+    public static function getItems($individual_id, $since='1900-01-01 00:00:00', $order='item_identifier ASC, items.updated ASC', $limit=null) {
         // Get the database instance
         $db = Database::getInstance();
         // Fetch items using the updated query
         if($order) {
             $order = "ORDER BY ".$order;
+        } else {
+            $order = "";
+        }
+        $limitClause = "";
+        if ($limit !== null) {
+            $limit = max(1, (int) $limit);
+            $limitClause = " LIMIT " . $limit;
         }
 
         $individualtypes=[];
@@ -1524,7 +1531,8 @@ class Utils {
 
             WHERE item_links.individual_id like ?
             AND items.updated > ?
-            $order 
+            $order
+            $limitClause
         ";
         //echo "<pre>".$query; echo $individual_id; echo $since; echo "</pre>";
         $items = $db->fetchAll($query, [$individual_id, $since]);
@@ -2288,7 +2296,7 @@ class Utils {
      * @param int $user_id The ID of the user.
      * @param string $show_since The date to show changes since.
      */
-    public static function getNewStuff($user_id, $show_since=null) {
+    public static function getNewStuff($user_id, $show_since=null, array $options = array()) {
         $response=array(
             'discussions'=>array(),
             'individuals'=>array(),
@@ -2296,6 +2304,10 @@ class Utils {
             'items'=>array(),
             'files'=>array()
         );
+        $limitPerType = null;
+        if (isset($options['limit_per_type'])) {
+            $limitPerType = max(1, (int) $options['limit_per_type']);
+        }
         // Get the database instance
         $db = Database::getInstance();
         if($show_since) {
@@ -2311,6 +2323,10 @@ class Utils {
         }
         $response['last_view']=$last_active['last_view'];
         // Get all discussions that have been updated since the user was last active
+        $orderSql = "ORDER BY updated_at DESC, created_at DESC";
+        if ($limitPerType !== null) {
+            $orderSql .= " LIMIT " . $limitPerType;
+        }
         $sql = "SELECT discussions.title, discussions.content, discussions.id as discussionId, users.first_name as user_first_name, 
                 users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name, 
                 discussions.individual_id, discussions.updated_at,
@@ -2319,7 +2335,7 @@ class Utils {
                 JOIN users ON discussions.user_id = users.id
                 LEFT JOIN individuals ON discussions.individual_id = individuals.id
                 WHERE discussions.updated_at > ?
-                ORDER BY updated_at DESC, created_at DESC";
+                $orderSql";
         $discussions = $db->fetchAll($sql, [$last_active['last_view']]);
         //Iterate through the discussions, and find comments
         foreach($discussions as $discussion) {
@@ -2327,6 +2343,10 @@ class Utils {
         }
         //Now find any comments that have been added since the u ser was last added, get their discussion_id
         // and add those discussions to the list
+        $orderCommentsSql = "ORDER BY discussion_comments.updated_at DESC, discussion_comments.created_at DESC";
+        if ($limitPerType !== null) {
+            $orderCommentsSql .= " LIMIT " . $limitPerType;
+        }
         $sql = "SELECT discussions.title, discussions.id as discussionId, users.first_name as user_first_name, 
                 users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name,
                 discussions.individual_id, discussion_comments.comment as content, discussion_comments.updated_at,
@@ -2336,7 +2356,7 @@ class Utils {
                 JOIN users ON discussion_comments.user_id=users.id
                 LEFT JOIN individuals ON discussions.individual_id = individuals.id
                 WHERE discussion_comments.created_at > ?
-                ORDER BY discussion_comments.updated_at DESC, discussion_comments.created_at DESC";
+                $orderCommentsSql";
         $comments = $db->fetchAll($sql, [$last_active['last_view']]);
         foreach($comments as $comment) {
             $response['discussions'][$comment['discussionId']]=$comment;
@@ -2347,6 +2367,10 @@ class Utils {
 
 
         // Get all individuals that have been updated since the user was last active
+        $orderIndividualsSql = "ORDER BY updated DESC, created DESC";
+        if ($limitPerType !== null) {
+            $orderIndividualsSql .= " LIMIT " . $limitPerType;
+        }
         $sql = "SELECT individuals.id as individualId, 
                     users.first_name as user_first_name, users.last_name as user_last_name,
                     individuals.first_names as tree_first_name, individuals.last_name as tree_last_name,
@@ -2364,18 +2388,22 @@ class Utils {
                 FROM individuals
                 LEFT JOIN users ON created_by = users.id
                 WHERE created > ?
-                ORDER BY updated DESC, created DESC";
+                $orderIndividualsSql";
         $individuals = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['individuals']=$individuals;
 
         //Get all visitors to the site for the last 24 hours
+        $orderVisitorsSql = "ORDER BY last_view DESC";
+        if ($limitPerType !== null) {
+            $orderVisitorsSql .= " LIMIT " . $limitPerType;
+        }
         $sql = "SELECT users.first_name, users.last_name, users.id as user_id, 
                 avatar, MAX(last_view) as last_view
                 FROM users 
                 WHERE last_view > ?
                 AND show_presence = 1
                 GROUP BY users.id
-                ORDER BY last_view DESC";
+                $orderVisitorsSql";
         $visitors = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['visitors']=$visitors;
 
@@ -2393,11 +2421,15 @@ class Utils {
 
 
         // Get all items that have been updated since the user was last active
-        $items=Utils::getItems('%', $last_active['last_view'], "items.updated DESC");
+        $items=Utils::getItems('%', $last_active['last_view'], "items.updated DESC", $limitPerType);
         $response['items']=$items;
 
 
         // Get all files that have been updated since the user was last active (but only ones which aren't already connected to items)
+        $orderFilesSql = "ORDER BY files.upload_date DESC";
+        if ($limitPerType !== null) {
+            $orderFilesSql .= " LIMIT " . $limitPerType;
+        }
         $sql = "SELECT files.*, file_links.item_id, users.first_name as user_first_name, users.last_name as user_last_name,
                 individuals.id as individualId, individuals.first_names as tree_first_name, individuals.last_name as tree_last_name
                 FROM files 
@@ -2405,7 +2437,7 @@ class Utils {
                 JOIN individuals ON file_links.individual_id = individuals.id
                 LEFT JOIN users ON files.user_id = users.id
                 WHERE files.upload_date > ? AND file_links.item_id IS NULL
-                ORDER BY files.upload_date DESC";
+                $orderFilesSql";
         $files = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['files']=$files;
 

@@ -328,7 +328,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 <!-- Conditional Content Section Based on Login Status -->
 <?php if ($is_logged_in): ?>
 <?php
-    $changes=Utils::getNewStuff($user_id, $viewnewsince, "items.updated ASC");
+    $changes=Utils::getNewStuff($user_id, $viewnewsince);
     $summary=array();
     $summary['Discussions']=count($changes['discussions'])>0 ? count($changes['discussions'])." new discussions" : "";
     $summary['Individuals']=count($changes['individuals'])>0 ? count($changes['individuals'])." new individuals" : "";

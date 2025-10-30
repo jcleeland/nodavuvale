@@ -30,6 +30,7 @@ if (!$is_logged_in || !$is_admin) {
         <a href="?to=admin/&section=users" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">User Management</a>
         <a href="?to=admin/&section=familytree" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Family Tree Management</a>
         <a href="?to=admin/&section=database" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Database Management</a>
+        <a href="?to=admin/FeedTest" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Newsfeed Test</a>
     </div>
 </section>
 

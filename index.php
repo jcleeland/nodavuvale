@@ -36,6 +36,7 @@ $classMap = [
     'Auth' => __DIR__ . '/system/nodavuvale_auth.php',
     'Web' => __DIR__ . '/system/nodavuvale_web.php',
     'Utils' => __DIR__ . '/system/nodavuvale_utils.php',
+    'FeedService' => __DIR__ . '/system/feed/FeedService.php',
     // Add other class mappings here
 ];
 

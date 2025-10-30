@@ -34,6 +34,7 @@ $classMap = [
     'Auth' => __DIR__ . '/system/nodavuvale_auth.php',
     'Web' => __DIR__ . '/system/nodavuvale_web.php',
     'Utils' => __DIR__ . '/system/nodavuvale_utils.php',
+    'FeedService' => __DIR__ . '/system/feed/FeedService.php',
     // Add other class mappings here
 ];
 
@@ -47,6 +48,7 @@ spl_autoload_register(function($class) use ($classMap) {
 // Instantiate the necessary objects
 $db = Database::getInstance();
 $auth = new Auth($db);
+$web = new Web($db);
 
 if(!empty($_FILES)) {
     //Handle file uploads
