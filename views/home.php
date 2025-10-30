@@ -328,594 +328,18 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 <!-- Conditional Content Section Based on Login Status -->
 <?php if ($is_logged_in): ?>
 <?php
-    $changes=Utils::getNewStuff($user_id, $viewnewsince);
-    $summary=array();
-    $summary['Discussions']=count($changes['discussions'])>0 ? count($changes['discussions'])." new discussions" : "";
-    $summary['Individuals']=count($changes['individuals'])>0 ? count($changes['individuals'])." new individuals" : "";
-    $summary['Relationships']=count($changes['relationships'])>0 ? count($changes['relationships'])." new relationships" : "";
-    $summary['Items']=count($changes['items'])>0 ? count($changes['items'])." new items" : "";
-    $summary['Files']=count($changes['files'])>0 ? count($changes['files'])." new files" : "";
-
-    $item_types = Utils::getItemTypes();
-    $item_styles= Utils::getItemStyles();
-
-    $feedEntries = [];
-    $feedTypeMeta = [
-        'discussion' => ['label' => 'Discussion update', 'icon' => 'fas fa-comments'],
-        'comment'    => ['label' => 'New comment',       'icon' => 'fas fa-comment-dots'],
-        'individual' => ['label' => 'New family member', 'icon' => 'fas fa-user-plus'],
-        'item'       => ['label' => 'Story update',      'icon' => 'fas fa-book-open'],
-        'file'       => ['label' => 'New file',          'icon' => 'fas fa-photo-video'],
-        'visitor'    => ['label' => 'Latest visit',      'icon' => 'fas fa-door-open'],
-    ];
-
-    $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
-    $isCurrentUserAdmin = ($auth->getUserRole() === 'admin');
-    $reactionEmojiMap = [
-        'like'  => '👍',
-        'love'  => '❤️',
-        'haha'  => '😂',
-        'wow'   => '😮',
-        'sad'   => '😢',
-        'angry' => '😡',
-        'care'  => '🤗',
-    ];
-
-    $rootIndividualId = (int) Web::getRootId();
-    $currentUserIndividualId = (int) ($_SESSION['individuals_id'] ?? 0);
-    $descendancyCache = [];
-    $getDescendancyTrail = static function ($individualId) use (&$descendancyCache, $rootIndividualId) {
-        $individualId = (int) $individualId;
-        if ($individualId <= 0 || $rootIndividualId <= 0) {
-            return [];
-        }
-        if (!array_key_exists($individualId, $descendancyCache)) {
-            $line = Utils::getLineOfDescendancy($rootIndividualId, $individualId);
-            $descendancyCache[$individualId] = is_array($line) ? $line : [];
-        }
-        return $descendancyCache[$individualId];
-    };
-    $indirectConnectionCache = [];
-    $getIndirectConnection = static function ($individualId) use (&$indirectConnectionCache, $rootIndividualId) {
-        $individualId = (int) $individualId;
-        if ($individualId <= 0 || $rootIndividualId <= 0) {
-            return [];
-        }
-        if (!array_key_exists($individualId, $indirectConnectionCache)) {
-            $result = Utils::getExtendedConnectionPath($individualId, $rootIndividualId, ['max_depth' => 5]);
-            if (is_array($result) && !empty($result['found'])) {
-                $indirectConnectionCache[$individualId] = $result;
-            } else {
-                $indirectConnectionCache[$individualId] = [];
-            }
-        }
-        return $indirectConnectionCache[$individualId];
-    };
-    $relationshipCache = [];
-    $getRelationshipToUser = static function ($individualId) use (&$relationshipCache, $currentUserIndividualId) {
-        $individualId = (int) $individualId;
-        if ($individualId <= 0 || $currentUserIndividualId <= 0 || $individualId === $currentUserIndividualId) {
-            return '';
-        }
-        if (!array_key_exists($individualId, $relationshipCache)) {
-            $label = Utils::getRelationshipLabel($currentUserIndividualId, $individualId);
-            $relationshipCache[$individualId] = is_string($label) ? trim($label) : '';
-        }
-        return $relationshipCache[$individualId];
-    };
-
-
-    $discussionIds = [];
-    foreach ($changes['discussions'] as $discussionMeta) {
-        if (!empty($discussionMeta['discussionId'])) {
-            $discussionIds[] = (int) $discussionMeta['discussionId'];
-        }
-    }
-    $discussionIds = array_values(array_unique(array_filter($discussionIds)));
-    $discussionReactionSummaries = Utils::getDiscussionReactionSummaryByIds($discussionIds);
-    $discussionCommentsLookup = Utils::getDiscussionCommentsByIds($discussionIds);
-
-    $createSnippet = function ($text, $wordLimit = 24) {
-        $clean = trim(strip_tags((string) $text));
-        if ($clean === '') {
-            return '';
-        }
-        $words = preg_split('/\s+/', $clean);
-        if (!is_array($words) || count($words) === 0) {
-            return '';
-        }
-        if (count($words) <= $wordLimit) {
-            return implode(' ', $words);
-        }
-        return implode(' ', array_slice($words, 0, $wordLimit)) . '...';
-    };
-
-    $buildFeedEntries = static function () use (
-        &$feedEntries,
-        $changes,
-        $createSnippet,
-        $web,
-        $discussionReactionSummaries,
-        $discussionCommentsLookup,
-        $getDescendancyTrail,
-        $getIndirectConnection,
-        $getRelationshipToUser,
-        $item_styles
-    ) {
-        foreach ($changes['visitors'] as $visitor) {
-            $timestampString = $visitor['last_view'] ?? null;
-            if (!$timestampString) {
-                continue;
-            }
-            $timestamp = strtotime($timestampString);
-        if (!$timestamp) {
-            continue;
-        }
-        $feedEntries[] = [
-            'type'      => 'visitor',
-            'title'     => trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? '')),
-            'content'   => 'Checked in recently.',
-            'meta'      => [
-                'actor_name'   => trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? '')),
-                'actor_id'     => $visitor['user_id'] ?? null,
-                'context'      => 'Latest logins',
-                'subject_name' => '',
-            ],
-            'url'       => isset($visitor['user_id']) ? "?to=family/users&user_id={$visitor['user_id']}" : '',
-            'timestamp' => $timestamp,
-            'raw_time'  => $timestampString,
-        ];
-    }
-
-        foreach ($changes['discussions'] as $discussion) {
-            $timestampString = $discussion['updated_at'] ?? null;
-            if (!$timestampString) {
-                continue;
-            }
-            $timestamp = strtotime($timestampString);
-        if (!$timestamp) {
-            continue;
-        }
-        $isTreeDiscussion = !empty($discussion['individual_id']);
-        $discussionContentRaw = isset($discussion['content']) ? stripslashes($discussion['content']) : '';
-        $discussionSnippetHtml = '';
-        if ($discussionContentRaw !== '') {
-            $discussionSnippetHtml = nvFeedSanitizeHtml(
-                $web->truncateText(
-                    nl2br($discussionContentRaw),
-                    80,
-                    'Read more',
-                    'feed_discussion_' . $discussion['discussionId'],
-                    'expand'
-                )
-            );
-        }
-        $discussionDescendancy = [];
-        $discussionIndirectConnection = [];
-        if ($isTreeDiscussion && !empty($discussion['individual_id'])) {
-            $discussionDescendancy = $getDescendancyTrail($discussion['individual_id']);
-            if (empty($discussionDescendancy)) {
-                $discussionIndirectConnection = $getIndirectConnection($discussion['individual_id']);
-            }
-        }
-
-        $feedEntries[] = [
-            'type'      => $discussion['change_type'] === 'comment' ? 'comment' : 'discussion',
-            'title'     => stripslashes($discussion['title']),
-            'content'   => $createSnippet($discussionContentRaw, 28),
-            'content_html' => $discussionSnippetHtml,
-            'meta'      => [
-                'actor_name' => trim(($discussion['user_first_name'] ?? '') . ' ' . ($discussion['user_last_name'] ?? '')),
-                'actor_id'   => $discussion['user_id'] ?? null,
-                'context'    => $isTreeDiscussion ? 'Family Tree Chat' : 'Community Chat',
-            ],
-            'url'       => $isTreeDiscussion
-                ? "?to=family/individual&individual_id={$discussion['individual_id']}&discussion_id={$discussion['discussionId']}"
-                : "?to=communications/discussions&discussion_id={$discussion['discussionId']}",
-            'timestamp' => $timestamp,
-            'raw_time'  => $timestampString,
-            'relationship_to_user' => $isTreeDiscussion ? $getRelationshipToUser($discussion['individual_id']) : '',
-            'descendancy' => $discussionDescendancy,
-            'indirect_connection' => $discussionIndirectConnection,
-            'interactions' => [
-                'type'             => 'discussion',
-                'target_id'        => (int) $discussion['discussionId'],
-                'reaction_summary' => $discussionReactionSummaries[(int) $discussion['discussionId']] ?? [],
-                'comments'         => $discussionCommentsLookup[(int) $discussion['discussionId']] ?? [],
-            ],
-        ];
-    }
-
-        foreach ($changes['individuals'] as $individual) {
-            $timestampString = $individual['updated'] ?? $individual['created'] ?? null;
-            if (!$timestampString) {
-                continue;
-            }
-            $timestamp = strtotime($timestampString);
-        if (!$timestamp) {
-            continue;
-        }
-        $personName = trim(($individual['tree_first_name'] ?? '') . ' ' . ($individual['tree_last_name'] ?? ''));
-        $individualDescendancy = $getDescendancyTrail($individual['individualId'] ?? 0);
-        $individualIndirect = [];
-        if (empty($individualDescendancy)) {
-            $individualIndirect = $getIndirectConnection($individual['individualId'] ?? 0);
-        }
-
-        $feedEntries[] = [
-            'type'       => 'individual',
-            'title'      => $personName !== '' ? $personName : 'New family member',
-            'content'    => 'Added to the family tree.',
-            'meta'       => [
-                'actor_name'   => trim(($individual['user_first_name'] ?? '') . ' ' . ($individual['user_last_name'] ?? '')),
-                'actor_id'     => $individual['created_by'] ?? null,
-                'subject_name' => $personName,
-            ],
-            'cover'      => $individual['keyimagepath'] ?: 'images/default_avatar.webp',
-            'url'        => "?to=family/individual&individual_id={$individual['individualId']}",
-            'timestamp'  => $timestamp,
-            'raw_time'   => $timestampString,
-            'relationship_to_user' => $getRelationshipToUser($individual['individualId'] ?? 0),
-            'descendancy' => $individualDescendancy,
-            'indirect_connection' => $individualIndirect,
-        ];
-    }
-
-        $itemGroupings = [];
-        foreach ($changes['items'] as $key => $itemGroup) {
-            if (isset($itemGroup['items']) && is_array($itemGroup['items']) && count($itemGroup['items']) > 0) {
-                foreach ($itemGroup['items'] as $item) {
-                    $groupKey = 'group_' . ($item['unique_id'] ?? $item['item_id']);
-                    if (!isset($itemGroupings[$groupKey])) {
-                        $itemGroupings[$groupKey] = [
-                        'items'            => [],
-                        'privacy'          => $itemGroup['privacy'] ?? 'private',
-                        'group_identifier' => $key,
-                    ];
-                }
-                $itemGroupings[$groupKey]['items'][] = $item;
-            }
-        } else {
-            foreach ($itemGroup as $item) {
-                $groupKey = 'item_' . ($item['item_id'] ?? uniqid('', true));
-                if (!isset($itemGroupings[$groupKey])) {
-                    $itemGroupings[$groupKey] = [
-                        'items'   => [],
-                        'privacy' => $itemGroup['privacy'] ?? 'private',
-                    ];
-                }
-                $itemGroupings[$groupKey]['items'][] = $item;
-            }
-        }
-    }
-
-        $itemInteractionMeta = [];
-        $itemTargetIds = [];
-        foreach ($itemGroupings as $groupKey => $group) {
-            if (empty($group['items']) || !is_array($group['items'])) {
-                $itemInteractionMeta[$groupKey] = null;
-                continue;
-            }
-            $primaryItemId = null;
-        $itemIdentifier = null;
-        foreach ($group['items'] as $groupItem) {
-            if ($itemIdentifier === null && !empty($groupItem['item_identifier'])) {
-                $itemIdentifier = (int) $groupItem['item_identifier'];
-            }
-            if (!empty($groupItem['item_id'])) {
-                $candidateId = (int) $groupItem['item_id'];
-                if ($primaryItemId === null) {
-                    $primaryItemId = $candidateId;
-                }
-                if (isset($groupItem['detail_type']) && strtolower((string) $groupItem['detail_type']) === 'story') {
-                    $primaryItemId = $candidateId;
-                }
-            }
-        }
-        if ($primaryItemId !== null) {
-            $itemInteractionMeta[$groupKey] = [
-                'item_id' => $primaryItemId,
-                'item_identifier' => $itemIdentifier,
-                'group_name' => $group['item_group_name'] ?? '',
-            ];
-            $itemTargetIds[$primaryItemId] = true;
-        } else {
-            $itemInteractionMeta[$groupKey] = null;
-        }
-    }
-    $itemTargetIdList = array_keys($itemTargetIds);
-    $itemReactionSummaries = Utils::getItemReactionSummaryByItemIds($itemTargetIdList);
-    $itemCommentsLookup = Utils::getItemCommentsByItemIds($itemTargetIdList);
-    $nonInteractiveItemGroups = ['Birth', 'Death', 'Name'];
-
-        foreach ($itemGroupings as $groupKey => $itemGroup) {
-            if (empty($itemGroup['items'])) {
-                continue;
-            }
-            $firstItem = $itemGroup['items'][0];
-            $timestampString = $firstItem['updated'] ?? $firstItem['item_updated'] ?? null;
-        if (!$timestampString) {
-            continue;
-        }
-        $timestamp = strtotime($timestampString);
-        if (!$timestamp) {
-            continue;
-        }
-        $personName = trim(($firstItem['tree_first_names'] ?? '') . ' ' . ($firstItem['tree_last_name'] ?? ''));
-        $groupTitle = !empty($firstItem['item_group_name'])
-            ? $firstItem['item_group_name']
-            : ($firstItem['detail_type'] ?? 'Update');
-        $groupTitleTrimmed = trim($groupTitle);
-        $snippet = '';
-        $contentHtml = '';
-        $detailRows = [];
-        $detailRowKeys = [];
-        $mediaItems = [];
-        $mediaKeys = [];
-        $fileLinks = [];
-        $fileKeys = [];
-        $gpsDetails = [];
-        $spouseNames = [];
-        $addDetailRow = function ($label, $value, $link = '', $isHtml = false) use (&$detailRows, &$detailRowKeys) {
-            $normalizedLabel = trim((string) $label);
-            $normalizedValue = is_string($value) ? trim($value) : (is_null($value) ? '' : (string) $value);
-            if ($normalizedLabel === '' || $normalizedValue === '') {
-                return;
-            }
-            $key = strtolower($normalizedLabel) . '|' . strtolower($normalizedValue) . '|' . strtolower((string) $link) . '|' . ($isHtml ? '1' : '0');
-            if (isset($detailRowKeys[$key])) {
-                return;
-            }
-            $detailRowKeys[$key] = true;
-            $detailRows[] = [
-                'label' => $normalizedLabel,
-                'value' => $value,
-                'link'  => $link,
-                'is_html' => $isHtml,
-            ];
-        };
-        foreach ($itemGroup['items'] as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            $detailType = $item['detail_type'] ?? '';
-            $detailLabel = $detailType ? $detailType : ($item['item_group_name'] ?? $groupTitle);
-            $detailStyle = $item_styles[$detailType] ?? 'text';
-            $detailValue = isset($item['detail_value']) ? trim((string) $item['detail_value']) : '';
-            $labelLower = strtolower($detailLabel);
-            $isUrlDetail = ($labelLower === 'url');
-            $isGpsDetail = ($labelLower === 'gps');
-            $isSpouseDetail = in_array($labelLower, ['spouse', 'partner', 'husband', 'wife'], true);
-
-            if (!empty($item['file_path'])) {
-                $fileDesc = trim((string) ($item['file_description'] ?? $detailLabel));
-                $fileType = strtolower((string) ($item['file_type'] ?? ''));
-                if ($fileType === 'image') {
-                    $mediaKey = $item['file_path'];
-                    if (!isset($mediaKeys[$mediaKey])) {
-                        $mediaKeys[$mediaKey] = true;
-                        $mediaItems[] = [
-                            'src' => $item['file_path'],
-                            'alt' => $fileDesc !== '' ? $fileDesc : $groupTitle,
-                        ];
-                    }
-                } else {
-                    $fallbackLabel = strtoupper((string) ($item['file_format'] ?? $fileType));
-                    if ($fallbackLabel === '') {
-                        $fallbackLabel = 'Download file';
-                    }
-                    $fileKey = $item['file_path'];
-                    if (!isset($fileKeys[$fileKey])) {
-                        $fileKeys[$fileKey] = true;
-                        $fileLinks[] = [
-                            'url'   => $item['file_path'],
-                            'label' => $fileDesc !== '' ? $fileDesc : $fallbackLabel,
-                        ];
-                    }
-                }
-                if ($snippet === '' && $fileDesc !== '') {
-                    $snippet = $createSnippet($fileDesc, 18);
-                }
-            }
-
-            if ($detailValue === '' && $detailStyle !== 'file') {
-                continue;
-            }
-
-            if ($isUrlDetail) {
-                $linkIconHtml = '<i class="fas fa-link" aria-hidden="true"></i><span class="sr-only">Open website</span>';
-                $addDetailRow($detailLabel, $linkIconHtml, $detailValue, true);
-                if ($snippet === '') {
-                    $snippet = 'New website link added.';
-                }
-                continue;
-            }
-
-            if ($isGpsDetail) {
-                $coordinateValue = preg_replace('/\s+/', ' ', $detailValue);
-                if ($coordinateValue !== '') {
-                    $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($coordinateValue);
-                    $mapIconHtml = '<i class="fas fa-map-marker-alt" aria-hidden="true"></i><span class="sr-only">View on Google Maps</span>';
-                    $addDetailRow('GPS', $mapIconHtml, $mapsUrl, true);
-                    $gpsDetails[] = [
-                        'url' => $mapsUrl,
-                        'coordinates' => $coordinateValue,
-                    ];
-                }
-                continue;
-            }
-
-            if ($detailStyle === 'file') {
-                continue;
-            }
-
-            if ($detailStyle === 'individual') {
-                $linkTarget = !empty($item['individual_name_id'])
-                    ? "?to=family/individual&individual_id={$item['individual_name_id']}"
-                    : '';
-                $individualName = trim((string) ($item['individual_name'] ?? $detailValue));
-                $addDetailRow($detailLabel, $individualName, $linkTarget, false);
-                if ($isSpouseDetail && $individualName !== '') {
-                    $spouseNames[] = $individualName;
-                }
-                if ($snippet === '' && !$isSpouseDetail && $individualName !== '') {
-                    $snippet = $createSnippet($individualName, 20);
-                }
-                continue;
-            }
-
-            if ($snippet === '' && $detailValue !== '' && $detailType !== 'Private' && !$isSpouseDetail) {
-                $snippet = $createSnippet($detailValue, 20);
-            }
-
-            $displayValue = $detailValue;
-            $allowsBreaks = ($detailStyle === 'textarea');
-            $detailLength = function_exists('mb_strlen') ? mb_strlen($detailValue) : strlen($detailValue);
-            if ($detailStyle === 'textarea' || $detailLength > 360) {
-                $displayValue = $createSnippet($detailValue, 60);
-            } elseif ($detailStyle === 'date') {
-                $dateCandidate = strtotime($detailValue);
-                if ($dateCandidate) {
-                    $displayValue = date('j M Y', $dateCandidate);
-                }
-            }
-
-            $addDetailRow($detailLabel, $displayValue, '', $allowsBreaks);
-        }
-        if ($snippet === '' && !empty($firstItem['file_path'])) {
-            $snippet = 'New file attached.';
-        }
-        if (!empty($spouseNames)) {
-            $normalizedSpouses = array_map(static function ($name) {
-                if (!is_string($name)) {
-                    $name = (string) $name;
-                }
-                return trim($name);
-            }, $spouseNames);
-            $uniqueSpouses = array_values(array_unique($normalizedSpouses));
-            $primaryNormalized = '';
-            if ($personName !== '') {
-                $primaryNormalized = function_exists('mb_strtolower')
-                    ? mb_strtolower($personName, 'UTF-8')
-                    : strtolower($personName);
-            }
-            $uniqueSpouses = array_values(array_filter($uniqueSpouses, static function ($name) use ($primaryNormalized) {
-                if ($name === '') {
-                    return false;
-                }
-                if ($primaryNormalized === '') {
-                    return true;
-                }
-                $compareValue = function_exists('mb_strtolower')
-                    ? mb_strtolower($name, 'UTF-8')
-                    : strtolower($name);
-                return $compareValue !== $primaryNormalized;
-            }));
-            if (!empty($uniqueSpouses)) {
-                $spouseSummary = implode(' and ', $uniqueSpouses);
-                $normalizedTitle = strtolower($groupTitleTrimmed);
-                if ($normalizedTitle === 'marriage') {
-                    $snippet = ($personName !== '' ? $personName . ' married ' . $spouseSummary : 'Married ' . $spouseSummary) . '.';
-                } elseif ($normalizedTitle === 'divorce') {
-                    $snippet = ($personName !== '' ? $personName . ' divorced ' . $spouseSummary : 'Divorced ' . $spouseSummary) . '.';
-                }           
-            }
-        }
-        if (!empty($gpsDetails)) {
-            $primaryGps = $gpsDetails[0];
-            $mapUrlEscaped = htmlspecialchars($primaryGps['url'], ENT_QUOTES, 'UTF-8');
-            $mapLinkHtml = '<a href="' . $mapUrlEscaped . '" target="_blank" rel="noopener" class="feed-item-location-link" aria-label="View location on Google Maps">&#128205;</a>';
-            if ($snippet !== '') {
-                $contentHtml = htmlspecialchars($snippet, ENT_QUOTES, 'UTF-8') . ' ' . $mapLinkHtml;
-                $snippet = '';
-            } else {
-                $contentHtml = 'A geographical location was added ' . $mapLinkHtml;
-            }
-        }
-        $interaction = null;
-        $interactionMeta = $itemInteractionMeta[$groupKey] ?? null;
-        if ($interactionMeta && !in_array($groupTitleTrimmed, $nonInteractiveItemGroups, true)) {
-            $itemTargetId = $interactionMeta['item_id'];
-            $interaction = [
-                'type'             => 'item',
-                'target_id'        => $itemTargetId,
-                'item_identifier'  => $interactionMeta['item_identifier'],
-                'reaction_summary' => $itemReactionSummaries[$itemTargetId] ?? [],
-                'comments'         => $itemCommentsLookup[$itemTargetId] ?? [],
-            ];
-        }
-        $primaryIndividualId = $firstItem['individualId'] ?? 0;
-        $primaryDescendancy = $getDescendancyTrail($primaryIndividualId);
-        $primaryIndirect = [];
-        if (empty($primaryDescendancy)) {
-            $primaryIndirect = $getIndirectConnection($primaryIndividualId);
-        }
-
-        $feedEntries[] = [
-            'type'      => 'item',
-            'title'     => $groupTitleTrimmed !== '' ? $groupTitleTrimmed . ' update for ' . $personName : 'New update for ' . $personName,
-            'content'   => $snippet,
-            'meta'      => [
-                'actor_name'   => trim(($firstItem['first_name'] ?? '') . ' ' . ($firstItem['last_name'] ?? '')),
-                'actor_id'     => $firstItem['user_id'] ?? null,
-                'subject_name' => $personName,
-                'privacy'      => $itemGroup['privacy'] ?? 'private',
-            ],
-            'url'       => "?to=family/individual&individual_id={$firstItem['individualId']}&tab=eventstab",
-            'timestamp' => $timestamp,
-            'raw_time'  => $timestampString,
-            'details'   => $detailRows,
-            'media'     => $mediaItems,
-            'files'     => $fileLinks,
-            'content_html' => $contentHtml,
-            'relationship_to_user' => $getRelationshipToUser($firstItem['individualId'] ?? 0),
-            'descendancy' => $primaryDescendancy,
-            'indirect_connection' => $primaryIndirect,
-            'interactions' => $interaction,
-        ];
-    }
-
-        foreach ($changes['files'] as $file) {
-            $timestampString = $file['upload_date'] ?? $file['updated'] ?? null;
-            if (!$timestampString) {
-                continue;
-            }
-            $timestamp = strtotime($timestampString);
-        if (!$timestamp) {
-            continue;
-        }
-        $personName = trim(($file['tree_first_name'] ?? '') . ' ' . ($file['tree_last_name'] ?? ''));
-        $fileIndividualId = $file['individualId'] ?? 0;
-        $fileDescendancy = $getDescendancyTrail($fileIndividualId);
-        $fileIndirect = [];
-        if (empty($fileDescendancy)) {
-            $fileIndirect = $getIndirectConnection($fileIndividualId);
-        }
-
-        $feedEntries[] = [
-            'type'      => 'file',
-            'title'     => $personName !== '' ? $personName . ' media added' : 'New media uploaded',
-            'content'   => $createSnippet($file['file_description'] ?? '', 18),
-            'meta'      => [
-                'actor_name'   => trim(($file['user_first_name'] ?? '') . ' ' . ($file['user_last_name'] ?? '')),
-                'actor_id'     => $file['user_id'] ?? null,
-                'subject_name' => $personName,
-                'file_type'    => $file['file_type'] ?? '',
-            ],
-            'url'       => "?to=family/individual&individual_id={$file['individualId']}&tab=mediatab&file_id={$file['id']}",
-            'timestamp' => $timestamp,
-            'raw_time'  => $timestampString,
-            'media'     => $file['file_path'] ?? '',
-            'relationship_to_user' => $getRelationshipToUser($file['individualId'] ?? 0),
-            'descendancy' => $fileDescendancy,
-            'indirect_connection' => $fileIndirect,
-        ];
-    }
-
-        usort($feedEntries, function ($a, $b) {
-            return ($b['timestamp'] ?? 0) <=> ($a['timestamp'] ?? 0);
-        });
-    };
+    $feedInitialLimit = 3;
+    $feedService = new FeedService($db, $auth, $web);
+    $feedData = $feedService->getFeedSlice($user_id, 0, $feedInitialLimit);
+    $feedEntries = $feedData['entries'];
+    $summary = $feedData['summary'];
+    $feedHasMore = $feedData['has_more'];
+    $feedNextOffset = $feedData['next_offset'];
+    $feedTotal = $feedData['total'];
+    $feedSince = $feedData['last_view'] ?? null;
+    $currentUserId = $feedData['current_user_id'];
+    $isCurrentUserAdmin = $feedData['is_admin'];
+    $reactionEmojiMap = $feedData['emoji'];
 
     $user = Utils::getUser($user_id);
     $dashboardLayout = 'dropdown';
@@ -927,17 +351,17 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     ob_start();
     include("family/helpers/user.php");
     $dashboardDropdownPanels = trim(ob_get_clean());
-    $hasDropdownPanels = trim($dashboardDropdownPanels) !== '';
+    $hasDropdownPanels = $dashboardDropdownPanels !== '';
 
     $descendancy = [];
-    if($user && !empty($user['individuals_id'])) {
-        $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
+    if ($user && !empty($user['individuals_id'])) {
+        $descendancy = Utils::getLineOfDescendancy(Web::getRootId(), $user['individuals_id']);
     }
 ?>
-<?php if(isset($descendancy) && $descendancy): ?>
+<?php if (!empty($descendancy)): ?>
     <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-wrap justify-center items-center text-xxs sm:text-sm">
-            <?php foreach($descendancy as $index => $descendant): ?>
+            <?php foreach ($descendancy as $index => $descendant): ?>
                 <div class="bg-burnt-orange-800 nv-bg-opacity-20 text-center p-1 sm:p-2 my-1 sm:my-2 rounded-lg">
                     <a href='?to=family/individual&individual_id=<?= $descendant[1] ?>'><?= $descendant[0] ?></a>
                 </div>
@@ -974,594 +398,72 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     </section>
 <?php endif; ?>
 
-    <section class="container mx-auto py-2 px-4 sm:px-6 lg:px-8 pt-2">
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <h3 class="text-2xl font-bold text-ocean-blue flex items-center gap-3">
-                <i class="fas fa-stream"></i>
-                Latest updates
-            </h3>
-        </div>
-        <div id="feedSpinner" class="feed-loading text-center text-gray-500 py-12">
-            <i class="fas fa-circle-notch fa-spin mr-2"></i> Gathering updates&hellip;
-        </div>
-        <?php
-            if (function_exists('ob_flush')) {
-                ob_flush();
-            }
-            flush();
-            $buildFeedEntries();
-        ?>
-        <?php
-            $renderReactionSummary = static function (array $summary, array $emojiMap): string {
-                $html = '';
-                foreach ($emojiMap as $reactionType => $emoji) {
-                    $count = isset($summary[$reactionType]) ? (int) $summary[$reactionType] : 0;
-                    if ($count > 0) {
-                        $html .= '<span class="reaction-item" title="' . htmlspecialchars(ucfirst($reactionType), ENT_QUOTES, 'UTF-8') . '">' .
-                            $emoji . ' <span class="reaction-count">' . $count . '</span></span> ';
-                    }
-                }
-                return trim($html);
-            };
+<?php
+    $summaryCounts = $feedData['summary_counts'] ?? array();
+    $summaryMeta = array(
+        'discussions'   => array('label' => 'Discussions',   'icon' => 'fas fa-comments'),
+        'individuals'   => array('label' => 'Individuals',   'icon' => 'fas fa-user-plus'),
+        'relationships' => array('label' => 'Relationships', 'icon' => 'fas fa-link'),
+        'items'         => array('label' => 'Stories',       'icon' => 'fas fa-book-open'),
+        'files'         => array('label' => 'Files',         'icon' => 'fas fa-photo-video'),
+    );
+?>
+<section class="container mx-auto pt-6 pb-4 px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-wrap gap-3 sm:gap-4">
+        <?php foreach ($summaryMeta as $key => $meta): ?>
+            <?php
+                $count = isset($summaryCounts[$key]) ? (int) $summaryCounts[$key] : 0;
+                $label = $meta['label'];
+                $summaryText = $summary[$label] ?? '';
+                $badgeClasses = $count > 0 ? 'bg-red-500 text-white' : 'bg-gray-300 text-gray-700';
+            ?>
+            <button type="button"
+                class="summary-filter relative flex items-center justify-between sm:flex-col sm:items-center sm:text-center bg-white border border-gray-200 shadow-sm rounded-lg px-4 py-3 sm:py-4 transition hover:border-ocean-blue focus:outline-none focus:ring-2 focus:ring-ocean-blue"
+                aria-pressed="false"
+                data-feed-filter="<?= $key ?>">
+                <span class="summary-filter-icon text-xl sm:text-2xl text-ocean-blue"><i class="<?= $meta['icon'] ?>"></i></span>
+                <span class="summary-filter-label text-sm font-semibold text-brown sm:mt-2"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="summary-filter-badge <?= $badgeClasses ?> absolute -top-2 -right-2 inline-flex items-center justify-center h-6 px-2 rounded-full text-xs font-semibold" style="min-width:1.5rem;"><?= $count ?></span>
+                <?php if (!empty($summaryText)): ?>
+                    <span class="summary-filter-text hidden sm:block text-xs text-gray-500 sm:mt-1"><?= htmlspecialchars($summaryText, ENT_QUOTES, 'UTF-8') ?></span>
+                <?php endif; ?>
+            </button>
+        <?php endforeach; ?>
+    </div>
+</section>
 
-            $renderFeedEntry = static function (array $entry) use ($feedTypeMeta, $web, $currentUserId, $isCurrentUserAdmin, $reactionEmojiMap, $renderReactionSummary, $getRelationshipToUser) {
-                $type = $entry['type'];
-                $meta = $feedTypeMeta[$type] ?? ['label' => ucfirst($type), 'icon' => 'fas fa-circle'];
-                $timestampLabel = isset($entry['timestamp']) ? date('l, d F Y g:ia', $entry['timestamp']) : '';
-                $actorInitial = '';
-                if (empty($entry['meta']['actor_id']) && !empty($entry['meta']['actor_name'])) {
-                    $actorInitial = strtoupper(substr($entry['meta']['actor_name'], 0, 1));
-                }
-                $descendancyTrail = [];
-                $descendancyLineSegments = [];
-                if (!empty($entry['descendancy']) && is_array($entry['descendancy'])) {
-                    foreach ($entry['descendancy'] as $descendant) {
-                        $label = trim((string) ($descendant[0] ?? ''));
-                        $id = isset($descendant[1]) ? (int) $descendant[1] : 0;
-                        if ($label === '') {
-                            continue;
-                        }
-                        $descendancyTrail[] = [
-                            'label' => $label,
-                            'id'    => $id,
-                        ];
-                        if ($id > 0) {
-                            $descendancyLineSegments[] = '<a href="?to=family/individual&individual_id=' . $id . '" class="hover:text-burnt-orange">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
-                        } else {
-                            $descendancyLineSegments[] = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
-                        }
-                    }
-                }
-                $indirectConnection = [];
-                if (!empty($entry['indirect_connection']) && is_array($entry['indirect_connection'])) {
-                    $indirectConnection = $entry['indirect_connection'];
-                }
-
-                $relationshipToUser = '';
-                if (!empty($entry['relationship_to_user'])) {
-                    $relationshipToUser = trim((string) $entry['relationship_to_user']);
-                } elseif (!empty($descendancyTrail)) {
-                    $lastDescendant = end($descendancyTrail);
-                    if (is_array($lastDescendant) && !empty($lastDescendant['id'])) {
-                        $relationshipToUser = $getRelationshipToUser($lastDescendant['id']);
-                    }
-                    reset($descendancyTrail);
-                }
-
-                if (!empty($indirectConnection['descendancy_path']) && is_array($indirectConnection['descendancy_path'])) {
-                    foreach ($indirectConnection['descendancy_path'] as $node) {
-                        $nodeName = isset($node['name']) ? trim((string) $node['name']) : '';
-                        $nodeId = isset($node['id']) ? (int) $node['id'] : 0;
-                        if ($nodeName === '') {
-                            continue;
-                        }
-                        if ($nodeId > 0) {
-                            $descendancyLineSegments[] = '<a href="?to=family/individual&individual_id=' . $nodeId . '" class="hover:text-burnt-orange">' . htmlspecialchars($nodeName, ENT_QUOTES, 'UTF-8') . '</a>';
-                        } else {
-                            $descendancyLineSegments[] = htmlspecialchars($nodeName, ENT_QUOTES, 'UTF-8');
-                        }
-                    }
-                }
-
-                $relationshipLine = '';
-                if (!empty($descendancyLineSegments) && $relationshipToUser !== '') {
-                    if (function_exists('mb_strtolower')) {
-                        $relationshipLine = 'Your ' . mb_strtolower($relationshipToUser, 'UTF-8');
-                    } else {
-                        $relationshipLine = 'Your ' . strtolower($relationshipToUser);
-                    }
-                } elseif (empty($descendancyLineSegments) && !empty($indirectConnection)) {
-                    $indirectText = trim((string) ($indirectConnection['explanation'] ?? ''));
-                    $viaId = isset($indirectConnection['via_individual_id']) ? (int) $indirectConnection['via_individual_id'] : 0;
-                    $viaRelationship = '';
-                    if ($viaId > 0) {
-                        $viaRelationship = $getRelationshipToUser($viaId);
-                    }
-                    if ($indirectText !== '') {
-                        $relationshipLine = $indirectText;
-                    }
-                    if ($viaRelationship !== '') {
-                        if (function_exists('mb_strtolower')) {
-                            $viaRelationship = mb_strtolower($viaRelationship, 'UTF-8');
-                        } else {
-                            $viaRelationship = strtolower($viaRelationship);
-                        }
-                        $relationshipLine = rtrim($relationshipLine, '. ');
-                        if ($relationshipLine !== '') {
-                            $relationshipLine .= ' ';
-                        }
-                        $relationshipLine .= 'who is your ' . $viaRelationship;
-                    }
-                    $relationshipLine = trim($relationshipLine);
-                    if ($relationshipLine !== '') {
-                        $relationshipLine = rtrim($relationshipLine, '.');
-                    }
-                } elseif (!empty($indirectConnection['explanation'])) {
-                    $indirectText = trim((string) $indirectConnection['explanation']);
-                    $closestId = 0;
-                    $path = $indirectConnection['descendancy_path'] ?? [];
-                    if (is_array($path) && !empty($path)) {
-                        $lastNode = end($path);
-                        if (is_array($lastNode)) {
-                            $closestId = isset($lastNode['id']) ? (int) $lastNode['id'] : (isset($lastNode[1]) ? (int) $lastNode[1] : 0);
-                        }
-                    }
-                    if (!$closestId && !empty($indirectConnection['via_individual_id'])) {
-                        $closestId = (int) $indirectConnection['via_individual_id'];
-                    }
-                    $closestRelationship = $closestId > 0 ? $getRelationshipToUser($closestId) : '';
-                    if ($closestRelationship !== '') {
-                        if (function_exists('mb_strtolower')) {
-                            $closestRelationship = mb_strtolower($closestRelationship, 'UTF-8');
-                        } else {
-                            $closestRelationship = strtolower($closestRelationship);
-                        }
-                        $relationshipLine = rtrim($indirectText, '. ');
-                        if ($relationshipLine !== '') {
-                            $relationshipLine .= ', your ' . $closestRelationship;
-                        } else {
-                            $relationshipLine = 'Your ' . $closestRelationship;
-                        }
-                    } elseif ($indirectText !== '') {
-                        $relationshipLine = rtrim($indirectText, '. ');
-                    }
-                }
-
-                ob_start();
-                ?>
-                <article class="feed-item bg-white shadow-sm border border-gray-200 rounded-lg p-4 flex gap-4 items-start" data-feed-type="<?= htmlspecialchars($type) ?>">
-                    <div class="feed-item-icon text-xl text-ocean-blue flex-shrink-0">
-                        <i class="<?= htmlspecialchars($meta['icon']) ?>"></i>
-                    </div>
-                    <div class="feed-item-body flex-1">
-                        <div class="feed-item-meta flex items-center gap-3 text-sm text-gray-500 mb-2">
-                            <?php if (!empty($entry['meta']['actor_id'])): ?>
-                                <?= $web->getAvatarHTML($entry['meta']['actor_id'], "sm", "feed-item-avatar"); ?>
-                            <?php elseif ($actorInitial !== ''): ?>
-                                <div class="feed-item-avatar-placeholder"><?= htmlspecialchars($actorInitial) ?></div>
-                            <?php endif; ?>
-                            <span class="font-semibold text-brown"><?= htmlspecialchars($meta['label']) ?></span>
-                            <?php if (!empty($entry['meta']['context'])): ?>
-                                <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['context']) ?></span>
-                            <?php endif; ?>
-                            <?php if (!empty($entry['meta']['subject_name']) && $type !== 'individual'): ?>
-                                <span class="hidden sm:inline">&bull; <?= htmlspecialchars($entry['meta']['subject_name']) ?></span>
-                            <?php endif; ?>
-                            <?php if (!empty($entry['raw_time'])): ?>
-                                <span class="feed-item-timestamp ml-auto" title="<?= htmlspecialchars($timestampLabel) ?>">
-                                    <?= $web->timeSince($entry['raw_time']) ?>
-                                </span>
-                            <?php endif; ?>
-                        </div>
-                        <?php if (!empty($entry['title'])): ?>
-                            <h4 class="feed-item-title text-lg font-semibold text-brown mb-1">
-                                <?php if (!empty($entry['url'])): ?>
-                                    <a class="hover:text-burnt-orange" href="<?= $entry['url'] ?>"><?= htmlspecialchars($entry['title']) ?></a>
-                                <?php else: ?>
-                                    <?= htmlspecialchars($entry['title']) ?>
-                                <?php endif; ?>
-                            </h4>
-                        <?php endif; ?>
-                        <?php if ($relationshipLine !== ''): ?>
-                            <p class="feed-item-relationship text-xs text-gray-500 mb-2">
-                                <span class="font-semibold text-brown mr-1">Relationship:</span>
-                                <?= htmlspecialchars(rtrim($relationshipLine, '.') . '.') ?>
-                            </p>
-                        <?php endif; ?>
-                        <?php if (!empty($descendancyLineSegments)): ?>
-                            <p class="feed-item-descendancy text-xs text-gray-500 mb-1">
-                                <span class="font-semibold text-brown mr-1">Line:</span>
-                                <?= implode(' <span class="mx-1 text-gray-400">&gt;</span> ', $descendancyLineSegments) ?>
-                            </p>
-                        <?php endif; ?>
-                        <?php if (!empty($entry['content_html'])): ?>
-                            <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
-                        <?php elseif (!empty($entry['content'])): ?>
-                            <p class="feed-item-summary text-sm text-gray-600 mb-3"><?= htmlspecialchars($entry['content']) ?></p>
-                        <?php endif; ?>
-                        <?php if ($type === 'item' && !empty($entry['media'])): ?>
-                            <div class="feed-item-media-grid mb-3">
-                                <?php foreach ($entry['media'] as $media): ?>
-                                    <img src="<?= htmlspecialchars($media['src']) ?>" alt="<?= htmlspecialchars($media['alt']) ?>" class="feed-item-thumb feed-item-media-image">
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($type === 'item' && !empty($entry['details'])): ?>
-                            <ul class="feed-item-details text-sm text-gray-700 mb-3">
-                                <?php foreach ($entry['details'] as $detail): ?>
-                                    <li class="feed-item-detail-row">
-                                        <span class="feed-item-detail-label"><?= htmlspecialchars($detail['label']) ?>:</span>
-                                        <?php if (!empty($detail['link'])): ?>
-                                            <?php
-                                                $detailLink = (string) $detail['link'];
-                                                $isExternalDetailLink = preg_match('/^https?:/i', $detailLink) === 1;
-                                            ?>
-                                            <a href="<?= htmlspecialchars($detailLink) ?>" class="feed-item-detail-link hover:text-burnt-orange" <?= $isExternalDetailLink ? 'target="_blank" rel="noopener"' : '' ?>>
-                                                <?php if (!empty($detail['is_html'])): ?>
-                                                    <?= $detail['value'] ?>
-                                                <?php else: ?>
-                                                    <?= htmlspecialchars($detail['value']) ?>
-                                                <?php endif; ?>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="feed-item-detail-text">
-                                                <?php if (!empty($detail['is_html'])): ?>
-                                                    <?= nl2br(htmlspecialchars($detail['value'])) ?>
-                                                <?php else: ?>
-                                                    <?= htmlspecialchars($detail['value']) ?>
-                                                <?php endif; ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                        <?php if ($type === 'item' && !empty($entry['files'])): ?>
-                            <ul class="feed-item-files text-xs text-ocean-blue mb-3">
-                                <?php foreach ($entry['files'] as $file): ?>
-                                    <li><a href="<?= htmlspecialchars($file['url']) ?>" class="hover:text-burnt-orange" target="_blank" rel="noopener"><?= htmlspecialchars($file['label']) ?></a></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                        <div class="feed-item-footer flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                            <?php if (!empty($entry['meta']['actor_name'])): ?>
-                                <span>by <?= htmlspecialchars($entry['meta']['actor_name']) ?></span>
-                            <?php endif; ?>
-                            <?php if ($type === 'item' && !empty($entry['meta']['privacy']) && $entry['meta']['privacy'] === 'private'): ?>
-                                <span class="inline-flex items-center gap-1 text-warm-red"><i class="fas fa-lock"></i> Private</span>
-                            <?php endif; ?>
-                            <?php if ($type === 'file' && !empty($entry['media']) && ($entry['meta']['file_type'] ?? '') === 'image'): ?>
-                                <img src="<?= htmlspecialchars($entry['media']) ?>" alt="Preview" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
-                            <?php endif; ?>
-                            <?php if ($type === 'individual' && !empty($entry['cover'])): ?>
-                                <img src="<?= htmlspecialchars($entry['cover']) ?>" alt="Profile" class="feed-item-thumb h-12 w-12 object-cover rounded-md border">
-                            <?php endif; ?>
-                        </div>
-                    <?php
-                        $interaction = $entry['interactions'] ?? null;
-                        if ($interaction && !empty($interaction['type']) && !empty($interaction['target_id'])):
-                            $interactionType = $interaction['type'];
-                            $isDiscussionInteraction = ($interactionType === 'discussion');
-                            $targetId = (int) $interaction['target_id'];
-                            $reactionContainerClass = $isDiscussionInteraction ? 'discussion-reactions' : 'item-reactions';
-                            $targetAttributeName = $isDiscussionInteraction ? 'data-discussion-id' : 'data-item-id';
-                            $itemIdentifierAttribute = (!$isDiscussionInteraction && !empty($interaction['item_identifier']))
-                                ? ' data-item-identifier="' . (int) $interaction['item_identifier'] . '"'
-                                : '';
-                            $reactionSummaryHtml = $renderReactionSummary($interaction['reaction_summary'] ?? [], $reactionEmojiMap);
-                            $comments = is_array($interaction['comments'] ?? null) ? $interaction['comments'] : [];
-                    ?>
-                        <div class="feed-item-interactions mt-4" data-feed-interaction="<?= htmlspecialchars($interactionType, ENT_QUOTES, 'UTF-8') ?>" <?= $targetAttributeName ?>="<?= $targetId ?>">
-                            <div class="<?= $reactionContainerClass ?> feed-reactions flex items-center gap-3" <?= $targetAttributeName ?>="<?= $targetId ?>"<?= $itemIdentifierAttribute ?>>
-                                <button type="button" class="like-image inline-flex items-center justify-center pl-2 h-8 w-8 rounded-full bg-gray-100 text-lg" title="React">
-                                    <svg alt="Like" class="like-image flex-item" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
-                                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                        <g id="SVGRepo_iconCarrier">
-                                            <style type="text/css">
-                                                .st0{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
-                                                .st1{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-                                                .st2{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5.2066,0;}
-                                            </style>
-                                            <path class="st0" d="M11,24V14H5v12h6v-2.4l0,0c1.5,1.6,4.1,2.4,6.2,2.4h6.5c1.1,0,2.1-0.8,2.3-2l1.5-8.6c0.3-1.5-0.9-2.4-2.3-2.4H20V6.4C20,5.1,18.7,4,17.4,4h0C16.1,4,15,5.1,15,6.4v0c0,1.6-0.5,3.1-1.4,4.4L11,13.8"></path>
-                                        </g>
-                                    </svg>
-                                </button>
-                                <div class="reaction-buttons" title="Reactions">
-                                    <?php foreach ($reactionEmojiMap as $reactionKey => $emoji): ?>
-                                        <button class="reaction-btn" data-reaction="<?= htmlspecialchars($reactionKey, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars(ucfirst($reactionKey), ENT_QUOTES, 'UTF-8') ?>"><?= $emoji ?></button>
-                                    <?php endforeach; ?>
-                                    <button class="reaction-btn" data-reaction="remove" title="Remove reaction">&times;</button>
-                                </div>
-                                <div class="reaction-summary-container">
-                                    <div class="reaction-summary"><?= $reactionSummaryHtml ?></div>
-                                </div>
-                            </div>
-                            <div class="feed-comments mt-3">
-                                <div class="feed-comment-list space-y-3<?= empty($comments) ? ' hidden' : '' ?>" data-comment-list>
-                                    <?php foreach ($comments as $comment): ?>
-                                        <?php
-                                            $commentUserId = (int) ($comment['user_id'] ?? 0);
-                                            $commentId = (int) ($comment['id'] ?? 0);
-                                            $commentName = trim(($comment['first_name'] ?? '') . ' ' . ($comment['last_name'] ?? ''));
-                                            $commentCreatedAt = $comment['created_at'] ?? '';
-                                            $canDeleteComment = ($commentUserId === $currentUserId) || $isCurrentUserAdmin;
-                                        ?>
-                                        <div class="feed-comment flex items-start gap-3" data-comment-id="<?= $commentId ?>" data-user-id="<?= $commentUserId ?>">
-                                            <div class="feed-comment-avatar">
-                                                <?php if ($commentUserId > 0): ?>
-                                                    <?= $web->getAvatarHTML($commentUserId, "xs", "feed-comment-avatar"); ?>
-                                                <?php else: ?>
-                                                    <div class="feed-comment-avatar-placeholder">?</div>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="feed-comment-body flex-1">
-                                                <div class="feed-comment-meta text-xs text-gray-500 flex items-center gap-2">
-                                                    <span class="font-semibold text-gray-700"><?= htmlspecialchars($commentName) ?></span>
-                                                    <?php if ($commentCreatedAt !== ''): ?>
-                                                        <span class="feed-comment-timestamp"><?= $web->timeSince($commentCreatedAt) ?></span>
-                                                    <?php endif; ?>
-                                                    <?php if ($canDeleteComment): ?>
-                                                        <button type="button" class="feed-comment-delete ml-auto text-gray-400 hover:text-warm-red" title="Delete comment" data-comment-delete>&times;</button>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="feed-comment-text text-sm text-gray-700"><?= nl2br(htmlspecialchars($comment['comment'] ?? '')) ?></div>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                                <div class="feed-comment-empty text-xs text-gray-400<?= empty($comments) ? '' : ' hidden' ?>" data-comment-empty>No comments yet.</div>
-                                <form class="feed-comment-form mt-2 flex gap-2" data-comment-form>
-                                    <textarea class="flex-1 border rounded-lg p-2 text-sm" placeholder="Add a comment..." required data-comment-input></textarea>
-                                    <button type="submit" class="px-3 py-2 text-sm text-white bg-ocean-blue rounded-md hover:bg-ocean-blue-700" title="Post comment">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                    </div>
-                </article>
-                <?php
-                return trim(ob_get_clean());
-            };
-
-            $initialFeedBatchSize = 10;
-            $subsequentFeedBatchSize = 5;
-            $initialFeedEntries = array_slice($feedEntries, 0, $initialFeedBatchSize);
-            $remainingFeedEntries = array_slice($feedEntries, $initialFeedBatchSize);
-            $initialFeedHtml = array_map($renderFeedEntry, $initialFeedEntries);
-            $remainingFeedHtml = array_map($renderFeedEntry, $remainingFeedEntries);
-        ?>
-        <?php if (empty($initialFeedHtml)): ?>
-            <div class="feed-empty text-center text-gray-500 bg-white shadow-sm border rounded-lg py-12">No updates to show right now.</div>
-        <?php else: ?>
-            <div class="feed-stream space-y-4" id="feedStream">
-                <?php foreach ($initialFeedHtml as $entryHtml): ?>
-                    <?= $entryHtml ?>
-                <?php endforeach; ?>
+<section class="container mx-auto py-2 px-4 sm:px-6 lg:px-8 pt-2">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h3 class="text-2xl font-bold text-ocean-blue flex items-center gap-3">
+            <i class="fas fa-stream"></i>
+            Latest updates
+        </h3>
+    </div>
+    <?php if (empty($feedEntries)): ?>
+        <div class="feed-empty text-center text-gray-500 bg-white shadow-sm border rounded-lg py-12">No updates to show right now.</div>
+    <?php else: ?>
+        <div class="feed-stream space-y-4" id="feedStream">
+            <?php foreach ($feedEntries as $entry): ?>
+                <?= $entry['html'] ?>
+            <?php endforeach; ?>
+            <?php if ($feedHasMore): ?>
                 <div id="feedSentinel" class="feed-sentinel" aria-hidden="true"></div>
-            </div>
-            <div class="feed-loading hidden text-center text-gray-500 py-4" id="feedLoading">
-                <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading more updates&hellip;
-            </div>
-        <?php endif; ?>
-        <script>
-            (function () {
-                var spinner = document.getElementById('feedSpinner');
-                if (spinner && spinner.parentNode) {
-                    spinner.parentNode.removeChild(spinner);
-                }
-            })();
-        </script>
-        <script>
-            (function () {
-                var feedStream = document.getElementById('feedStream');
-                var feedLoading = document.getElementById('feedLoading');
-                var feedSentinel = document.getElementById('feedSentinel');
-                var feedQueue = <?=
-                    json_encode(
-                        $remainingFeedHtml,
-                        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-                    );
-                ?>;
-                var batchSize = <?= (int) $subsequentFeedBatchSize ?>;
-                var isLoading = false;
-                var observer = null;
+            <?php endif; ?>
+        </div>
+        <div class="feed-loading text-center text-gray-500 py-4 hidden" id="feedLoading">
+            <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading more updates&hellip;
+        </div>
+    <?php endif; ?>
+</section>
 
-                if (!feedStream || !feedSentinel || !Array.isArray(feedQueue)) {
-                    return;
-                }
-
-                if (feedQueue.length === 0) {
-                    if (feedSentinel.parentNode) {
-                        feedSentinel.parentNode.removeChild(feedSentinel);
-                    }
-                    return;
-                }
-
-                function appendHtml(html) {
-                    if (!html) {
-                        return;
-                    }
-                    var range = document.createRange();
-                    range.selectNodeContents(feedStream);
-                    var fragment = range.createContextualFragment(html);
-                    feedStream.insertBefore(fragment, feedSentinel);
-                }
-
-                function loadNextBatch() {
-                    if (isLoading) {
-                        return;
-                    }
-                    if (!feedQueue.length) {
-                        if (observer) {
-                            observer.disconnect();
-                        }
-                        if (feedSentinel && feedSentinel.parentNode) {
-                            feedSentinel.parentNode.removeChild(feedSentinel);
-                        }
-                        if (feedLoading) {
-                            feedLoading.classList.add('hidden');
-                        }
-                        return;
-                    }
-                    isLoading = true;
-                    if (feedLoading) {
-                        feedLoading.classList.remove('hidden');
-                    }
-                    window.requestAnimationFrame(function () {
-                        var batch = feedQueue.splice(0, batchSize);
-                        batch.forEach(appendHtml);
-                        isLoading = false;
-                        if (feedLoading) {
-                            feedLoading.classList.add('hidden');
-                        }
-                        if (!feedQueue.length) {
-                            if (observer) {
-                                observer.disconnect();
-                            }
-                            if (feedSentinel && feedSentinel.parentNode) {
-                                feedSentinel.parentNode.removeChild(feedSentinel);
-                            }
-                        }
-                    });
-                }
-
-                if ('IntersectionObserver' in window) {
-                    observer = new IntersectionObserver(function (entries) {
-                        entries.forEach(function (entry) {
-                            if (entry.isIntersecting) {
-                                loadNextBatch();
-                            }
-                        });
-                    }, { rootMargin: '200px 0px' });
-                    observer.observe(feedSentinel);
-                } else {
-                    function legacyScrollHandler() {
-                        if (feedQueue.length === 0) {
-                            window.removeEventListener('scroll', legacyScrollHandler);
-                            return;
-                        }
-                        if ((window.innerHeight + window.pageYOffset) >= (document.body.offsetHeight - 200)) {
-                            loadNextBatch();
-                        }
-                    }
-                    window.addEventListener('scroll', legacyScrollHandler);
-                    legacyScrollHandler();
-                }
-
-                if (feedQueue.length && feedStream.getBoundingClientRect().bottom < window.innerHeight) {
-                    loadNextBatch();
-                }
-            })();
-        </script>
-    </section>
     <script>
-        (function () {
-            var toolbar = document.querySelector('.dashboard-toolbar');
-            var panelHost = document.getElementById('dashboardDropdownPanels');
-            function positionPanel(button, panel) {
-                if (!toolbar || !panelHost || !panel) {
-                    return;
-                }
-                var hostRect = panelHost.getBoundingClientRect();
-                var buttonRect = button.getBoundingClientRect();
-                var panelRect = panel.getBoundingClientRect();
-                var left = buttonRect.left - hostRect.left;
-                var top = buttonRect.bottom - hostRect.top + 12;
-                var maxLeft = window.innerWidth - panelRect.width - 16 - hostRect.left;
-                if (!isNaN(maxLeft)) {
-                    left = Math.min(left, Math.max(0, maxLeft));
-                }
-                if (left < 0) {
-                    left = 0;
-                }
-                panel.style.left = left + 'px';
-                panel.style.top = top + 'px';
-            }
-            var triggers = document.querySelectorAll('[data-dashboard-trigger]');
-            var panels = document.querySelectorAll('.dashboard-dropdown-panel');
-            function closePanels() {
-                panels.forEach(function (panel) {
-                    panel.classList.remove('active');
-                    panel.style.left = '';
-                    panel.style.top = '';
-                    panel.style.visibility = '';
-                });
-                triggers.forEach(function (button) {
-                    button.classList.remove('active');
-                    button.setAttribute('aria-expanded', 'false');
-                });
-            }
-            triggers.forEach(function (button) {
-                button.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    var target = button.getAttribute('data-dashboard-trigger');
-                    var panel = document.querySelector('.dashboard-dropdown-panel[data-panel="' + target + '"]');
-                    if (!panel) {
-                        return;
-                    }
-                    var alreadyOpen = panel.classList.contains('active');
-                    closePanels();
-                    if (!alreadyOpen) {
-                        panel.classList.add('active');
-                        button.classList.add('active');
-                        button.setAttribute('aria-expanded', 'true');
-                        panel.style.visibility = 'hidden';
-                        requestAnimationFrame(function () {
-                            positionPanel(button, panel);
-                            panel.style.visibility = '';
-                        });
-                    }
-                });
-            });
-            panels.forEach(function (panel) {
-                panel.addEventListener('click', function (event) {
-                    var closeTarget = event.target.closest('[data-dashboard-close], a[href]:not([href="#"]), button[type="submit"], button[data-dashboard-close], [role="menuitem"]');
-                    if (closeTarget) {
-                        closePanels();
-                    }
-                });
-            });
-            document.addEventListener('click', function (event) {
-                if (!event.target.closest('.dashboard-toolbar') && !event.target.closest('.dashboard-dropdown-panel')) {
-                    closePanels();
-                }
-            });
-            document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape') {
-                    closePanels();
-                }
-            });
-            function repositionActivePanels() {
-                panels.forEach(function (panel) {
-                    if (!panel.classList.contains('active')) {
-                        return;
-                    }
-                    var panelKey = panel.getAttribute('data-panel');
-                    if (!panelKey) {
-                        return;
-                    }
-                    var trigger = document.querySelector('[data-dashboard-trigger="' + panelKey + '"]');
-                    if (trigger) {
-                        positionPanel(trigger, panel);
-                    }
-                });
-            }
-            window.addEventListener('resize', repositionActivePanels);
-            var scrollScheduled = false;
-            window.addEventListener('scroll', function () {
-                if (scrollScheduled) {
-                    return;
-                }
-                scrollScheduled = true;
-                requestAnimationFrame(function () {
-                    repositionActivePanels();
-                    scrollScheduled = false;
-                });
-            }, true);
-        })();
+        window.NV_FEED_BOOTSTRAP = {
+            limit: <?= (int) $feedInitialLimit ?>,
+            nextOffset: <?= (int) $feedNextOffset ?>,
+            total: <?= (int) $feedTotal ?>,
+            hasMore: <?= $feedHasMore ? 'true' : 'false' ?>,
+            since: <?= $feedSince === null ? 'null' : json_encode($feedSince) ?>
+        };
     </script>
     <script>
         window.NV_FEED_CONFIG = {
@@ -1569,6 +471,237 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
             isAdmin: <?= $isCurrentUserAdmin ? 'true' : 'false' ?>,
             emoji: <?= json_encode($reactionEmojiMap, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
         };
+    </script>
+    <script>
+        (function () {
+            var stream = document.getElementById('feedStream');
+            var sentinel = document.getElementById('feedSentinel');
+            var loading = document.getElementById('feedLoading');
+            var bootstrap = window.NV_FEED_BOOTSTRAP || {};
+            var offset = bootstrap.nextOffset || (bootstrap.limit || 0);
+            var limit = bootstrap.limit || 3;
+            var hasMore = Boolean(bootstrap.hasMore);
+            var since = bootstrap.since;
+            var isLoading = false;
+
+            function appendEntries(entries) {
+                if (!stream || !Array.isArray(entries)) {
+                    return;
+                }
+                entries.forEach(function (entry) {
+                    if (!entry || !entry.html) {
+                        return;
+                    }
+                    var range = document.createRange();
+                    range.selectNode(stream);
+                    var fragment = range.createContextualFragment(entry.html);
+                    stream.insertBefore(fragment, sentinel);
+                });
+            }
+
+            function fetchMore() {
+                if (isLoading || !hasMore || !stream) {
+                    return;
+                }
+                isLoading = true;
+                if (loading) {
+                    loading.classList.remove('hidden');
+                }
+                fetch('ajax.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        method: 'get_feed_entries',
+                        data: {
+                            offset: offset,
+                            limit: limit,
+                            since: since
+                        }
+                    })
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Feed request failed');
+                        }
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        if (!payload || !payload.success || !payload.data) {
+                            throw new Error(payload && payload.message ? payload.message : 'Invalid response');
+                        }
+                        appendEntries(payload.data.entries || []);
+                        offset = payload.data.nextOffset;
+                        hasMore = Boolean(payload.data.hasMore);
+                        if (!hasMore && sentinel && sentinel.parentNode) {
+                            sentinel.parentNode.removeChild(sentinel);
+                        }
+                    })
+                    .catch(function (error) {
+                        console.error(error);
+                    })
+                    .finally(function () {
+                        isLoading = false;
+                        if (loading) {
+                            loading.classList.add('hidden');
+                        }
+                    });
+            }
+
+            if ('IntersectionObserver' in window && sentinel) {
+                var observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            fetchMore();
+                        }
+                    });
+                }, { rootMargin: '200px 0px' });
+                observer.observe(sentinel);
+            } else if (sentinel) {
+                var legacyHandler = function () {
+                    if (!hasMore) {
+                        window.removeEventListener('scroll', legacyHandler);
+                        return;
+                    }
+                    if ((window.innerHeight + window.pageYOffset) >= (document.body.offsetHeight - 200)) {
+                        fetchMore();
+                    }
+                };
+                window.addEventListener('scroll', legacyHandler);
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            var stream = document.getElementById('feedStream');
+            var filterButtonsNodeList = document.querySelectorAll('[data-feed-filter]');
+            if (!stream || !filterButtonsNodeList || filterButtonsNodeList.length === 0) {
+                return;
+            }
+
+            if (typeof window.Set !== 'function') {
+                return;
+            }
+
+            var filterButtons = Array.prototype.slice.call(filterButtonsNodeList);
+            var filterTypeMap = {
+                discussions: ['discussion', 'comment'],
+                individuals: ['individual'],
+                relationships: ['relationship'],
+                items: ['item'],
+                files: ['file']
+            };
+            var activeFilters = new Set();
+
+            function normalizeKey(rawKey) {
+                return (rawKey || '').toString().trim().toLowerCase();
+            }
+
+            function updateButtonState(button, isActive) {
+                if (!button) {
+                    return;
+                }
+                if (isActive) {
+                    button.classList.add('summary-filter-active');
+                    button.setAttribute('aria-pressed', 'true');
+                } else {
+                    button.classList.remove('summary-filter-active');
+                    button.setAttribute('aria-pressed', 'false');
+                }
+            }
+
+            function typeMatchesFilters(type) {
+                if (activeFilters.size === 0) {
+                    return true;
+                }
+                if (!type) {
+                    return false;
+                }
+                var matches = false;
+                activeFilters.forEach(function (key) {
+                    if (matches) {
+                        return;
+                    }
+                    var mappedTypes = filterTypeMap[key];
+                    if (!mappedTypes) {
+                        return;
+                    }
+                    if (mappedTypes.indexOf(type) !== -1) {
+                        matches = true;
+                    }
+                });
+                return matches;
+            }
+
+            function applyFiltersToElement(element) {
+                if (!element || element.nodeType !== 1) {
+                    return;
+                }
+                var type = normalizeKey(element.getAttribute('data-feed-type'));
+                var shouldShow = typeMatchesFilters(type);
+                if (shouldShow) {
+                    element.classList.remove('feed-item-hidden');
+                } else {
+                    element.classList.add('feed-item-hidden');
+                }
+            }
+
+            function applyFilters() {
+                if (!stream) {
+                    return;
+                }
+                var items = stream.querySelectorAll('[data-feed-type]');
+                Array.prototype.forEach.call(items, function (item) {
+                    applyFiltersToElement(item);
+                });
+            }
+
+            filterButtons.forEach(function (button) {
+                var key = normalizeKey(button.getAttribute('data-feed-filter'));
+                updateButtonState(button, false);
+                button.addEventListener('click', function () {
+                    if (!key) {
+                        return;
+                    }
+                    if (activeFilters.has(key)) {
+                        activeFilters.delete(key);
+                        updateButtonState(button, false);
+                    } else {
+                        activeFilters.add(key);
+                        updateButtonState(button, true);
+                    }
+                    applyFilters();
+                });
+            });
+
+            applyFilters();
+
+            if (typeof MutationObserver === 'function') {
+                var observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        if (!mutation.addedNodes || mutation.addedNodes.length === 0) {
+                            return;
+                        }
+                        Array.prototype.forEach.call(mutation.addedNodes, function (node) {
+                            if (!node || node.nodeType !== 1) {
+                                return;
+                            }
+                            if (node.hasAttribute('data-feed-type')) {
+                                applyFiltersToElement(node);
+                                return;
+                            }
+                            var descendants = node.querySelectorAll('[data-feed-type]');
+                            if (descendants && descendants.length > 0) {
+                                Array.prototype.forEach.call(descendants, function (descendant) {
+                                    applyFiltersToElement(descendant);
+                                });
+                            }
+                        });
+                    });
+                });
+                observer.observe(stream, { childList: true });
+            }
+        })();
     </script>
     <script src="js/feed_interactions.js?v=<?= file_exists('js/feed_interactions.js') ? filemtime('js/feed_interactions.js') : '1' ?>"></script>
 <?php else: ?>
@@ -1601,3 +734,9 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     </section>
 
 <?php endif; ?>
+
+
+
+
+
+

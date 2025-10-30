@@ -25,7 +25,7 @@ if ($isIndividualPage) {
     <!-- Tailwind CSS -->
     <link href="styles/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/font-awesome/css/all.min.css">
-    <link href="styles/styles.css?v=3" rel="stylesheet">
+    <link href="styles/styles.css?v=4" rel="stylesheet">
 
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="styles/dTree.css">

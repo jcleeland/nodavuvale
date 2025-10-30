@@ -205,12 +205,66 @@ class FeedService
 
     private const FETCH_BUFFER = 10;
     private const MIN_FETCH_SIZE = 25;
+    private const FEED_HISTORY_START = '1970-01-01 00:00:00';
 
     public function __construct(Database $db, Auth $auth, Web $web)
     {
         $this->db = $db;
         $this->auth = $auth;
         $this->web = $web;
+    }
+
+    private function getSummaryChanges(int $userId, ?string $since, ?int $perTypeLimit = null): array
+    {
+        $effectiveSince = $this->resolveSummarySince($since);
+        $options = [];
+        if ($perTypeLimit !== null) {
+            $options['limit_per_type'] = $perTypeLimit;
+        }
+        return Utils::getNewStuff($userId, $effectiveSince, $options);
+    }
+
+    private function getHistoricalChanges(int $userId, ?int $perTypeLimit = null): array
+    {
+        $options = [];
+        if ($perTypeLimit !== null) {
+            $options['limit_per_type'] = $perTypeLimit;
+        }
+        return Utils::getNewStuff($userId, self::FEED_HISTORY_START, $options);
+    }
+
+    private function resolveSummarySince(?string $since): string
+    {
+        $candidate = null;
+
+        if ($since !== null && $since !== '') {
+            $candidate = $since;
+        } elseif (!empty($_SESSION['last_login'])) {
+            $candidate = (string) $_SESSION['last_login'];
+        } elseif (!empty($_SESSION['last_view'])) {
+            $candidate = (string) $_SESSION['last_view'];
+        }
+
+        $timestamp = $candidate !== null ? strtotime($candidate) : false;
+        if ($timestamp === false) {
+            $timestamp = strtotime('-14 days');
+        }
+
+        $startOfToday = strtotime('today');
+        if ($startOfToday !== false && $timestamp !== false && $timestamp >= $startOfToday) {
+            $previousMoment = strtotime('-1 second', $startOfToday);
+            if ($previousMoment !== false) {
+                $timestamp = $previousMoment;
+            } else {
+                $timestamp = $startOfToday - 1;
+            }
+        }
+
+        if ($timestamp === false) {
+            $timestamp = time();
+        }
+
+        return date('Y-m-d H:i:s', $timestamp);
     }
 
     /**
@@ -223,19 +277,25 @@ class FeedService
      */
     public function buildFeed(int $userId, ?string $since = null): array
     {
-        $effectiveSince = ($since !== null && $since !== '')
-            ? $since
-            : date('Y-m-d H:i:s', strtotime('-14 days'));
-        $changes = Utils::getNewStuff($userId, $effectiveSince);
+        $summaryChanges = $this->getSummaryChanges($userId, $since);
+        $counts = $summaryChanges['counts'] ?? [];
+        $summary = $this->buildSummary($summaryChanges, $counts);
+        $lastView = $summaryChanges['last_view'] ?? null;
 
-        $summary = $this->buildSummary($changes);
+        $historicalChanges = $this->getHistoricalChanges($userId);
+        if (!isset($historicalChanges['last_view'])) {
+            $historicalChanges['last_view'] = $lastView;
+        } else {
+            $historicalChanges['last_view'] = $lastView ?? $historicalChanges['last_view'];
+        }
 
-        $entries = $this->buildFeedEntries($userId, $changes);
+        $entries = $this->buildFeedEntries($userId, $historicalChanges);
 
         return [
             'summary'         => $summary,
+            'summary_counts'  => $counts,
             'entries'         => $entries,
-            'last_view'       => $changes['last_view'] ?? null,
+            'last_view'       => $lastView,
             'emoji'           => $this->getReactionEmojiMap(),
             'current_user_id' => (int) ($_SESSION['user_id'] ?? 0),
             'is_admin'        => $this->auth->getUserRole() === 'admin',
@@ -257,37 +317,43 @@ class FeedService
         $offset = max(0, $offset);
         $limit = max(1, $limit);
 
-        $effectiveSince = ($since !== null && $since !== '')
-            ? $since
-            : date('Y-m-d H:i:s', strtotime('-14 days'));
-
         $perTypeLimit = max($offset + $limit + self::FETCH_BUFFER, self::MIN_FETCH_SIZE);
-        $rawChanges = Utils::getNewStuff(
-            $userId,
-            $effectiveSince,
-            ['limit_per_type' => $perTypeLimit]
-        );
 
-        $summary = $this->buildSummary($rawChanges);
-        $descriptors = $this->buildEventDescriptors($rawChanges);
+        $summaryChanges = $this->getSummaryChanges($userId, $since, $perTypeLimit);
+        $counts = $summaryChanges['counts'] ?? [];
+        $summary = $this->buildSummary($summaryChanges, $counts);
+        $lastView = $summaryChanges['last_view'] ?? null;
+        if ($lastView === null && $since !== null && $since !== '') {
+            $lastView = $since;
+        }
+
+        $historicalChanges = $this->getHistoricalChanges($userId, $perTypeLimit);
+        if (!isset($historicalChanges['last_view'])) {
+            $historicalChanges['last_view'] = $lastView;
+        } else {
+            $historicalChanges['last_view'] = $lastView ?? $historicalChanges['last_view'];
+        }
+
+        $descriptors = $this->buildEventDescriptors($historicalChanges);
         $total = count($descriptors);
         $entries = [];
 
         if ($total > 0) {
             $pageDescriptors = array_slice($descriptors, $offset, $limit);
             if (!empty($pageDescriptors)) {
-                $selectedChanges = $this->selectChangesForDescriptors($rawChanges, $pageDescriptors);
+                $selectedChanges = $this->selectChangesForDescriptors($historicalChanges, $pageDescriptors);
                 $entries = $this->buildFeedEntries($userId, $selectedChanges);
             }
         }
 
         return [
             'summary'         => $summary,
+            'summary_counts'  => $counts,
             'entries'         => $entries,
             'total'           => $total,
             'has_more'        => ($offset + $limit) < $total,
             'next_offset'     => min($total, $offset + $limit),
-            'last_view'       => $rawChanges['last_view'] ?? $effectiveSince,
+            'last_view'       => $lastView,
             'emoji'           => $this->getReactionEmojiMap(),
             'current_user_id' => (int) ($_SESSION['user_id'] ?? 0),
             'is_admin'        => $this->auth->getUserRole() === 'admin',
@@ -317,6 +383,11 @@ class FeedService
 
         $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
         $isCurrentUserAdmin = ($this->auth->getUserRole() === 'admin');
+        $siteSettings = $this->db->getSiteSettings();
+        $siteName = trim((string) ($siteSettings['site_name'] ?? ''));
+        if ($siteName === '') {
+            $siteName = 'this site';
+        }
 
         $rootIndividualId = (int) Web::getRootId();
         $currentUserIndividualId = (int) ($_SESSION['individuals_id'] ?? 0);
@@ -487,18 +558,22 @@ class FeedService
             if (!$timestamp) {
                 continue;
             }
+            $visitorName = trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? ''));
+            $profileUrl = isset($visitor['user_id']) ? "?to=family/users&user_id={$visitor['user_id']}" : '';
+            $title = $visitorName !== ''
+                ? $visitorName . ' visited ' . $siteName
+                : 'A family member visited ' . $siteName;
             $feedEntries[] = [
                 'type'      => 'visitor',
-                'title'     => trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? '')),
-                'content'   => 'Checked in recently.',
+                'title'     => $title,
+                'content'   => '',
                 'content_html' => '',
                 'meta'      => [
-                    'actor_name'   => trim(($visitor['first_name'] ?? '') . ' ' . ($visitor['last_name'] ?? '')),
+                    'actor_name'   => $visitorName,
                     'actor_id'     => $visitor['user_id'] ?? null,
-                    'context'      => 'Latest logins',
-                    'subject_name' => '',
+                    'site_name'    => $siteName,
                 ],
-                'url'       => isset($visitor['user_id']) ? "?to=family/users&user_id={$visitor['user_id']}" : '',
+                'url'       => $profileUrl,
                 'timestamp' => $timestamp,
                 'raw_time'  => $timestampString,
                 'relationship_to_user' => '',
@@ -1009,15 +1084,32 @@ class FeedService
         return $feedEntries;
     }
 
-    private function buildSummary(array $changes): array
+    private function buildSummary(array $changes, array $counts = array()): array
     {
-        return [
-            'Discussions'   => !empty($changes['discussions']) ? count($changes['discussions']) . ' new discussions' : '',
-            'Individuals'   => !empty($changes['individuals']) ? count($changes['individuals']) . ' new individuals' : '',
-            'Relationships' => !empty($changes['relationships']) ? count($changes['relationships']) . ' new relationships' : '',
-            'Items'         => !empty($changes['items']) ? count($changes['items']) . ' new items' : '',
-            'Files'         => !empty($changes['files']) ? count($changes['files']) . ' new files' : '',
-        ];
+        $definitions = array(
+            'Discussions'   => array('key' => 'discussions',   'singular' => 'discussion',   'plural' => 'discussions'),
+            'Individuals'   => array('key' => 'individuals',   'singular' => 'individual',   'plural' => 'individuals'),
+            'Relationships' => array('key' => 'relationships', 'singular' => 'relationship', 'plural' => 'relationships'),
+            'Items'         => array('key' => 'items',         'singular' => 'item',         'plural' => 'items'),
+            'Files'         => array('key' => 'files',         'singular' => 'file',         'plural' => 'files'),
+        );
+
+        $summary = array();
+        foreach ($definitions as $label => $meta) {
+            $key = $meta['key'];
+            $count = isset($counts[$key])
+                ? (int) $counts[$key]
+                : (isset($changes[$key]) && is_array($changes[$key]) ? count($changes[$key]) : 0);
+
+            if ($count > 0) {
+                $word = ($count === 1) ? $meta['singular'] : $meta['plural'];
+                $summary[$label] = $count . ' new ' . $word;
+            } else {
+                $summary[$label] = '';
+            }
+        }
+
+        return $summary;
     }
 
     private function buildEventDescriptors(array $changes): array
@@ -1190,6 +1282,35 @@ class FeedService
         }
 
         $web = $this->web;
+
+        if ($type === 'visitor') {
+            $titleText = trim((string) ($entry['title'] ?? ''));
+            if ($titleText === '') {
+                $titleText = 'Recent visitor';
+            }
+            $timeDisplay = '';
+            if (!empty($entry['raw_time'])) {
+                $timeDisplay = $web->timeSince($entry['raw_time']);
+            } elseif (!empty($entry['timestamp'])) {
+                $timeDisplay = $web->timeSince(date('Y-m-d H:i:s', (int) $entry['timestamp']));
+            }
+
+            ob_start();
+            ?>
+            <article class="feed-item bg-white shadow-sm border border-gray-200 rounded-lg p-4 flex items-center gap-4" data-feed-type="visitor">
+                <div class="feed-item-icon text-xl text-ocean-blue flex-shrink-0">
+                    <i class="<?= htmlspecialchars($meta['icon']) ?>"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm sm:text-base font-semibold text-brown mb-0"><?= htmlspecialchars($titleText, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php if ($timeDisplay !== ''): ?>
+                        <span class="feed-item-timestamp text-xs text-gray-500" title="<?= htmlspecialchars($timestampLabel, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($timeDisplay, ENT_QUOTES, 'UTF-8') ?></span>
+                    <?php endif; ?>
+                </div>
+            </article>
+            <?php
+            return trim(ob_get_clean());
+        }
 
         ob_start();
         ?>
@@ -1432,5 +1553,3 @@ class FeedService
         return $emoji;
     }
 }
-
-

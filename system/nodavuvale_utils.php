@@ -2304,6 +2304,14 @@ class Utils {
             'items'=>array(),
             'files'=>array()
         );
+        $counts = array(
+            'discussions'   => 0,
+            'individuals'   => 0,
+            'relationships' => 0,
+            'items'         => 0,
+            'files'         => 0,
+            'visitors'      => 0,
+        );
         $limitPerType = null;
         if (isset($options['limit_per_type'])) {
             $limitPerType = max(1, (int) $options['limit_per_type']);
@@ -2337,6 +2345,10 @@ class Utils {
                 WHERE discussions.updated_at > ?
                 $orderSql";
         $discussions = $db->fetchAll($sql, [$last_active['last_view']]);
+        $counts['discussions'] += (int) $db->fetchValue(
+            "SELECT COUNT(*) FROM discussions WHERE updated_at > ?",
+            [$last_active['last_view']]
+        );
         //Iterate through the discussions, and find comments
         foreach($discussions as $discussion) {
             $response['discussions'][$discussion['discussionId']]=$discussion;
@@ -2361,6 +2373,10 @@ class Utils {
         foreach($comments as $comment) {
             $response['discussions'][$comment['discussionId']]=$comment;
         }
+        $counts['discussions'] += (int) $db->fetchValue(
+            "SELECT COUNT(*) FROM discussion_comments WHERE created_at > ?",
+            [$last_active['last_view']]
+        );
 
         //$response['discussions']=$discussions;
 
@@ -2391,6 +2407,10 @@ class Utils {
                 $orderIndividualsSql";
         $individuals = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['individuals']=$individuals;
+        $counts['individuals'] = (int) $db->fetchValue(
+            "SELECT COUNT(*) FROM individuals WHERE created > ?",
+            [$last_active['last_view']]
+        );
 
         //Get all visitors to the site for the last 24 hours
         $orderVisitorsSql = "ORDER BY last_view DESC";
@@ -2406,6 +2426,10 @@ class Utils {
                 $orderVisitorsSql";
         $visitors = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['visitors']=$visitors;
+        $counts['visitors'] = (int) $db->fetchValue(
+            "SELECT COUNT(*) FROM users WHERE last_view > ? AND show_presence = 1",
+            [$last_active['last_view']]
+        );
 
         // Get all relationships that have been updated since the user was last active
         /* $sql = "SELECT subject_individual.first_names as subject_first_names, subject_individual.last_name as subject_last_name, 
@@ -2420,9 +2444,20 @@ class Utils {
         $response['relationships']=$relationships; */
 
 
+        $counts['relationships'] = (int) $db->fetchValue(
+            "SELECT COUNT(*) FROM relationships WHERE updated > ?",
+            [$last_active['last_view']]
+        );
+
         // Get all items that have been updated since the user was last active
         $items=Utils::getItems('%', $last_active['last_view'], "items.updated DESC", $limitPerType);
         $response['items']=$items;
+        $counts['items'] = (int) $db->fetchValue(
+            "SELECT COUNT(DISTINCT items.item_identifier) FROM item_links 
+                INNER JOIN items ON items.item_id = item_links.item_id
+            WHERE items.updated > ?",
+            [$last_active['last_view']]
+        );
 
 
         // Get all files that have been updated since the user was last active (but only ones which aren't already connected to items)
@@ -2440,6 +2475,15 @@ class Utils {
                 $orderFilesSql";
         $files = $db->fetchAll($sql, [$last_active['last_view']]);
         $response['files']=$files;
+        $counts['files'] = (int) $db->fetchValue(
+            "SELECT COUNT(*) FROM files 
+                JOIN file_links ON files.id = file_links.file_id 
+                JOIN individuals ON file_links.individual_id = individuals.id
+            WHERE files.upload_date > ? AND file_links.item_id IS NULL",
+            [$last_active['last_view']]
+        );
+
+        $response['counts'] = $counts;
 
         return $response;
         
@@ -2657,3 +2701,4 @@ class Utils {
         ];
     }
 }
+

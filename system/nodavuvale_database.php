@@ -69,6 +69,15 @@ class Database {
         return false;
     }
 
+    public function fetchValue($sql, $params = [], $column = 0) {
+        $stmt = $this->query($sql, $params);
+        if ($stmt) {
+            $value = $stmt->fetchColumn($column);
+            return $value === false ? null : $value;
+        }
+        return null;
+    }
+
     public function lastInsertId() {
         return $this->pdo->lastInsertId();
     }    

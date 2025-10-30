@@ -32,7 +32,7 @@ if (!$is_logged_in || !$is_admin) {
             </div>
             <div>
                 <label for="feedLimit" class="block text-sm font-medium text-gray-700">Limit</label>
-                <input id="feedLimit" type="number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-ocean-blue focus:border-ocean-blue" value="2" min="1" max="50">
+                <input id="feedLimit" type="number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-ocean-blue focus:border-ocean-blue" value="3" min="1" max="50">
             </div>
             <div class="md:col-span-2">
                 <label for="feedSince" class="block text-sm font-medium text-gray-700">Since (optional datetime)</label>
