@@ -207,7 +207,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 ?>
 
 <!-- Hero Section -->
-<section class="hero hero-collapsible text-white py-20" data-hero-collapsible>
+<section class="hero text-white py-20">
     <div class="container hero-content" id="homeHeroContent">
         <h2 class="text-4xl font-bold">Welcome to <i><?= $site_name ?></i></h2>
         <p class="mt-4 text-lg">Connecting our family and preserving our cultural heritage.</p>
@@ -229,125 +229,6 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         <?php endif; ?>
     </div>
 </section>
-<script>
-    (function () {
-        var hero = document.querySelector('[data-hero-collapsible]');
-        if (!hero) {
-            return;
-        }
-
-        var heroContentId = 'homeHeroContent';
-        var mobileQuery = window.matchMedia('(max-width: 640px)');
-        var collapseDelay = 5000;
-        var collapseTimer = null;
-
-        function setAriaExpanded(state) {
-            if (mobileQuery.matches) {
-                hero.setAttribute('aria-expanded', state ? 'true' : 'false');
-            } else {
-                hero.removeAttribute('aria-expanded');
-            }
-        }
-
-        function collapseHero() {
-            if (hero.classList.contains('hero-collapsed')) {
-                return;
-            }
-            hero.classList.add('hero-collapsed');
-            setAriaExpanded(false);
-        }
-
-        function expandHero() {
-            if (!hero.classList.contains('hero-collapsed')) {
-                setAriaExpanded(true);
-                return;
-            }
-            hero.classList.remove('hero-collapsed');
-            setAriaExpanded(true);
-        }
-
-        function clearCollapseTimer() {
-            if (collapseTimer) {
-                window.clearTimeout(collapseTimer);
-                collapseTimer = null;
-            }
-        }
-
-        function scheduleInitialCollapse() {
-            clearCollapseTimer();
-            if (!mobileQuery.matches) {
-                hero.classList.remove('hero-collapsed');
-                return;
-            }
-            hero.classList.remove('hero-collapsed');
-            setAriaExpanded(true);
-            collapseTimer = window.setTimeout(collapseHero, collapseDelay);
-        }
-
-        function enableMobileInteraction() {
-            hero.setAttribute('role', 'button');
-            hero.setAttribute('tabindex', '0');
-            hero.setAttribute('aria-controls', heroContentId);
-            scheduleInitialCollapse();
-        }
-
-        function disableMobileInteraction() {
-            clearCollapseTimer();
-            hero.classList.remove('hero-collapsed');
-            hero.removeAttribute('role');
-            hero.removeAttribute('tabindex');
-            hero.removeAttribute('aria-controls');
-            hero.removeAttribute('aria-expanded');
-        }
-
-        function handleModeChange(matches) {
-            if (matches) {
-                enableMobileInteraction();
-            } else {
-                disableMobileInteraction();
-            }
-        }
-
-        handleModeChange(mobileQuery.matches);
-
-        var mqListener = function (event) {
-            handleModeChange(Boolean(event.matches));
-        };
-        if (typeof mobileQuery.addEventListener === 'function') {
-            mobileQuery.addEventListener('change', mqListener);
-        } else if (typeof mobileQuery.addListener === 'function') {
-            mobileQuery.addListener(mqListener);
-        }
-
-        hero.addEventListener('click', function (event) {
-            if (!mobileQuery.matches) {
-                return;
-            }
-            if (event.target.closest('a')) {
-                return;
-            }
-            if (hero.classList.contains('hero-collapsed')) {
-                expandHero();
-                return;
-            }
-            collapseHero();
-        });
-
-        hero.addEventListener('keydown', function (event) {
-            if (!mobileQuery.matches) {
-                return;
-            }
-            if (event.key === ' ' || event.key === 'Spacebar' || event.key === 'Enter') {
-                event.preventDefault();
-                if (hero.classList.contains('hero-collapsed')) {
-                    expandHero();
-                } else {
-                    collapseHero();
-                }
-            }
-        });
-    })();
-</script>
 
 <!-- Conditional Content Section Based on Login Status -->
 <?php if ($is_logged_in): ?>
@@ -605,7 +486,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 
             function typeMatchesFilters(type) {
                 if (activeFilters.size === 0) {
-                    return true;
+                    return false;
                 }
                 if (!type) {
                     return false;

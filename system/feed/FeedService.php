@@ -676,12 +676,25 @@ class FeedService
             $discussionPostRaw = isset($discussion['discussion_content']) ? stripslashes($discussion['discussion_content']) : '';
             $discussionBodyForDisplay = $discussionPostRaw !== '' ? $discussionPostRaw : $discussionContentRaw;
             $discussionSnippetHtml = '';
+            $contentExpandId = '';
+            $hasHtmlContent = strip_tags($discussionBodyForDisplay) !== $discussionBodyForDisplay;
             if ($discussionBodyForDisplay !== '') {
+                $discussionContentForHtml = $hasHtmlContent
+                    ? $discussionBodyForDisplay
+                    : nl2br($discussionBodyForDisplay);
+
+                $contentExpandId = 'feed_discussion_' . $discussion['discussionId'];
+                if ($changeType === 'comment' && !empty($discussion['comment_id'])) {
+                    $contentExpandId .= '_comment_' . (int) $discussion['comment_id'];
+                } else {
+                    $hashSeed = ($discussion['updated_at'] ?? '') . '|' . ($discussion['discussionId'] ?? '');
+                    $contentExpandId .= '_discussion_' . substr(md5($hashSeed), 0, 6);
+                }
                 $truncatedDiscussion = $this->web->truncateText(
-                    nl2br($discussionBodyForDisplay),
+                    $discussionContentForHtml,
                     80,
                     'Read more',
-                    'feed_discussion_' . $discussion['discussionId'],
+                    $contentExpandId,
                     'expand'
                 );
                 $discussionSnippetHtml = nvFeedSanitizeHtml(stripslashes($truncatedDiscussion));
@@ -712,11 +725,74 @@ class FeedService
                 ['tree_last_name', 'last_name']
             );
 
+            $entryType = $changeType === 'comment' ? 'comment' : 'discussion';
+            $originalDiscussionTitle = isset($discussion['title']) ? stripslashes($discussion['title']) : '';
+            $plainDiscussionTitle = trim(strip_tags($originalDiscussionTitle));
+            $displayTitle = $plainDiscussionTitle;
+            $discussionHeadlineHtml = '';
+            $plainSummary = $createSnippet($discussionBodyForDisplay, 28);
+
+            if ($plainDiscussionTitle !== '') {
+                $discussionHeadlineHtml = '<h4 class="feed-discussion-headline">' . htmlspecialchars($plainDiscussionTitle, ENT_QUOTES, 'UTF-8') . '</h4>';
+            }
+
+            if ($entryType === 'discussion') {
+                if ($isTreeDiscussion && $discussionSubjectName !== '') {
+                    $displayTitle = 'Discussion about ' . $discussionSubjectName;
+                } elseif ($displayTitle === '') {
+                    $displayTitle = 'Discussion update';
+                }
+            } elseif ($entryType === 'comment') {
+                if ($isTreeDiscussion && $discussionSubjectName !== '') {
+                    $displayTitle = 'New comment on discussion about ' . $discussionSubjectName;
+                } else {
+                    $displayTitle = 'New comment on discussion';
+                }
+            }
+
+            if ($displayTitle === '') {
+                $displayTitle = $entryType === 'comment' ? 'New comment on discussion' : 'Discussion update';
+            }
+
+            if ($discussionHeadlineHtml !== '') {
+                if ($discussionSnippetHtml !== '') {
+                    $discussionSnippetHtml = $discussionHeadlineHtml . $discussionSnippetHtml;
+                } else {
+                    $discussionSnippetHtml = $discussionHeadlineHtml;
+                }
+                if ($entryType === 'discussion') {
+                    if ($plainSummary !== '') {
+                        $plainSummary = $plainDiscussionTitle !== '' ? $plainDiscussionTitle . ' - ' . $plainSummary : $plainSummary;
+                    } elseif ($plainDiscussionTitle !== '') {
+                        $plainSummary = $plainDiscussionTitle;
+                    }
+                }
+            }
+
+            $expandIdentifier = $contentExpandId !== '' ? $contentExpandId : 'feed_discussion_' . $discussionId;
+            $hasExpandableContent = false;
+            if ($discussionSnippetHtml !== '') {
+                $hasExpandableContent = stripos($discussionSnippetHtml, 'expandStory(') !== false || stripos($discussionSnippetHtml, 'showStory(') !== false;
+            }
+            $discussionFullHtml = '';
+            if ($hasExpandableContent && $discussionBodyForDisplay !== '') {
+                $discussionContentForFull = $hasHtmlContent
+                    ? $discussionBodyForDisplay
+                    : nl2br($discussionBodyForDisplay);
+                $discussionFullHtml = nvFeedSanitizeHtml($discussionContentForFull);
+                if ($discussionHeadlineHtml !== '') {
+                    $discussionFullHtml = $discussionHeadlineHtml . $discussionFullHtml;
+                }
+            }
+
             $feedEntries[] = [
-                'type'      => $changeType === 'comment' ? 'comment' : 'discussion',
-                'title'     => stripslashes($discussion['title']),
-                'content'   => $createSnippet($discussionBodyForDisplay, 28),
+                'type'      => $entryType,
+                'title'     => $displayTitle,
+                'content'   => $plainSummary,
                 'content_html' => $discussionSnippetHtml,
+                'content_full_html' => $hasExpandableContent ? $discussionFullHtml : '',
+                'content_expandable' => $hasExpandableContent,
+                'content_expand_id' => $hasExpandableContent ? $expandIdentifier : '',
                 'meta'      => [
                     'actor_name' => trim(($discussion['user_first_name'] ?? '') . ' ' . ($discussion['user_last_name'] ?? '')),
                     'actor_id'   => $discussion['user_id'] ?? null,
@@ -726,7 +802,7 @@ class FeedService
                     'recent_comment_ids' => $recentCommentIds,
                 ],
                 'url'       => $isTreeDiscussion
-                    ? "?to=family/individual&individual_id={$discussion['individual_id']}&discussion_id={$discussion['discussionId']}"
+                    ? "?to=family/individual&individual_id={$discussion['individual_id']}&tab=storiestab&discussion_id={$discussion['discussionId']}"
                     : "?to=communications/discussions&discussion_id={$discussion['discussionId']}",
                 'timestamp' => $timestamp,
                 'raw_time'  => $timestampString,
@@ -1671,8 +1747,29 @@ class FeedService
                         </div>
                     </div>
                 <?php endif; ?>
-                <?php if (!empty($entry['content_html'])): ?>
-                    <div class="feed-item-summary text-sm text-gray-600 mb-3"><?= $entry['content_html'] ?></div>
+                <?php
+                    $contentHtml = $entry['content_html'] ?? '';
+                    $fullContentHtml = $entry['content_full_html'] ?? '';
+                    $contentExpandId = isset($entry['content_expand_id']) ? trim((string) $entry['content_expand_id']) : '';
+                    $contentIsExpandable = !empty($entry['content_expandable']) && $contentExpandId !== '';
+                ?>
+                <?php if ($contentHtml !== ''): ?>
+                    <div class="feed-item-summary text-sm text-gray-600 mb-3">
+                        <?php if ($contentIsExpandable): ?>
+                            <?php $expandIdEscaped = htmlspecialchars($contentExpandId, ENT_QUOTES, 'UTF-8'); ?>
+                            <div id="<?= $expandIdEscaped ?>"><?= $contentHtml ?></div>
+                            <div id="full<?= $expandIdEscaped ?>" class="feed-item-summary-full hidden">
+                                <?= $fullContentHtml !== '' ? $fullContentHtml : $contentHtml ?>
+                                <span class="feed-summary-collapse" role="button" tabindex="0"
+                                      onclick="shrinkStory('<?= $expandIdEscaped ?>')"
+                                      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();shrinkStory('<?= $expandIdEscaped ?>');}">
+                                    less &hellip;
+                                </span>
+                            </div>
+                        <?php else: ?>
+                            <?= $contentHtml ?>
+                        <?php endif; ?>
+                    </div>
                 <?php elseif (!empty($entry['content'])): ?>
                     <p class="feed-item-summary text-sm text-gray-600 mb-3"><?= nl2br(htmlspecialchars($entry['content'], ENT_QUOTES, 'UTF-8')) ?></p>
                 <?php endif; ?>

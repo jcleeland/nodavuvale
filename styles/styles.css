@@ -557,50 +557,11 @@ section.content a {
     border-radius: 8px;  /* Rounded corners for a cleaner look */
     max-width: 80%;  /* Restrict content width */
     margin: 0 auto;  /* Center the content */
-    transition: padding 1.4s ease-in-out;
-}
-
-.hero-collapsible {
-    overflow: hidden;
-    transition: max-height 4.2s ease-in-out, padding 4.2s ease-in-out;
-}
-
-@media (max-width: 640px) {
-    .hero-collapsible {
-        max-height: 999px;
-    }
-
-    .hero-collapsible.hero-collapsed {
-        max-height: 6.75rem;
-        padding-top: 0 !important;
-        padding-bottom: 0.75rem !important;
-        cursor: pointer;
-    }
-
-    .hero-collapsible.hero-collapsed .hero-content {
-        padding: 1.5rem 1.5rem 1rem;
-        margin-top: 0;
-        max-width: 92%;
-    }
-
-    .hero-collapsible .hero-content > h2 {
-        transition: font-size 1.4s ease-in-out, line-height 1.4s ease-in-out;
-    }
-
-    .hero-collapsible.hero-collapsed .hero-content > h2 {
-        font-size: 1.5rem;
-        line-height: 2rem;
-    }
-
-.hero-collapsible:not(.hero-collapsed) .hero-content > h2 {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
 }
 
 .feed-sentinel {
     height: 1px;
     width: 100%;
-}
 }
 
 .hero-image {
@@ -1412,7 +1373,7 @@ section.content a {
     z-index: 60;
     margin: 0;
     width: 100%;
-    padding: 0.75rem 0.5rem;
+    padding: 0 0.5rem 0.75rem 0.5rem;
 }
 
 .feed-summary-section .feed-summary-surface {
@@ -1568,6 +1529,36 @@ section.content a {
     line-height: 1.6;
 }
 
+.feed-discussion-headline {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: rgba(var(--brown-red), var(--brown-green), var(--brown-blue), 1);
+    margin: 0 0 0.5rem;
+}
+
+.feed-item-summary-full {
+    margin-top: 0.75rem;
+}
+
+.feed-summary-collapse {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(var(--ocean-blue-red), var(--ocean-blue-green), var(--ocean-blue-blue), 1);
+    transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.feed-summary-collapse:hover,
+.feed-summary-collapse:focus-visible {
+    color: rgba(var(--burnt-orange-red), var(--burnt-orange-green), var(--burnt-orange-blue), 1);
+    text-decoration: underline;
+    outline: none;
+}
+
 .feed-item-thumb {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
@@ -1684,7 +1675,7 @@ section.content a {
 
 @media (max-width: 640px) {
     .feed-summary-section {
-        padding: 0.5rem 0.25rem;
+        padding: 0 0.25rem 0.5rem 0.25rem;
     }
     .feed-summary-section .feed-summary-surface {
         padding: 0.5rem;
