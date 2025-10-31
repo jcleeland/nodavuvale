@@ -331,28 +331,32 @@ $deathInfo = nvTimelineCreateDateFromParts(
 );
 $assumedBirth = false;
 $assumedDeath = false;
-$descendantGenerations = 0;
-$descendantData = Utils::getDescendantsByGeneration($individualId);
-if (!empty($descendantData) && is_array($descendantData)) {
-    $descendantGenerations = (int) max(array_keys($descendantData));
-}
-$descendantGenerations = min(3, max(0, $descendantGenerations));
-$descendantAgeRanges = [
-    0 => [28, 36],
-    1 => [33, 42],
-    2 => [50, 70],
-    3 => [80, 100],
-];
-$birthOffsetRange = $descendantAgeRanges[$descendantGenerations];
 if (!$birthInfo && $deathInfo) {
-    $randomYears = random_int($birthOffsetRange[0], $birthOffsetRange[1]);
-    $fallbackDate = $deathInfo['date']->sub(new DateInterval('P' . $randomYears . 'Y'));
-    $birthInfo = [
-        'date' => $fallbackDate,
-        'label' => 'Estimated birth year',
-        'precision' => 'year',
-    ];
-    $assumedBirth = true;
+    $deathDateForEstimate = $deathInfo['date'] ?? null;
+    if ($deathDateForEstimate instanceof DateTimeImmutable) {
+        // Only fetch descendant depth when we need to estimate a birth year.
+        $descendantGenerations = 0;
+        $descendantData = Utils::getDescendantsByGeneration($individualId, 4);
+        if (!empty($descendantData) && is_array($descendantData)) {
+            $descendantGenerations = (int) max(array_keys($descendantData));
+        }
+        $descendantGenerations = min(3, max(0, $descendantGenerations));
+        $descendantAgeRanges = [
+            0 => [28, 36],
+            1 => [33, 42],
+            2 => [50, 70],
+            3 => [80, 100],
+        ];
+        $offsetRange = $descendantAgeRanges[$descendantGenerations];
+        $randomYears = random_int($offsetRange[0], $offsetRange[1]);
+        $fallbackDate = $deathDateForEstimate->sub(new DateInterval('P' . $randomYears . 'Y'));
+        $birthInfo = [
+            'date' => $fallbackDate,
+            'label' => 'Estimated birth year',
+            'precision' => 'year',
+        ];
+        $assumedBirth = true;
+    }
 }
 if (!$deathInfo && $birthInfo) {
     $fallbackDate = $birthInfo['date']->add(new DateInterval('P82Y'));
@@ -774,6 +778,7 @@ $rangeLabelParts = array_filter([$rangeStartLabel, $rangeEndLabel], static funct
 });
 $rangeLabel = implode(' - ', $rangeLabelParts);
 $renderEvents = [];
+$factsVisibleByDefault = true;
 if (!empty($timelineEvents)) {
     $currentY = 56.0;
     $minSpacing = 160.0;
@@ -785,7 +790,9 @@ if (!empty($timelineEvents)) {
     foreach ($timelineEvents as $index => $event) {
         if ($index === 0) {
             $event['position'] = $currentY;
-            $event['initial_visibility'] = $event['category'] !== 'facts';
+            $event['initial_visibility'] = ($event['category'] ?? '') === 'facts'
+                ? $factsVisibleByDefault
+                : true;
             $event['side'] = 'left';
             $renderEvents[] = $event;
             $previousDate = $event['date'];
@@ -799,7 +806,9 @@ if (!empty($timelineEvents)) {
         $spacing = max($minSpacing, min($maxSpacing, $yearsDiffRaw * $yearFactor));
         $currentY += $spacing;
         $event['position'] = $currentY;
-        $event['initial_visibility'] = $event['category'] !== 'facts';
+        $event['initial_visibility'] = ($event['category'] ?? '') === 'facts'
+            ? $factsVisibleByDefault
+            : true;
         if (($event['scope'] ?? '') === 'break') {
             $event['side'] = 'center';
         } else {
@@ -1173,7 +1182,7 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                 Include other family members
             </label>
             <label class="flex items-center gap-2 font-medium">
-                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 nv-timeline-toggle" data-timeline-toggle="facts">
+                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 nv-timeline-toggle" data-timeline-toggle="facts" <?= $factsVisibleByDefault ? 'checked' : '' ?>>
                 Include Facts &amp; Events
             </label>
         </div>
