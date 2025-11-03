@@ -302,6 +302,393 @@ if (!function_exists('nvTimelineFormatName')) {
         return $indexed;
     }
     /**
+     * Break a location string into hierarchical parts for comparison.
+     *
+     * @return array{raw_parts: array<int, string>, normalized_parts: array<int, string>}
+     */
+    function nvTimelineNormalizeLocation(string $location): array
+    {
+        $fragments = array_map('trim', explode(',', $location));
+        $fragments = array_values(array_filter($fragments, static function (string $fragment): bool {
+            return $fragment !== '';
+        }));
+        $normalized = array_map(static function (string $fragment): string {
+            $fragment = preg_replace('/\s+/u', ' ', $fragment);
+            $fragment = trim((string) $fragment, " \t\n\r\0\x0B,.");
+            return mb_strtolower($fragment ?? '');
+        }, $fragments);
+        return [
+            'raw_parts' => $fragments,
+            'normalized_parts' => $normalized,
+        ];
+    }
+    /**
+     * Determine whether a discussion location (needle) matches an individual's location (haystack).
+     *
+     * @param array<int,string> $haystack Normalized location parts for the individual (specific -> general).
+     * @param array<int,string> $needle   Normalized location parts for the discussion.
+     */
+    function nvTimelineLocationMatches(array $haystack, array $needle): bool
+    {
+        $haystack = array_values(array_filter($haystack, static fn($part) => $part !== ''));
+        $needle = array_values(array_filter($needle, static fn($part) => $part !== ''));
+        $hayLen = count($haystack);
+        $needleLen = count($needle);
+        if ($hayLen === 0 || $needleLen === 0 || $needleLen > $hayLen) {
+            return false;
+        }
+        for ($offset = 1; $offset <= $needleLen; $offset++) {
+            if ($needle[$needleLen - $offset] !== $haystack[$hayLen - $offset]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    /**
+     * Build a chronological history of locations based on timeline events.
+     *
+     * @param array<int,array<string,mixed>> $events
+     * @return array<int,array<string,mixed>>
+     */
+    function nvTimelineBuildLocationHistory(array $events, ?DateTimeImmutable $deathDate): array
+    {
+        $anchors = [];
+        foreach ($events as $event) {
+            if (
+                empty($event['location_text'])
+                || !($event['date'] ?? null) instanceof DateTimeImmutable
+            ) {
+                continue;
+            }
+            $normalized = nvTimelineNormalizeLocation((string) $event['location_text']);
+            if (empty($normalized['raw_parts'])) {
+                continue;
+            }
+            $anchors[] = [
+                'date' => $event['date'],
+                'location_text' => $event['location_text'],
+                'parts' => $normalized['raw_parts'],
+                'normalized' => $normalized['normalized_parts'],
+            ];
+        }
+        if (empty($anchors)) {
+            return [];
+        }
+        usort($anchors, static function (array $a, array $b): int {
+            return nvTimelineCompareDates(
+                $a['date'] instanceof DateTimeImmutable ? $a['date'] : null,
+                $b['date'] instanceof DateTimeImmutable ? $b['date'] : null
+            );
+        });
+        $history = [];
+        $count = count($anchors);
+        for ($index = 0; $index < $count; $index++) {
+            $startDate = $anchors[$index]['date'];
+            if (!$startDate instanceof DateTimeImmutable) {
+                continue;
+            }
+            $endDate = null;
+            if ($index < $count - 1) {
+                $nextDate = $anchors[$index + 1]['date'] ?? null;
+                if ($nextDate instanceof DateTimeImmutable) {
+                    $endDate = $nextDate;
+                }
+            } elseif ($deathDate instanceof DateTimeImmutable) {
+                $endDate = $deathDate;
+            }
+            if ($endDate instanceof DateTimeImmutable && nvTimelineCompareDates($endDate, $startDate) <= 0) {
+                $endDate = null;
+            }
+            $history[] = [
+                'start' => $startDate,
+                'end' => $endDate,
+                'location_text' => $anchors[$index]['location_text'],
+                'parts' => $anchors[$index]['parts'],
+                'normalized' => $anchors[$index]['normalized'],
+            ];
+        }
+        return $history;
+    }
+    /**
+     * Extract a given name for display purposes.
+     */
+    function nvTimelineExtractGivenName(array $individual, string $fallbackName): string
+    {
+        $raw = '';
+        if (!empty($individual['first_names'])) {
+            $raw = (string) $individual['first_names'];
+        } elseif ($fallbackName !== '') {
+            $raw = $fallbackName;
+        }
+        $raw = str_replace(['&nbsp;', '_'], ' ', trim((string) $raw));
+        $raw = preg_replace('/\s+/u', ' ', strip_tags($raw));
+        if ($raw === null) {
+            $raw = '';
+        }
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return 'Family';
+        }
+        $parts = preg_split('/\s+/u', $raw);
+        return $parts[0] ?? $raw;
+    }
+    /**
+     * Fetch discussion events whose locations intersect the supplied history.
+     *
+     * @param array<int,array<string,mixed>> $locationHistory
+     * @return array<int,array<string,mixed>>
+     */
+    function nvTimelineCollectLocationTokens(array $locationHistory): array
+    {
+        $tokens = [];
+        foreach ($locationHistory as $segment) {
+            foreach ($segment['normalized'] ?? [] as $part) {
+                $part = trim((string) $part);
+                if ($part === '' || is_numeric($part)) {
+                    continue;
+                }
+                $tokens[$part] = true;
+            }
+        }
+        return array_slice(array_keys($tokens), 0, 12);
+    }
+    /**
+     * Fetch discussion events whose locations intersect the supplied history.
+     *
+     * @param array<int,array<string,mixed>> $locationHistory
+     * @return array<int,array<string,mixed>>
+     */
+    function nvTimelineFetchDiscussionLocationEvents(array $locationHistory): array
+    {
+        $tokens = nvTimelineCollectLocationTokens($locationHistory);
+        try {
+            $db = Database::getInstance();
+        } catch (Exception $exception) {
+            error_log('[timeline] Unable to fetch discussion events: ' . $exception->getMessage());
+            return [];
+        }
+        $params = [];
+        $filters = [];
+        foreach ($tokens as $token) {
+            $filters[] = "LOWER(discussions.event_location) LIKE ?";
+            $params[] = '%' . $token . '%';
+        }
+        $filterSql = '';
+        if (!empty($filters)) {
+            $filterSql = 'AND (' . implode(' OR ', $filters) . ')';
+        }
+        $sql = "
+            SELECT discussions.*, users.first_name, users.last_name
+            FROM discussions
+            JOIN users ON discussions.user_id = users.id
+            WHERE discussions.event_location IS NOT NULL
+                AND discussions.event_location != ''
+                AND discussions.is_event = 1
+                $filterSql
+            ORDER BY discussions.event_date IS NULL, discussions.event_date ASC, discussions.updated_at ASC
+            LIMIT 250
+        ";
+        return $db->fetchAll($sql, $params) ?? [];
+    }
+    /**
+     * Create timeline events for matching discussion location entries.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @param array<int,array<string,mixed>> $locationHistory
+     * @return array<int,array<string,mixed>>
+     */
+    function nvTimelineBuildLocationDiscussionEvents(
+        array $rows,
+        array $locationHistory,
+        string $personName,
+        string $personGivenName,
+        string $personAvatar,
+        ?DateTimeImmutable $lifespanStart,
+        ?DateTimeImmutable $lifespanEnd,
+        ?array &$debugLog = null
+    ): array
+    {
+        if (empty($rows) || empty($locationHistory)) {
+            if (is_array($debugLog)) {
+                $debugLog[] = [
+                    'reason' => 'no_rows_or_history',
+                    'row_count' => count($rows),
+                    'history_count' => count($locationHistory),
+                ];
+            }
+            return [];
+        }
+        $events = [];
+        foreach ($rows as $row) {
+            $locationText = trim((string) ($row['event_location'] ?? ''));
+            if ($locationText === '') {
+                if (is_array($debugLog)) {
+                    $debugLog[] = [
+                        'reason' => 'missing_location_text',
+                        'discussion_id' => $row['id'] ?? null,
+                    ];
+                }
+                continue;
+            }
+            $normalized = nvTimelineNormalizeLocation($locationText);
+            if (empty($normalized['normalized_parts'])) {
+                if (is_array($debugLog)) {
+                    $debugLog[] = [
+                        'reason' => 'location_normalize_empty',
+                        'discussion_id' => $row['id'] ?? null,
+                        'raw_location' => $locationText,
+                    ];
+                }
+                continue;
+            }
+            $date = null;
+            $rawDate = $row['event_date'] ?? null;
+            if (!empty($rawDate)) {
+                try {
+                    $date = new DateTimeImmutable((string) $rawDate);
+                } catch (Exception $exception) {
+                    $date = null;
+                    if (is_array($debugLog)) {
+                        $debugLog[] = [
+                            'reason' => 'invalid_date',
+                            'discussion_id' => $row['id'] ?? null,
+                            'raw_date' => $rawDate,
+                            'error' => $exception->getMessage(),
+                        ];
+                    }
+                }
+            }
+            $match = null;
+            if ($date instanceof DateTimeImmutable) {
+                if ($lifespanStart instanceof DateTimeImmutable && nvTimelineCompareDates($date, $lifespanStart) < 0) {
+                    if (is_array($debugLog)) {
+                        $debugLog[] = [
+                            'reason' => 'before_birth',
+                            'discussion_id' => $row['id'] ?? null,
+                            'event_date' => $date->format('Y-m-d H:i:s'),
+                            'lifespan_start' => $lifespanStart->format('Y-m-d H:i:s'),
+                        ];
+                    }
+                    continue;
+                }
+                if ($lifespanEnd instanceof DateTimeImmutable && nvTimelineCompareDates($date, $lifespanEnd) > 0) {
+                    if (is_array($debugLog)) {
+                        $debugLog[] = [
+                            'reason' => 'after_death',
+                            'discussion_id' => $row['id'] ?? null,
+                            'event_date' => $date->format('Y-m-d H:i:s'),
+                            'lifespan_end' => $lifespanEnd->format('Y-m-d H:i:s'),
+                        ];
+                    }
+                    continue;
+                }
+                foreach ($locationHistory as $segment) {
+                    $segmentStart = $segment['start'] ?? null;
+                    $segmentEnd = $segment['end'] ?? null;
+                    if (!$segmentStart instanceof DateTimeImmutable) {
+                        continue;
+                    }
+                    if (nvTimelineCompareDates($date, $segmentStart) < 0) {
+                        continue;
+                    }
+                    if ($segmentEnd instanceof DateTimeImmutable && nvTimelineCompareDates($date, $segmentEnd) >= 0) {
+                        continue;
+                    }
+                    if (nvTimelineLocationMatches($segment['normalized'] ?? [], $normalized['normalized_parts'])) {
+                        $match = $segment;
+                        if (is_array($debugLog)) {
+                            $debugLog[] = [
+                                'reason' => 'matched',
+                                'discussion_id' => $row['id'] ?? null,
+                                'raw_location' => $locationText,
+                                'normalized_location' => $normalized['normalized_parts'],
+                                'event_date' => $date->format('Y-m-d H:i:s'),
+                                'matched_segment' => [
+                                    'start' => $segment['start'] instanceof DateTimeImmutable ? $segment['start']->format('Y-m-d H:i:s') : null,
+                                    'end' => $segment['end'] instanceof DateTimeImmutable ? $segment['end']->format('Y-m-d H:i:s') : null,
+                                    'location_text' => $segment['location_text'] ?? null,
+                                    'normalized' => $segment['normalized'] ?? null,
+                                ],
+                            ];
+                        }
+                        break;
+                    }
+                }
+            }
+            if ($match === null || !$date instanceof DateTimeImmutable) {
+                if (is_array($debugLog)) {
+                    $debugLog[] = [
+                        'reason' => 'no_match',
+                        'discussion_id' => $row['id'] ?? null,
+                        'raw_location' => $locationText,
+                        'normalized_location' => $normalized['normalized_parts'],
+                        'event_date' => $date instanceof DateTimeImmutable ? $date->format('Y-m-d H:i:s') : null,
+                    ];
+                }
+                continue;
+            }
+            $discussionId = (int) ($row['id'] ?? 0);
+            $title = trim((string) ($row['title'] ?? 'Location event'));
+            $title = $title === '' ? 'Location event' : $title;
+            $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+            $discussionUrl = 'index.php?to=communications/discussions&amp;discussion_id=' . $discussionId;
+            $content = trim((string) ($row['content'] ?? ''));
+            $locationSummary = $match['location_text'] ?? $locationText;
+            $locationSummary = $locationSummary !== '' ? $locationSummary : $locationText;
+            $locationSummaryHtml = htmlspecialchars($locationSummary, ENT_QUOTES, 'UTF-8');
+            $descriptionText = 'An event happened in ' . $locationSummary . ' while "' . $personGivenName . '" was living there.';
+            $descriptionHtml = 'An event happened in <strong>' . $locationSummaryHtml . '</strong> while "' . htmlspecialchars($personGivenName, ENT_QUOTES, 'UTF-8') . '" was living there.';
+            $fullContentHtml = nvTimelineSanitizeRichText($content);
+            $plainContent = trim(strip_tags($fullContentHtml));
+            $discussionContent = null;
+            if ($plainContent !== '') {
+                $limit = 360;
+                $hasMore = mb_strlen($plainContent) > $limit;
+                if ($hasMore) {
+                    $excerptText = mb_substr($plainContent, 0, $limit);
+                    $excerptText = preg_replace('/\s+\S*$/u', '', $excerptText);
+                    $excerptHtml = '<p>' . htmlspecialchars($excerptText, ENT_QUOTES, 'UTF-8') . '&hellip;</p>';
+                } else {
+                    $excerptHtml = $fullContentHtml;
+                }
+                $discussionContent = [
+                    'excerpt_html' => $excerptHtml,
+                    'full_html' => $fullContentHtml,
+                    'has_more' => $hasMore,
+                ];
+            }
+            $detailsHtml = '<div class="nv-timeline-info-card">';
+            $detailsHtml .= '<h4 class="nv-timeline-info-title">' . $safeTitle . '</h4>';
+            $detailsHtml .= '<dl class="nv-timeline-info-list">';
+            $detailsHtml .= '<dt>Location</dt><dd>' . $locationSummaryHtml . '</dd>';
+            $detailsHtml .= '<dt>Date</dt><dd>' . htmlspecialchars($date->format('j M Y'), ENT_QUOTES, 'UTF-8') . '</dd>';
+            $detailsHtml .= '</dl>';
+            if ($plainContent !== '') {
+                $detailsHtml .= '<div class="mt-3 nv-timeline-info-text">' . $fullContentHtml . '</div>';
+            }
+            $detailsHtml .= '<p class="mt-3"><a class="nv-timeline-link" href="' . $discussionUrl . '" target="_blank" rel="noopener">View discussion</a></p>';
+            $detailsHtml .= '</div>';
+            $events[] = [
+                'id' => 'nv-location-discussion-' . $discussionId,
+                'category' => 'location',
+                'scope' => 'discussion_location',
+                'icon' => 'fa-solid fa-location-dot',
+                'title' => $title,
+                'title_html' => '<a class="nv-timeline-link" href="' . $discussionUrl . '">' . $safeTitle . '</a>',
+                'description' => $descriptionText,
+                'description_html' => $descriptionHtml,
+                'full_description_html' => $descriptionHtml,
+                'date' => $date,
+                'display_date' => $date->format('j M Y'),
+                'location_text' => $locationSummary,
+                'subject_avatar' => $personAvatar,
+                'discussion_content' => $discussionContent,
+                'details_html' => $detailsHtml,
+            ];
+        }
+        return $events;
+    }
+    /**
      * Locate the first detail value for the given type list.
      *
      * @param array<string,array<int,array<string,mixed>>> $indexed
@@ -318,6 +705,8 @@ if (!function_exists('nvTimelineFormatName')) {
     }
 }
 $personName = nvTimelineFormatName($individual);
+$personGivenName = nvTimelineExtractGivenName($individual, $personName);
+$personAvatar = !empty($individual['keyimagepath']) ? (string) $individual['keyimagepath'] : 'images/default_avatar.webp';
 $individualId = (int) ($individual['id'] ?? 0);
 $birthInfo = nvTimelineCreateDateFromParts(
     $individual['birth_year'] ?? null,
@@ -442,6 +831,9 @@ if ($birthInfo) {
         'date' => $birthInfo['date'],
         'display_date' => $birthInfo['label'],
         'assumed' => $assumedBirth,
+        'location_text' => $birthLocationText,
+        'subject_avatar' => $personAvatar,
+        'full_description_html' => $birthDescriptionHtml,
     ];
 }
 if ($deathInfo) {
@@ -490,14 +882,17 @@ if ($deathInfo) {
             'icon' => 'fa-solid fa-dove',
             'title' => $deathTitle,
             'title_html' => $deathTitleHtml,
-            'description' => $deathDescription,
-            'description_html' => $deathDescriptionHtml,
-            'date' => $deathInfo['date'],
-            'display_date' => $deathInfo['label'],
-            'assumed' => $assumedDeath,
-        ];
-        $deathEventIncluded = true;
-    }
+        'description' => $deathDescription,
+        'description_html' => $deathDescriptionHtml,
+        'date' => $deathInfo['date'],
+        'display_date' => $deathInfo['label'],
+        'assumed' => $assumedDeath,
+        'location_text' => $deathLocationText,
+        'subject_avatar' => $personAvatar,
+        'full_description_html' => $deathDescriptionHtml,
+    ];
+    $deathEventIncluded = true;
+}
 }
 foreach ($itemGroupsByName['Marriage'] ?? [] as $marriageGroup) {
     $indexed = nvTimelineIndexGroupItems($marriageGroup);
@@ -530,6 +925,9 @@ foreach ($itemGroupsByName['Marriage'] ?? [] as $marriageGroup) {
         'date' => $eventDate['date'],
         'display_date' => $eventDate['label'],
         'assumed' => false,
+        'location_text' => $location,
+        'subject_avatar' => $personAvatar,
+        'full_description_html' => $locationHtml ? 'Celebrated in ' . $locationHtml : 'Marriage recorded with ' . $spouseLink,
     ];
 }
 // Debug: timeline instrumentation (remove once ordering issue is solved)
@@ -569,6 +967,8 @@ foreach ($children ?? [] as $child) {
         'date' => $childDate['date'],
         'display_date' => $childDate['label'],
         'assumed' => false,
+        'subject_avatar' => $personAvatar,
+        'full_description_html' => $childDescriptionHtml,
     ];
 }
 foreach ($parents ?? [] as $parent) {
@@ -593,6 +993,8 @@ foreach ($parents ?? [] as $parent) {
         'date' => $parentDeath['date'],
         'display_date' => $parentDeath['label'],
         'assumed' => false,
+        'subject_avatar' => $personAvatar,
+        'full_description_html' => 'Parent of ' . nvTimelineBuildPersonLink($person, $personName),
     ];
 }
 $dateDetailTypes = ['Date', 'Started', 'Arrival', 'Departure', 'Ended'];
@@ -633,6 +1035,10 @@ foreach ($items ?? [] as $group) {
     if (!$eventDate) {
         continue;
     }
+    $locationDetail = nvTimelineExtractDetail($indexed, ['Location', 'Place', 'Residence', 'Address']);
+    $locationText = $locationDetail && !empty($locationDetail['detail_value'])
+        ? trim((string) $locationDetail['detail_value'])
+        : null;
     $descriptionParts = [];
     $descriptionPartsHtml = [];
     foreach ($indexed as $type => $details) {
@@ -710,9 +1116,56 @@ foreach ($items ?? [] as $group) {
         'display_date' => $eventDate['label'],
         'assumed' => $eventDateWasDerived,
         'details_html' => $detailsHtml,
+        'location_text' => $locationText,
+        'subject_avatar' => $personAvatar,
+        'full_description_html' => $descriptionHtml,
         'media_gallery' => $mediaGallery,
     ];
 }
+$locationEventsEnabled = !isset($_GET['include_location_events']) || $_GET['include_location_events'] !== '0';
+$locationEventsVisibleByDefault = $locationEventsEnabled;
+$lifespanStart = isset($birthInfo['date']) && $birthInfo['date'] instanceof DateTimeImmutable ? $birthInfo['date'] : null;
+$lifespanEnd = isset($deathInfo['date']) && $deathInfo['date'] instanceof DateTimeImmutable ? $deathInfo['date'] : null;
+$locationHistory = nvTimelineBuildLocationHistory(
+    $timelineEvents,
+    isset($deathInfo['date']) && $deathInfo['date'] instanceof DateTimeImmutable ? $deathInfo['date'] : null
+);
+$locationHistorySummary = array_map(static function (array $segment): array {
+    return [
+        'start' => ($segment['start'] ?? null) instanceof DateTimeImmutable ? $segment['start']->format('Y-m-d H:i:s') : null,
+        'end' => ($segment['end'] ?? null) instanceof DateTimeImmutable ? $segment['end']->format('Y-m-d H:i:s') : null,
+        'location_text' => $segment['location_text'] ?? null,
+        'normalized' => $segment['normalized'] ?? [],
+    ];
+}, $locationHistory);
+$locationTokens = nvTimelineCollectLocationTokens($locationHistory);
+$locationDiscussionDebug = [];
+if ($locationEventsEnabled && !empty($locationHistory)) {
+    $discussionRows = nvTimelineFetchDiscussionLocationEvents($locationHistory);
+    $locationDiscussionEvents = nvTimelineBuildLocationDiscussionEvents(
+        $discussionRows,
+        $locationHistory,
+        $personName,
+        $personGivenName,
+        $personAvatar,
+        $lifespanStart,
+        $lifespanEnd,
+        $locationDiscussionDebug
+    );
+    if (!empty($locationDiscussionEvents)) {
+        $timelineEvents = array_merge($timelineEvents, $locationDiscussionEvents);
+    }
+}
+$locationDebugOutput = [
+    'enabled' => $locationEventsEnabled,
+    'history_count' => count($locationHistory),
+    'history' => $locationHistorySummary,
+    'tokens' => $locationTokens,
+    'lifespan_start' => $lifespanStart instanceof DateTimeImmutable ? $lifespanStart->format('Y-m-d H:i:s') : null,
+    'lifespan_end' => $lifespanEnd instanceof DateTimeImmutable ? $lifespanEnd->format('Y-m-d H:i:s') : null,
+    'discussion_debug' => $locationDiscussionDebug,
+];
+echo "\n<!-- timeline-location-debug " . json_encode($locationDebugOutput, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) . " -->\n";
 usort($timelineEvents, static function (array $a, array $b): int {
     $aDate = $a['date'] instanceof DateTimeImmutable ? $a['date'] : null;
     $bDate = $b['date'] instanceof DateTimeImmutable ? $b['date'] : null;
@@ -788,11 +1241,16 @@ if (!empty($timelineEvents)) {
     $lastNonBreakSide = 'left';
     $lastNonBreakPosition = null;
     foreach ($timelineEvents as $index => $event) {
+        $category = $event['category'] ?? '';
         if ($index === 0) {
             $event['position'] = $currentY;
-            $event['initial_visibility'] = ($event['category'] ?? '') === 'facts'
-                ? $factsVisibleByDefault
-                : true;
+            if ($category === 'facts') {
+                $event['initial_visibility'] = $factsVisibleByDefault;
+            } elseif ($category === 'location') {
+                $event['initial_visibility'] = $locationEventsVisibleByDefault;
+            } else {
+                $event['initial_visibility'] = true;
+            }
             $event['side'] = 'left';
             $renderEvents[] = $event;
             $previousDate = $event['date'];
@@ -806,9 +1264,13 @@ if (!empty($timelineEvents)) {
         $spacing = max($minSpacing, min($maxSpacing, $yearsDiffRaw * $yearFactor));
         $currentY += $spacing;
         $event['position'] = $currentY;
-        $event['initial_visibility'] = ($event['category'] ?? '') === 'facts'
-            ? $factsVisibleByDefault
-            : true;
+        if ($category === 'facts') {
+            $event['initial_visibility'] = $factsVisibleByDefault;
+        } elseif ($category === 'location') {
+            $event['initial_visibility'] = $locationEventsVisibleByDefault;
+        } else {
+            $event['initial_visibility'] = true;
+        }
         if (($event['scope'] ?? '') === 'break') {
             $event['side'] = 'center';
         } else {
@@ -964,6 +1426,11 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             color: #fff7ed;
             border-color: rgba(249, 115, 22, 0.65);
         }
+        .nv-timeline-event[data-category="location"] .nv-timeline-pin {
+            background: linear-gradient(145deg, #6366f1, #7c3aed);
+            color: #ede9fe;
+            border-color: rgba(99, 102, 241, 0.65);
+        }
         .nv-timeline-event {
             --nv-timeline-accent: rgba(226, 232, 240, 0.78);
         }
@@ -975,6 +1442,12 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         }
         .nv-timeline-event[data-category="facts"] {
             --nv-timeline-accent: rgba(234, 88, 12, 0.75);
+        }
+        .nv-timeline-event[data-category="location"] {
+            --nv-timeline-accent: rgba(99, 102, 241, 0.75);
+        }
+        .nv-timeline-event[data-category="location"] .nv-timeline-card {
+            background: linear-gradient(135deg, rgba(238, 242, 255, 0.96), rgba(224, 231, 255, 0.94));
         }
         .nv-timeline-link {
             color: #2563eb;
@@ -1074,6 +1547,10 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             box-shadow: 0 16px 28px rgba(15, 23, 42, 0.09);
             border-left: 4px solid var(--nv-timeline-accent);
             width: min(32rem, 100%);
+            max-height: min(20vh, 280px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         .nv-timeline-event[data-side="left"] .nv-timeline-card {
             border-left: 0;
@@ -1095,6 +1572,20 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         }
         .nv-timeline-card p {
             font-size: 0.9rem;
+        }
+        .nv-timeline-card .nv-timeline-body {
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
+        .nv-timeline-text {
+            overflow: hidden;
+        }
+        .nv-timeline-text p {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .nv-timeline-event[data-scope="break"] .nv-timeline-pin {
             background: linear-gradient(145deg, #e2e8f0, #cbd5f5);
@@ -1148,6 +1639,90 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             background: rgba(249, 115, 22, 0.12);
             color: #b45309;
         }
+        .nv-timeline-event[data-category="location"] .nv-timeline-chip {
+            background: rgba(99, 102, 241, 0.14);
+            color: #4338ca;
+        }
+        .nv-timeline-subject-avatar-wrapper {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 2px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+        }
+        .nv-timeline-subject-avatar {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .nv-timeline-discussion {
+            border-radius: 0.75rem;
+            background: rgba(99, 102, 241, 0.08);
+            padding: 0.85rem 1rem;
+            max-height: clamp(6rem, 18vh, 220px);
+            overflow: hidden;
+        }
+        .nv-timeline-discussion[data-expanded="true"] .nv-timeline-discussion-snippet {
+            display: none;
+        }
+        .nv-timeline-discussion-full {
+            display: none;
+            margin-top: 0.75rem;
+            max-height: clamp(8rem, 32vh, 280px);
+            overflow-y: auto;
+        }
+        .nv-timeline-discussion[data-expanded="true"] .nv-timeline-discussion-full {
+            display: block;
+        }
+        .nv-timeline-more-btn {
+            margin-top: 0.75rem;
+            background: transparent;
+            border: none;
+            color: #4338ca;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+        }
+        .nv-timeline-more-btn:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 768px) {
+            .nv-timeline-wrapper {
+                padding: 2rem 1.25rem;
+            }
+            .nv-timeline-axis {
+                display: none;
+            }
+            .nv-timeline-wrapper > .relative {
+                position: static;
+                height: auto !important;
+            }
+            .nv-timeline-event {
+                position: static !important;
+                transform: none !important;
+                padding: 0 !important;
+                margin-bottom: 1.5rem;
+                width: 100% !important;
+            }
+            .nv-timeline-event .nv-timeline-card {
+                width: 100%;
+                max-height: min(28vh, 320px);
+            }
+            .nv-timeline-pin {
+                display: none;
+            }
+            .nv-timeline-text p {
+                -webkit-line-clamp: 2;
+            }
+            .nv-timeline-discussion {
+                max-height: min(24vh, 220px);
+            }
+            .nv-timeline-media {
+                display: none;
+            }
+        }
         .nv-timeline-muted {
             color: #64748b;
             font-size: 0.875rem;
@@ -1180,6 +1755,10 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             <label class="flex items-center gap-2 font-medium">
                 <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 nv-timeline-toggle" data-timeline-toggle="family" checked>
                 Include other family members
+            </label>
+            <label class="flex items-center gap-2 font-medium">
+                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 nv-timeline-toggle" data-timeline-toggle="location" <?= $locationEventsVisibleByDefault ? 'checked' : '' ?>>
+                Include location events
             </label>
             <label class="flex items-center gap-2 font-medium">
                 <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 nv-timeline-toggle" data-timeline-toggle="facts" <?= $factsVisibleByDefault ? 'checked' : '' ?>>
@@ -1220,6 +1799,12 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                             $styleAttribute = implode(';', $styleFragments) . ';';
                             $eventIdentifier = (string) ($event['id'] ?? ('event-' . $eventIndex));
                             $infoId = !empty($event['details_html']) ? 'nv-timeline-info-' . md5($eventIdentifier) : null;
+                            $fullDescriptionHtml = $event['full_description_html'] ?? ($event['description_html'] ?? null);
+                            $fullDescriptionTextLength = $fullDescriptionHtml ? mb_strlen(strip_tags($fullDescriptionHtml)) : 0;
+                            $fullDescriptionId = null;
+                            if ($fullDescriptionHtml && $fullDescriptionTextLength > 160) {
+                                $fullDescriptionId = 'nv-timeline-desc-' . md5($eventIdentifier);
+                            }
                         ?>
                         <div
                             class="nv-timeline-event transition-opacity duration-300"
@@ -1253,6 +1838,8 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                                 Child
                                             <?php elseif ($scope === 'parent'): ?>
                                                 Parent
+                                            <?php elseif ($scope === 'discussion_location'): ?>
+                                                Historical Event
                                             <?php else: ?>
                                                 Fact
                                             <?php endif; ?>
@@ -1285,15 +1872,40 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                             </div>
                                         <?php endif; ?>
                                         <div class="nv-timeline-text flex-1 min-w-0">
-                                            <h4 class="text-xl font-semibold text-slate-800"><?= $event['title_html'] ?? htmlspecialchars($event['title'] ?? '', ENT_QUOTES) ?></h4>
+                                            <div class="flex items-center gap-3 flex-wrap">
+                                                <?php if (!empty($event['subject_avatar'])): ?>
+                                                    <span class="nv-timeline-subject-avatar-wrapper">
+                                                        <img src="<?= htmlspecialchars($event['subject_avatar'], ENT_QUOTES) ?>" alt="<?= htmlspecialchars($personName, ENT_QUOTES) ?>" class="nv-timeline-subject-avatar">
+                                                    </span>
+                                                <?php endif; ?>
+                                                <h4 class="text-xl font-semibold text-slate-800 m-0"><?= $event['title_html'] ?? htmlspecialchars($event['title'] ?? '', ENT_QUOTES) ?></h4>
+                                            </div>
                                             <?php if (!empty($event['description']) || !empty($event['description_html'])): ?>
                                                 <p class="mt-2 nv-timeline-muted"><?= $event['description_html'] ?? htmlspecialchars($event['description'] ?? '', ENT_QUOTES) ?></p>
+                                            <?php endif; ?>
+                                            <?php if ($fullDescriptionId): ?>
+                                                <button type="button" class="nv-timeline-more-btn" data-info-target="<?= $fullDescriptionId ?>">Read full text</button>
+                                            <?php endif; ?>
+                                            <?php if (!empty($event['discussion_content']) && is_array($event['discussion_content'])): ?>
+                                                <?php $discussionContent = $event['discussion_content']; ?>
+                                                <?php if (!empty($discussionContent['excerpt_html'])): ?>
+                                                    <div class="nv-timeline-discussion mt-3" data-expanded="false" data-has-more="<?= !empty($discussionContent['has_more']) ? 'true' : 'false' ?>">
+                                                        <div class="nv-timeline-discussion-snippet"><?= $discussionContent['excerpt_html'] ?></div>
+                                                        <?php if (!empty($discussionContent['has_more'])): ?>
+                                                            <div class="nv-timeline-discussion-full"><?= $discussionContent['full_html'] ?></div>
+                                                            <button type="button" class="nv-timeline-more-btn" data-toggle-discussion>More...</button>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <?php if ($fullDescriptionId): ?>
+                            <div id="<?= $fullDescriptionId ?>" class="hidden nv-timeline-info-content"><?= $fullDescriptionHtml ?></div>
+                        <?php endif; ?>
                         <?php if ($infoId): ?>
                             <div id="<?= $infoId ?>" class="hidden nv-timeline-info-content"><?= $event['details_html'] ?></div>
                         <?php endif; ?>
@@ -1350,6 +1962,20 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                 toggle.addEventListener('change', applyState);
                 applyState();
             });
+        const setupDiscussionToggles = () => {
+            root.querySelectorAll('[data-toggle-discussion]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const container = button.closest('.nv-timeline-discussion');
+                    if (!container) {
+                        return;
+                    }
+                    const expanded = container.getAttribute('data-expanded') === 'true';
+                    container.setAttribute('data-expanded', expanded ? 'false' : 'true');
+                    button.textContent = expanded ? 'More...' : 'Show less';
+                });
+            });
+        };
+        setupDiscussionToggles();
         const infoModal = document.getElementById('nv-timeline-info-modal');
         const infoBody = infoModal ? infoModal.querySelector('.nv-timeline-info-body') : null;
         if (infoModal && infoBody) {
