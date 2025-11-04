@@ -396,12 +396,13 @@ class FeedService
     {
         $feedEntries = [];
         $feedTypeMeta = [
-            'discussion' => ['label' => 'Discussion update', 'icon' => 'fas fa-comments'],
-            'comment'    => ['label' => 'New comment',       'icon' => 'fas fa-comment-dots'],
-            'individual' => ['label' => 'New family member', 'icon' => 'fas fa-user-plus'],
-            'item'       => ['label' => 'Event update',      'icon' => 'fas fa-book-open'],
-            'file'       => ['label' => 'New file',          'icon' => 'fas fa-photo-video'],
-            'visitor'    => ['label' => 'Latest visit',      'icon' => 'fas fa-door-open'],
+            'discussion'   => ['label' => 'Discussion update',   'icon' => 'fas fa-comments'],
+            'comment'      => ['label' => 'New comment',         'icon' => 'fas fa-comment-dots'],
+            'individual'   => ['label' => 'New family member',   'icon' => 'fas fa-user-plus'],
+            'relationship' => ['label' => 'Relationship update', 'icon' => 'fas fa-link'],
+            'item'         => ['label' => 'Event update',        'icon' => 'fas fa-book-open'],
+            'file'         => ['label' => 'New file',            'icon' => 'fas fa-photo-video'],
+            'visitor'      => ['label' => 'Latest visit',        'icon' => 'fas fa-door-open'],
         ];
         $reactionEmojiMap = $this->getReactionEmojiMap();
 
@@ -1164,6 +1165,10 @@ class FeedService
             if ($snippet === '' && !empty($firstItem['file_path'])) {
                 $snippet = 'New file attached.';
             }
+
+            $normalizedTitle = strtolower($groupTitleTrimmed);
+            $feedEntryType = in_array($normalizedTitle, ['marriage', 'divorce'], true) ? 'relationship' : 'item';
+
             if (!empty($spouseNames)) {
                 $normalizedSpouses = array_map(static function ($name) {
                     if (!is_string($name)) {
@@ -1192,7 +1197,6 @@ class FeedService
                 }));
                 if (!empty($uniqueSpouses)) {
                     $spouseSummary = implode(' and ', $uniqueSpouses);
-        $normalizedTitle = strtolower($groupTitleTrimmed);
                     if ($normalizedTitle === 'marriage') {
                         $snippet = ($personName !== '' ? $personName . ' married ' . $spouseSummary : 'Married ' . $spouseSummary) . '.';
                     } elseif ($normalizedTitle === 'divorce') {
@@ -1233,7 +1237,7 @@ class FeedService
             $primaryIndirect = $decorateIndirectConnection($primaryIndirect);
 
         $feedEntries[] = [
-            'type'      => 'item',
+            'type'      => $feedEntryType,
             'title'     => $displayGroupTitle !== '' ? $displayGroupTitle . ' update for ' . $personName : 'New update for ' . $personName,
                 'content'   => $snippet,
                 'content_html' => $contentHtml,

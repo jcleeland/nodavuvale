@@ -465,7 +465,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
                 items: ['item'],
                 files: ['file']
             };
-            var activeFilters = new Set(Object.keys(filterTypeMap));
+            var activeFilters = new Set();
 
             function normalizeKey(rawKey) {
                 return (rawKey || '').toString().trim().toLowerCase();
@@ -486,7 +486,7 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
 
             function typeMatchesFilters(type) {
                 if (activeFilters.size === 0) {
-                    return false;
+                    return true;
                 }
                 if (!type) {
                     return false;
