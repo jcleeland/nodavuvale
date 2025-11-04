@@ -754,6 +754,25 @@ class FeedService
                 $displayTitle = $entryType === 'comment' ? 'New comment on discussion' : 'Discussion update';
             }
 
+            $badgeMap = [];
+            if (!empty($discussion['is_historical_event'])) {
+                $badgeMap['historical'] = 'Historical event';
+            }
+            if (!empty($discussion['is_event'])) {
+                $badgeMap['family'] = 'Family event';
+            }
+            $badgeList = [];
+            foreach ($badgeMap as $variant => $label) {
+                $label = trim((string) $label);
+                if ($label === '') {
+                    continue;
+                }
+                $badgeList[] = [
+                    'label'   => $label,
+                    'variant' => $variant,
+                ];
+            }
+
             if ($discussionHeadlineHtml !== '') {
                 if ($discussionSnippetHtml !== '') {
                     $discussionSnippetHtml = $discussionHeadlineHtml . $discussionSnippetHtml;
@@ -799,6 +818,7 @@ class FeedService
                     'context'    => $isTreeDiscussion ? 'Family Tree Chat' : 'Community Chat',
                     'subject_name' => $isTreeDiscussion ? $discussionSubjectName : '',
                     'subject_id'   => $isTreeDiscussion ? (int) ($discussion['individual_id'] ?? 0) : null,
+                    'badges'       => $badgeList,
                     'recent_comment_ids' => $recentCommentIds,
                 ],
                 'url'       => $isTreeDiscussion
@@ -1539,6 +1559,24 @@ class FeedService
                 $relationshipLine = $getRelationshipToUser((int) $lastDescendant[1]);
             }
         }
+
+        $badgeList = [];
+        if (!empty($entry['meta']['badges']) && is_array($entry['meta']['badges'])) {
+            foreach ($entry['meta']['badges'] as $badge) {
+                if (!is_array($badge)) {
+                    continue;
+                }
+                $label = trim((string) ($badge['label'] ?? ''));
+                if ($label === '') {
+                    continue;
+                }
+                $variant = trim((string) ($badge['variant'] ?? ''));
+                $badgeList[] = [
+                    'label'   => $label,
+                    'variant' => $variant,
+                ];
+            }
+        }
         if ($indirectConnection) {
             $rawSteps = (array) ($indirectConnection['steps'] ?? []);
             $processedSteps = [];
@@ -1709,6 +1747,23 @@ class FeedService
                             <?php
                         }
                     ?>
+                    <?php if (!empty($badgeList)): ?>
+                        <?php foreach ($badgeList as $badge): ?>
+                            <?php
+                                $badgeLabel = htmlspecialchars($badge['label'], ENT_QUOTES, 'UTF-8');
+                                $badgeVariant = trim((string) ($badge['variant'] ?? ''));
+                                $badgeVariantClass = '';
+                                if ($badgeVariant !== '') {
+                                    $sanitizedVariant = preg_replace('/[^a-z0-9_-]/i', '', $badgeVariant);
+                                    if ($sanitizedVariant !== '') {
+                                        $badgeVariantClass = ' feed-item-badge--' . $sanitizedVariant;
+                                    }
+                                }
+                                $badgeClass = 'feed-item-badge' . $badgeVariantClass;
+                            ?>
+                            <span class="<?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                     <?php if (!empty($entry['raw_time'])): ?>
                         <span class="feed-item-timestamp ml-auto" title="<?= htmlspecialchars($timestampLabel) ?>">
                             <?= $web->timeSince($entry['raw_time']) ?>

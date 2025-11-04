@@ -183,25 +183,28 @@ if ($individual_id) {
     $documents = Utils::getFiles($individual_id, 'document');
 
     // Fetch this line of descendancy
-    $descendancy=Utils::getLineOfDescendancy(Web::getRootId(), $individual_id);  
+$rootIndividualId = Web::getRootId();
+$descendancy = Utils::getLineOfDescendancy($rootIndividualId, $individual_id);  
 
 
-    if($_SESSION['individuals_id']) {
-        $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
-        $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
-        //Fetch the users line of descendancy
-        $userdescendancy=Utils::getLineOfDescendancy(Web::getRootId(), $_SESSION['individuals_id']);
-        if(!isset($userdescendancy)) {
-            $userdescendancy=[];
-        }
-    } else {
-        $commonAncestor=[];
-        $relationshipLabel="";
+$viewerIndividualId = isset($_SESSION['individuals_id']) ? (int) $_SESSION['individuals_id'] : 0;
+$userdescendancy = [];
+if($viewerIndividualId) {
+    $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
+    $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
+    //Fetch the users line of descendancy
+    $userdescendancy=Utils::getLineOfDescendancy($rootIndividualId, $_SESSION['individuals_id']);
+    if(!is_array($userdescendancy)) {
+        $userdescendancy=[];
     }
+} else {
+    $commonAncestor=[];
+    $relationshipLabel="";
+}
 
     //Find out if the user is a direct descendant of this individual
     $userdescendant=false;
-    if(isset($userdescendancy)) {
+    if(!empty($userdescendancy)) {
         foreach($userdescendancy as $descendant) {
             if($descendant[1]==$individual_id) {
                 $userdescendant=true;
@@ -396,99 +399,161 @@ if ($individual_id) {
 
 
 
-<?php if($descendancy): ?>
-    <section class="container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8 text-center max-w-screen overflow-x-auto">
-        <div class="inline-flex flex-nowrap text-xxs sm:text-sm px-4 mx-auto">
-            <?php
-                //Find out whether the $descendancy array or the $userdescendancy array is longer and use that as the loop count
-                $descendancycount=count($descendancy);
-                if(isset($userdescendancy)) {
-                    $userdescendancycount=count($userdescendancy);
-                } else {
-                    $userdescendancycount=0;
+<?php
+if (!function_exists('nvIndividualRenderDescNode')) {
+    function nvIndividualRenderDescNode(array $node, ?int $commonAncestorId, ?int $highlightId, ?int $viewerId, string $additionalClass = ''): string
+    {
+        $name = trim((string) ($node[0] ?? ''));
+        $id = isset($node[1]) ? (int) $node[1] : 0;
+        if ($name === '' && $id <= 0) {
+            return '<span class="nv-desc-node nv-desc-node--placeholder">&nbsp;</span>';
+        }
+        $classes = ['nv-desc-node'];
+        if ($additionalClass !== '') {
+            $classes[] = $additionalClass;
+        }
+        if ($commonAncestorId !== null && $id === $commonAncestorId) {
+            $classes[] = 'nv-desc-node--common';
+        }
+        if ($highlightId !== null && $id === $highlightId) {
+            $classes[] = 'nv-desc-node--current';
+        }
+        if ($viewerId !== null && $id === $viewerId) {
+            $classes[] = 'nv-desc-node--viewer';
+        }
+        $title = $name;
+        if ($commonAncestorId !== null && $id === $commonAncestorId) {
+            $title .= ' (shared ancestor)';
+        }
+        $label = htmlspecialchars($name !== '' ? $name : 'Unknown', ENT_QUOTES, 'UTF-8');
+        if ($id > 0) {
+            $url = '?to=family/individual&individual_id=' . $id;
+            return '<a href="' . $url . '" class="' . implode(' ', $classes) . '" title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '">' . $label . '</a>';
+        }
+        return '<span class="' . implode(' ', $classes) . '" title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '">' . $label . '</span>';
+    }
+
+    function nvIndividualRenderDescRow(array $path, string $label, ?int $commonAncestorId, ?int $highlightId, ?int $viewerId): string
+    {
+        if (empty($path)) {
+            return '';
+        }
+        $segments = [];
+        $count = count($path);
+        foreach ($path as $index => $node) {
+            $segments[] = nvIndividualRenderDescNode($node, $commonAncestorId, $highlightId, $viewerId);
+            if ($index < $count - 1) {
+                $segments[] = '<span class="nv-desc-arrow" aria-hidden="true"><i class="fas fa-angle-right"></i></span>';
+            }
+        }
+        return '<div class="nv-desc-row"><span class="nv-desc-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span><div class="nv-desc-path">' . implode('', $segments) . '</div></div>';
+    }
+}
+
+$commonAncestorId = null;
+if (!empty($commonAncestor) && !empty($commonAncestor['common_ancestor_id'])) {
+    $commonAncestorId = (int) $commonAncestor['common_ancestor_id'];
+}
+
+$descendancyHasData = !empty($descendancy);
+?>
+
+<?php if ($descendancyHasData): ?>
+    <section class="nv-desc-section container mx-auto pt-6 pb-2 px-4 sm:px-6 lg:px-8">
+        <style>
+            .nv-desc-section {
+                background: rgba(248, 250, 252, 0.8);
+                border-radius: 1rem;
+                padding: 1rem 1.5rem;
+                margin-bottom: 1.5rem;
+                box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+            }
+            .nv-desc-row {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+            .nv-desc-row:last-child {
+                margin-bottom: 0;
+            }
+            .nv-desc-label {
+                flex: 0 0 auto;
+                font-weight: 600;
+                color: #475569;
+                min-width: 7rem;
+            }
+            .nv-desc-path {
+                flex: 1 1 auto;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.5rem;
+                min-width: 0;
+            }
+            .nv-desc-node {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0.35rem 0.75rem;
+                border-radius: 9999px;
+                background: rgba(148, 163, 184, 0.15);
+                color: #0f172a;
+                text-decoration: none;
+                font-size: 0.9rem;
+                white-space: nowrap;
+            }
+            .nv-desc-node:hover {
+                background: rgba(59, 130, 246, 0.15);
+                color: #1d4ed8;
+            }
+            .nv-desc-node--common {
+                background: rgba(251, 191, 36, 0.22);
+                border: 1px solid rgba(249, 115, 22, 0.5);
+                color: #b45309;
+            }
+            .nv-desc-node--current {
+                background: rgba(59, 130, 246, 0.18);
+                color: #1d4ed8;
+                font-weight: 600;
+            }
+            .nv-desc-node--viewer {
+                background: rgba(16, 185, 129, 0.18);
+                color: #047857;
+            }
+            .nv-desc-node--placeholder {
+                background: transparent;
+                border: none;
+            }
+            .nv-desc-arrow {
+                color: #94a3b8;
+                font-size: 0.85rem;
+            }
+            @media (max-width: 640px) {
+                .nv-desc-label {
+                    width: 100%;
                 }
-                
-                if($descendancycount>$userdescendancycount) {
-                    $loopcount=$descendancycount;
-                } else {
-                    $loopcount=$userdescendancycount;
+                .nv-desc-path {
+                    gap: 0.35rem;
                 }
-                $commonancestorclass="bg-burnt-orange-800";
-                $commonancestortitle="";
-                $generationCount=0;
-                $ancestorInCommon=true; //We start assuming a common ancestor
-            ?>
-            <?php
-            //Use a for loop to iterate through the descendancy arrays
-            for($index=0; $index<$loopcount; $index++) {
-                //If we have a common ancestor, we need to highlight the common ancestor and the user's line of descendancy
-                if($commonAncestor) { //$commonAncestor will only exist if the user & the individual shown have a common ancestor
-                    if($ancestorInCommon) { //commonAncestor is true until we reach the common ancestor
-                        $commonancestorclass="border-b-2 border-burnt-orange-800 nv-border-opacity-50 bg-burnt-orange-800 font-bold";
-                        $commonancestortitle="Common Ancestor";
-                    } else {
-                        $commonancestorclass="bg-burnt-orange-800";
-                        $commonancestortitle="";
-                    }
-                    if(isset($descendancy[$index]) && $descendancy[$index][1]==$commonAncestor['common_ancestor_id']) {
-                        $ancestorInCommon=false; //Now that we've found the common ancestor, we can stop highlighting
-                    }
+                .nv-desc-node {
+                    font-size: 0.8rem;
+                    padding: 0.25rem 0.6rem;
                 }
-
-                $isDescendant = false;
-
-
-
-                ?>
-
-                <!-- ARROWS -->
-                <?php if ($index != 0 && $index < $loopcount): ?>
-                <div class="flex flex-col items-center">
-                    <?php if(isset($descendancy[$index])) : ?>
-                    <div class="h-8 p-2 my-2">
-                        <i class='fas fa-arrow-right mx-2'></i>
-                    </div>
-                    <?php elseif(!$userdescendant): ?>
-                        <div class="h-8 p-2 my-2">
-                        &nbsp;
-                    </div>                    
-                    <?php endif; ?>
-                    <?php if(isset($userdescendancy[$index]) && !(isset($descendancy[$index]) && ($descendancy[$index][1] == $userdescendancy[$index][1]))): ?>
-                    <div class="h-8 p-2 my-2">
-                        <i class='fas fa-arrow-right mx-2'></i>
-                    </div>
-                    <?php elseif (!isset($userdescendancy[$index])): ?>
-                    <div class="h-8 p-2 my-2">
-                        &nbsp;
-                    </div>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>  
-                
-                <!-- DESCENDANT COMPARISON -->
-                <div class="flex flex-col items-center">
-                    <?php if(isset($descendancy[$index])) : ?>
-                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-50 text-center p-2 my-2 rounded-lg cursor-pointer nowrap" title="<?= $commonancestortitle ?>">
-                            <a href='?to=family/individual&individual_id=<?= $descendancy[$index][1] ?>'><?= $descendancy[$index][0] ?></a>
-                        </div>
-                    <?php elseif(!$userdescendant): ?>
-                        <div class="p-2 my-2">
-                            &nbsp;
-                        </div>
-                    <?php elseif(isset($userdescendancy[$index])): ?>
-                    <?php endif; ?>
-                    <?php if(isset($userdescendancy[$index]) && !(isset($descendancy[$index]) && ($descendancy[$index][1] == $userdescendancy[$index][1])))  : ?>
-                        <div class="<?= $commonancestorclass ?> w-full nv-bg-opacity-20 text-center p-2 my-2 rounded-lg cursor-pointer nowrap" title="<?= $commonancestortitle ?>">
-                            <a href='?to=family/individual&individual_id=<?= $userdescendancy[$index][1] ?>'><?= $userdescendancy[$index][0] ?></a>
-                        </div>
-                    <?php elseif(!isset($userdescendancy[$index])): ?>
-                        <div class="p-2 my-2">
-                            &nbsp;
-                        </div>
-                    <?php endif; ?>
-                </div>
-            <?php } ?>
-        </div>
+            }
+        </style>
+        <?php
+            $targetLabel = sprintf("%s's line", htmlspecialchars($individual['first_name'] ?? $personName ?? 'Individual', ENT_QUOTES, 'UTF-8'));
+            echo nvIndividualRenderDescRow($descendancy, $targetLabel, $commonAncestorId, $individual_id, $viewerIndividualId);
+            if (!empty($userdescendancy)) {
+                $viewerLabel = 'Your line';
+                echo nvIndividualRenderDescRow($userdescendancy, $viewerLabel, $commonAncestorId, $viewerIndividualId, $viewerIndividualId);
+            }
+            if ($commonAncestorId !== null && !empty($commonAncestor['common_ancestor_name'])) {
+                echo '<p class="text-xs sm:text-sm text-gray-500 mt-2">Shared ancestor: <strong>' . htmlspecialchars($commonAncestor['common_ancestor_name'], ENT_QUOTES, 'UTF-8') . '</strong></p>';
+            }
+        ?>
     </section>
 <?php endif; ?>
 

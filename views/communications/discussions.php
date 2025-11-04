@@ -161,9 +161,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
     $user_id = (int)$_POST['user_id'];
     $is_sticky = isset($_POST['is_sticky']) ? 1 : 0;
     $is_event = isset($_POST['is_event']) ? 1 : 0;
+    $is_historical_event = isset($_POST['is_historical_event']) ? 1 : 0;
     $is_news = isset($_POST['is_news']) ? 1 : 0;
-    $event_date = isset($_POST['event_date']) ? $_POST['event_date'] : null;
-    $event_location = isset($_POST['event_location']) ? $_POST['event_location'] : null;
+    $event_date = isset($_POST['event_date']) ? trim((string) $_POST['event_date']) : null;
+    $event_date_finish = isset($_POST['event_date_finish']) ? trim((string) $_POST['event_date_finish']) : null;
+    $event_location = isset($_POST['event_location']) ? trim((string) $_POST['event_location']) : null;
+    if ($event_date === '') {
+        $event_date = null;
+    }
+    if ($event_date_finish === '') {
+        $event_date_finish = null;
+    }
+    if ($event_location === '') {
+        $event_location = null;
+    }
     
     // Validate discussion
     if (!empty($content) && $user_id > 0) {
@@ -171,9 +182,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_P
             // Start a transaction
             $db->beginTransaction();
             // Insert the new discussion into the database
-            $sql="INSERT INTO discussions (user_id, title, content, is_sticky, is_event, is_news, event_date, event_location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-            //echo $sql."<br />Paramaters: ".$user_id.", ".$title.", ".$content.", ".$is_sticky.", ".$is_event.", ".$is_news.", ".$event_date.", ".$event_location;
-            $discussion_id=$db->insert($sql, [$user_id, $title, $content, $is_sticky, $is_event, $is_news, $event_date, $event_location]);
+            $sql="INSERT INTO discussions (user_id, title, content, is_sticky, is_event, is_historical_event, is_news, event_date, event_date_finish, event_location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            $discussion_id=$db->insert($sql, [$user_id, $title, $content, $is_sticky, $is_event, $is_historical_event, $is_news, $event_date, $event_date_finish, $event_location]);
         
             
             $db->commit();
@@ -215,9 +225,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_discussion'], 
     $user_id = (int)$_POST['user_id'];
     $is_sticky = isset($_POST['discussion_edit_is_sticky']) ? 1 : 0;
     $is_event = isset($_POST['discussion_edit_is_event']) ? 1 : 0;
+    $is_historical_event = isset($_POST['discussion_edit_is_historical_event']) ? 1 : 0;
     $is_news = isset($_POST['discussion_edit_is_news']) ? 1 : 0;
-    $event_date = isset($_POST['discussion_edit_event_date']) ? $_POST['discussion_edit_event_date'] : null;
-    $event_location = isset($_POST['discussion_edit_event_location']) ? $_POST['discussion_edit_event_location'] : null;
+    $event_date = isset($_POST['discussion_edit_event_date']) ? trim((string) $_POST['discussion_edit_event_date']) : null;
+    $event_date_finish = isset($_POST['discussion_edit_event_date_finish']) ? trim((string) $_POST['discussion_edit_event_date_finish']) : null;
+    $event_location = isset($_POST['discussion_edit_event_location']) ? trim((string) $_POST['discussion_edit_event_location']) : null;
+    if ($event_date === '') {
+        $event_date = null;
+    }
+    if ($event_date_finish === '') {
+        $event_date_finish = null;
+    }
+    if ($event_location === '') {
+        $event_location = null;
+    }
 
     // Validate discussion
     if (!empty($title) && !empty($content) && $discussion_id > 0 && $user_id > 0) {
@@ -225,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_discussion'], 
             // Start a transaction
             $db->beginTransaction();
             // Update the discussion in the database
-            $db->query("UPDATE discussions SET title = ?, content = ?, is_sticky = ?, is_event = ?, is_news = ?, event_date = ?, event_location = ? WHERE id = ?", [$title, $content, $is_sticky, $is_event, $is_news, $event_date, $event_location, $discussion_id]);
+            $db->query("UPDATE discussions SET title = ?, content = ?, is_sticky = ?, is_event = ?, is_historical_event = ?, is_news = ?, event_date = ?, event_date_finish = ?, event_location = ? WHERE id = ?", [$title, $content, $is_sticky, $is_event, $is_historical_event, $is_news, $event_date, $event_date_finish, $event_location, $discussion_id]);
             $db->commit();
             // Redirect to avoid form resubmission issues
             ?>
@@ -325,12 +346,19 @@ function getCommentsForDiscussion($discussion_id) {
                         <div class="px-2 mt-1">
                             <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)">
                         </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm text-gray-500">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-8 text-sm text-gray-500">
                             <div class="p-2 text-center">
                                 <label for="is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
                                     <input type="checkbox" id="is_event" name="is_event" class="mr-2">
-                                    <span class='block sm:hidden'>Event</span>
-                                    <span class='hidden sm:block'>This is an Event</span>
+                                    <span class='block sm:hidden'>Family</span>
+                                    <span class='hidden sm:block'>This is a Family Event</span>
+                                </label>
+                            </div>
+                            <div class="p-2 text-center">
+                                <label for="is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                    <input type="checkbox" id="is_historical_event" name="is_historical_event" class="mr-2">
+                                    <span class='block sm:hidden'>History</span>
+                                    <span class='hidden sm:block'>This is a Historical Event</span>
                                 </label>
                             </div>
                             <div class="p-2 text-center">
@@ -355,12 +383,15 @@ function getCommentsForDiscussion($discussion_id) {
                                 </label>
                             </div>
                         </div>
-                        <div id="event_date_section" class="px-2 mt-1 hidden flex">
-                            <div class="text-center w-1/5">
-                                <input type="text" name="event_date" id="event_date" class="w-full border rounded-lg p-2" placeholder="Event Date">
+                        <div id="event_date_section" class="px-2 mt-1 hidden grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="text-center">
+                                <input type="text" name="event_date" id="event_date" class="w-full border rounded-lg p-2" placeholder="Event start date">
                             </div>
-                            <div class="pl-2 text-center w-4/5">
-                                <input type="text" name="event_location" id="event_location" class="w-full border rounded-lg p-2" placeholder="Event Location">
+                            <div class="text-center hidden" id="event_date_finish_wrapper">
+                                <input type="text" name="event_date_finish" id="event_date_finish" class="w-full border rounded-lg p-2" placeholder="Event finish (optional)">
+                            </div>
+                            <div class="text-center">
+                                <input type="text" name="event_location" id="event_location" class="w-full border rounded-lg p-2" placeholder="Event location">
                             </div>
                         </div>
                         
@@ -412,20 +443,30 @@ function getCommentsForDiscussion($discussion_id) {
                 <div class="px-2 mt-1 w-full">
                     <textarea id="discussion_edit_content" name="discussion_edit_content" rows="6" class="border w-full rounded-lg py-1 px-2" placeholder="Edit this discussion..."></textarea>
                 </div>
-                <div id="discussion_edit_event_date_section" class="w-full px-2 mt-1 hidden flex">
-                    <div class="text-center w-1/5">
-                        <input type="text" name="discussion_edit_event_date" id="discussion_edit_event_date" class="w-full border rounded-lg p-2" placeholder="Event Date">
+                <div id="discussion_edit_event_date_section" class="w-full px-2 mt-1 hidden grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="text-center">
+                        <input type="text" name="discussion_edit_event_date" id="discussion_edit_event_date" class="w-full border rounded-lg p-2" placeholder="Event start date">
                     </div>
-                    <div class="pl-2 text-center w-4/5">
-                        <input type="text" name="discussion_edit_event_location" id="discussion_edit_event_location" class="w-full border rounded-lg p-2" placeholder="Event Location">
+                    <div class="text-center hidden" id="discussion_edit_event_date_finish_wrapper">
+                        <input type="text" name="discussion_edit_event_date_finish" id="discussion_edit_event_date_finish" class="w-full border rounded-lg p-2" placeholder="Event finish (optional)">
+                    </div>
+                    <div class="text-center">
+                        <input type="text" name="discussion_edit_event_location" id="discussion_edit_event_location" class="w-full border rounded-lg p-2" placeholder="Event location">
                     </div>
                 </div>                
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 text-sm text-gray-500">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-500">
                     <div class="p-2 text-center">
                         <label for="discussion_edit_is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
                             <input type="checkbox" id="discussion_edit_is_event" name="discussion_edit_is_event" class="mr-2">
-                            <span class='block sm:hidden'>Event</span>
-                            <span class='hidden sm:block'>This is an Event</span>
+                            <span class='block sm:hidden'>Family</span>
+                            <span class='hidden sm:block'>This is a Family Event</span>
+                        </label>
+                    </div>
+                    <div class="p-2 text-center">
+                        <label for="discussion_edit_is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                            <input type="checkbox" id="discussion_edit_is_historical_event" name="discussion_edit_is_historical_event" class="mr-2">
+                            <span class='block sm:hidden'>History</span>
+                            <span class='hidden sm:block'>This is a Historical Event</span>
                         </label>
                     </div>
                     <div class="p-2 text-center">

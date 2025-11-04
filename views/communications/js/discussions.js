@@ -6,6 +6,13 @@ document.addEventListener('DOMContentLoaded', function () {
         dateFormat: "Y-m-d H:i:S",
         time_24hr: true
     });
+    if (document.getElementById('event_date_finish')) {
+        flatpickr('#event_date_finish', {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i:S",
+            time_24hr: true
+        });
+    }
 
     editorCSS=[
         'styles/tailwind.min.css',
@@ -154,23 +161,67 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Hide new-discussion-form');
     });
 
-    document.getElementById('is_event').addEventListener('change', function() {
-        if (this.checked) {
-            document.getElementById('event_date_section').classList.remove('hidden');
-        } else {
-            document.getElementById('event_date_section').classList.add('hidden');
+    const newEventCheckbox = document.getElementById('is_event');
+    const newHistoricalCheckbox = document.getElementById('is_historical_event');
+    const newEventSection = document.getElementById('event_date_section');
+    const newFinishWrapper = document.getElementById('event_date_finish_wrapper');
+    const toggleNewEventFields = function () {
+        if (!newEventSection) {
+            return;
         }
-    });
+        const showEventFields = (newEventCheckbox && newEventCheckbox.checked) || (newHistoricalCheckbox && newHistoricalCheckbox.checked);
+        if (showEventFields) {
+            newEventSection.classList.remove('hidden');
+        } else {
+            newEventSection.classList.add('hidden');
+        }
+        if (newFinishWrapper) {
+            const showFinish = newHistoricalCheckbox && newHistoricalCheckbox.checked;
+            if (showFinish) {
+                newFinishWrapper.classList.remove('hidden');
+            } else {
+                newFinishWrapper.classList.add('hidden');
+            }
+        }
+    };
+    if (newEventCheckbox) {
+        newEventCheckbox.addEventListener('change', toggleNewEventFields);
+    }
+    if (newHistoricalCheckbox) {
+        newHistoricalCheckbox.addEventListener('change', toggleNewEventFields);
+    }
+    toggleNewEventFields();
 
-    document.getElementById('discussion_edit_is_event').addEventListener('change', function() {
-        console.log('Is Event checked or unchecked');
-        if (this.checked) {
-            console.log('Checked');
-            document.getElementById('discussion_edit_event_date_section').classList.remove('hidden');
-        } else {
-            document.getElementById('discussion_edit_event_date_section').classList.add('hidden');
+    const editEventCheckbox = document.getElementById('discussion_edit_is_event');
+    const editHistoricalCheckbox = document.getElementById('discussion_edit_is_historical_event');
+    const editEventSection = document.getElementById('discussion_edit_event_date_section');
+    const editFinishWrapper = document.getElementById('discussion_edit_event_date_finish_wrapper');
+    const toggleEditEventFields = function () {
+        if (!editEventSection) {
+            return;
         }
-    });
+        const showEventFields = (editEventCheckbox && editEventCheckbox.checked) || (editHistoricalCheckbox && editHistoricalCheckbox.checked);
+        if (showEventFields) {
+            editEventSection.classList.remove('hidden');
+        } else {
+            editEventSection.classList.add('hidden');
+        }
+        if (editFinishWrapper) {
+            const showFinish = editHistoricalCheckbox && editHistoricalCheckbox.checked;
+            if (showFinish) {
+                editFinishWrapper.classList.remove('hidden');
+            } else {
+                editFinishWrapper.classList.add('hidden');
+            }
+        }
+    };
+    if (editEventCheckbox) {
+        editEventCheckbox.addEventListener('change', toggleEditEventFields);
+    }
+    if (editHistoricalCheckbox) {
+        editHistoricalCheckbox.addEventListener('change', toggleEditEventFields);
+    }
+    toggleEditEventFields();
 
     reactionButtons.forEach(button => {
         button.addEventListener('click', function () {
@@ -365,21 +416,48 @@ function editDiscussion(discussionId) {
             document.getElementById('discussion_edit_title').value = result.discussion.title;
             tinymce.get('discussion_edit_content').setContent(result.discussion.content.replace(/\n\r/g, '<br>')); // Set content in TinyMCE editor
             document.getElementById('discussion_edit_is_event').checked = result.discussion.is_event;
+            if (document.getElementById('discussion_edit_is_historical_event')) {
+                document.getElementById('discussion_edit_is_historical_event').checked = result.discussion.is_historical_event;
+            }
             document.getElementById('discussion_edit_is_sticky').checked = result.discussion.is_sticky;
             document.getElementById('discussion_edit_is_news').checked = result.discussion.is_news;
-            document.getElementById('discussion_edit_event_date').value = result.discussion.event_date;
-            document.getElementById('discussion_edit_event_location').value = result.discussion.event_location;
-            if(result.discussion.is_event) {
-                document.getElementById('discussion_edit_event_date_section').classList.remove('hidden');
-            } else {
-                document.getElementById('discussion_edit_event_date_section').classList.add('hidden');
+            document.getElementById('discussion_edit_event_date').value = result.discussion.event_date || '';
+            if (document.getElementById('discussion_edit_event_date_finish')) {
+                document.getElementById('discussion_edit_event_date_finish').value = result.discussion.event_date_finish || '';
             }
+            document.getElementById('discussion_edit_event_location').value = result.discussion.event_location || '';
+            toggleEditEventFields();
             
-            flatpickr("#discussion_edit_event_date", {
-                enableTime: true,
-                dateFormat: "Y-m-d H:i:S",
-                time_24hr: true
-            });
+            const editDateInput = document.getElementById('discussion_edit_event_date');
+            if (editDateInput) {
+                if (editDateInput._flatpickr) {
+                    editDateInput._flatpickr.setDate(result.discussion.event_date || null, false);
+                } else {
+                    flatpickr("#discussion_edit_event_date", {
+                        enableTime: true,
+                        dateFormat: "Y-m-d H:i:S",
+                        time_24hr: true
+                    });
+                    if (editDateInput._flatpickr && result.discussion.event_date) {
+                        editDateInput._flatpickr.setDate(result.discussion.event_date, false);
+                    }
+                }
+            }
+            const editFinishInput = document.getElementById('discussion_edit_event_date_finish');
+            if (editFinishInput) {
+                if (editFinishInput._flatpickr) {
+                    editFinishInput._flatpickr.setDate(result.discussion.event_date_finish || null, false);
+                } else {
+                    flatpickr("#discussion_edit_event_date_finish", {
+                        enableTime: true,
+                        dateFormat: "Y-m-d H:i:S",
+                        time_24hr: true
+                    });
+                    if (editFinishInput._flatpickr && result.discussion.event_date_finish) {
+                        editFinishInput._flatpickr.setDate(result.discussion.event_date_finish, false);
+                    }
+                }
+            }
         } else {
         }
     });

@@ -2337,7 +2337,7 @@ class Utils {
         }
         $sql = "SELECT discussions.title, discussions.content, discussions.id as discussionId, users.first_name as user_first_name, 
                 users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name, 
-                discussions.individual_id, discussions.updated_at,
+                discussions.individual_id, discussions.is_event, discussions.is_historical_event, discussions.event_date, discussions.event_date_finish, discussions.event_location, discussions.updated_at,
                 individuals.last_name as tree_last_name, users.id as user_id, 'discussion' as change_type
                 FROM discussions 
                 JOIN users ON discussions.user_id = users.id
@@ -2361,7 +2361,8 @@ class Utils {
         }
         $sql = "SELECT discussions.title, discussions.id as discussionId, users.first_name as user_first_name, 
                 users.last_name as user_last_name, users.avatar, individuals.first_names as tree_first_name,
-                discussions.individual_id, discussion_comments.id as comment_id, discussion_comments.comment as content, discussion_comments.updated_at,
+                discussions.individual_id, discussions.is_event, discussions.is_historical_event, discussions.event_date, discussions.event_date_finish, discussions.event_location,
+                discussion_comments.id as comment_id, discussion_comments.comment as content, discussion_comments.updated_at,
                 discussions.content as discussion_content, individuals.last_name as tree_last_name, users.id as user_id, 'comment' as change_type
                 FROM discussion_comments
                 JOIN discussions ON discussion_comments.discussion_id = discussions.id
