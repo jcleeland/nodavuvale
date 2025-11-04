@@ -161,6 +161,25 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Hide new-discussion-form');
     });
 
+    const toBool = (value) => {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+        if (typeof value === 'number') {
+            return value === 1;
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim().toLowerCase();
+            if (trimmed === '1' || trimmed === 'true' || trimmed === 'yes') {
+                return true;
+            }
+            if (trimmed === '0' || trimmed === 'false' || trimmed === 'no' || trimmed === '') {
+                return false;
+            }
+        }
+        return Boolean(value);
+    };
+
     const newEventCheckbox = document.getElementById('is_event');
     const newHistoricalCheckbox = document.getElementById('is_historical_event');
     const newEventSection = document.getElementById('event_date_section');
@@ -415,12 +434,12 @@ function editDiscussion(discussionId) {
             document.getElementById('discussion_edit_discussion_id').value = discussionId;
             document.getElementById('discussion_edit_title').value = result.discussion.title;
             tinymce.get('discussion_edit_content').setContent(result.discussion.content.replace(/\n\r/g, '<br>')); // Set content in TinyMCE editor
-            document.getElementById('discussion_edit_is_event').checked = result.discussion.is_event;
+            document.getElementById('discussion_edit_is_event').checked = toBool(result.discussion.is_event);
             if (document.getElementById('discussion_edit_is_historical_event')) {
-                document.getElementById('discussion_edit_is_historical_event').checked = result.discussion.is_historical_event;
+                document.getElementById('discussion_edit_is_historical_event').checked = toBool(result.discussion.is_historical_event);
             }
-            document.getElementById('discussion_edit_is_sticky').checked = result.discussion.is_sticky;
-            document.getElementById('discussion_edit_is_news').checked = result.discussion.is_news;
+            document.getElementById('discussion_edit_is_sticky').checked = toBool(result.discussion.is_sticky);
+            document.getElementById('discussion_edit_is_news').checked = toBool(result.discussion.is_news);
             document.getElementById('discussion_edit_event_date').value = result.discussion.event_date || '';
             if (document.getElementById('discussion_edit_event_date_finish')) {
                 document.getElementById('discussion_edit_event_date_finish').value = result.discussion.event_date_finish || '';

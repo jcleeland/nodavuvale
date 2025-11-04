@@ -494,6 +494,7 @@ if (!function_exists('nvTimelineFormatName')) {
     function nvTimelineFetchDiscussionLocationEvents(array $locationHistory): array
     {
         $tokens = nvTimelineCollectLocationTokens($locationHistory);
+        $hasTokens = !empty($tokens);
         try {
             $db = Database::getInstance();
         } catch (Exception $exception) {
@@ -501,24 +502,23 @@ if (!function_exists('nvTimelineFormatName')) {
             return [];
         }
         $params = [];
-        $filters = [];
-        foreach ($tokens as $token) {
-            $filters[] = "LOWER(discussions.event_location) LIKE ?";
-            $params[] = '%' . $token . '%';
-        }
-        $filterSql = '';
-        if (!empty($filters)) {
-            $filterSql = 'AND (' . implode(' OR ', $filters) . ')';
+        if ($hasTokens) {
+            $likeParts = [];
+            foreach ($tokens as $token) {
+                $likeParts[] = "LOWER(discussions.event_location) LIKE ?";
+                $params[] = '%' . $token . '%';
+            }
+            $locationCondition = 'AND ((discussions.event_location IS NULL OR discussions.event_location = \'\') OR (discussions.event_location IS NOT NULL AND discussions.event_location != \'\' AND (' . implode(' OR ', $likeParts) . ')))';
+        } else {
+            $locationCondition = 'AND (discussions.event_location IS NULL OR discussions.event_location = \'\')';
         }
         $sql = "
             SELECT discussions.*, users.first_name, users.last_name
             FROM discussions
             JOIN users ON discussions.user_id = users.id
-            WHERE discussions.event_location IS NOT NULL
-                AND discussions.event_location != ''
-                AND discussions.is_historical_event = 1
+            WHERE discussions.is_historical_event = 1
                 AND discussions.event_date IS NOT NULL
-                $filterSql
+                $locationCondition
             ORDER BY discussions.event_date IS NULL, discussions.event_date ASC, discussions.updated_at ASC
             LIMIT 250
         ";
@@ -542,38 +542,52 @@ if (!function_exists('nvTimelineFormatName')) {
         ?array &$debugLog = null
     ): array
     {
-        if (empty($rows) || empty($locationHistory)) {
-            if (is_array($debugLog)) {
-                $debugLog[] = [
-                    'reason' => 'no_rows_or_history',
-                    'row_count' => count($rows),
-                    'history_count' => count($locationHistory),
-                ];
-            }
-            return [];
+    $hasHistory = !empty($locationHistory);
+    if (empty($rows)) {
+        if (is_array($debugLog)) {
+            $debugLog[] = [
+                'reason' => 'no_rows',
+                'row_count' => 0,
+                'history_count' => $hasHistory ? count($locationHistory) : 0,
+            ];
         }
+        return [];
+    }
+    if (!$hasHistory && is_array($debugLog)) {
+        $debugLog[] = [
+            'reason' => 'no_history_available',
+            'row_count' => count($rows),
+            'history_count' => 0,
+        ];
+    }
         $events = [];
         foreach ($rows as $row) {
-            $locationText = trim((string) ($row['event_location'] ?? ''));
-            if ($locationText === '') {
+            $rawLocation = trim((string) ($row['event_location'] ?? ''));
+            $isGlobalEvent = ($rawLocation === '');
+            $locationText = $rawLocation;
+            $normalized = [
+                'raw_parts' => [],
+                'normalized_parts' => [],
+            ];
+            if ($isGlobalEvent) {
                 if (is_array($debugLog)) {
                     $debugLog[] = [
-                        'reason' => 'missing_location_text',
+                        'reason' => 'global_event_candidate',
                         'discussion_id' => $row['id'] ?? null,
                     ];
                 }
-                continue;
-            }
-            $normalized = nvTimelineNormalizeLocation($locationText);
-            if (empty($normalized['normalized_parts'])) {
-                if (is_array($debugLog)) {
-                    $debugLog[] = [
-                        'reason' => 'location_normalize_empty',
-                        'discussion_id' => $row['id'] ?? null,
-                        'raw_location' => $locationText,
-                    ];
+            } else {
+                $normalized = nvTimelineNormalizeLocation($locationText);
+                if (empty($normalized['normalized_parts'])) {
+                    if (is_array($debugLog)) {
+                        $debugLog[] = [
+                            'reason' => 'location_normalize_empty',
+                            'discussion_id' => $row['id'] ?? null,
+                            'raw_location' => $locationText,
+                        ];
+                    }
+                    continue;
                 }
-                continue;
             }
             $date = null;
             $rawDate = $row['event_date'] ?? null;
@@ -632,37 +646,64 @@ if (!function_exists('nvTimelineFormatName')) {
                     }
                     continue;
                 }
-                foreach ($locationHistory as $segment) {
-                    $segmentStart = $segment['start'] ?? null;
-                    $segmentEnd = $segment['end'] ?? null;
-                    if (!$segmentStart instanceof DateTimeImmutable) {
-                        continue;
+                if ($isGlobalEvent) {
+                    $match = [
+                        'start' => null,
+                        'end' => null,
+                        'location_text' => 'Worldwide',
+                        'normalized' => [],
+                    ];
+                    if (is_array($debugLog)) {
+                        $debugLog[] = [
+                            'reason' => 'global_match',
+                            'discussion_id' => $row['id'] ?? null,
+                            'event_date' => $date->format('Y-m-d H:i:s'),
+                            'event_date_finish' => $endDate instanceof DateTimeImmutable ? $endDate->format('Y-m-d H:i:s') : null,
+                        ];
                     }
-                    if (nvTimelineCompareDates($date, $segmentStart) < 0) {
-                        continue;
-                    }
-                    if ($segmentEnd instanceof DateTimeImmutable && nvTimelineCompareDates($date, $segmentEnd) >= 0) {
-                        continue;
-                    }
-                    if (nvTimelineLocationMatches($segment['normalized'] ?? [], $normalized['normalized_parts'])) {
-                        $match = $segment;
+                } else {
+                    if (!$hasHistory) {
                         if (is_array($debugLog)) {
                             $debugLog[] = [
-                                'reason' => 'matched',
+                                'reason' => 'no_history_for_location_event',
                                 'discussion_id' => $row['id'] ?? null,
                                 'raw_location' => $locationText,
-                                'normalized_location' => $normalized['normalized_parts'],
-                                'event_date' => $date->format('Y-m-d H:i:s'),
-                                'event_date_finish' => $endDate instanceof DateTimeImmutable ? $endDate->format('Y-m-d H:i:s') : null,
-                                'matched_segment' => [
-                                    'start' => $segment['start'] instanceof DateTimeImmutable ? $segment['start']->format('Y-m-d H:i:s') : null,
-                                    'end' => $segment['end'] instanceof DateTimeImmutable ? $segment['end']->format('Y-m-d H:i:s') : null,
-                                    'location_text' => $segment['location_text'] ?? null,
-                                    'normalized' => $segment['normalized'] ?? null,
-                                ],
                             ];
                         }
-                        break;
+                        continue;
+                    }
+                    foreach ($locationHistory as $segment) {
+                        $segmentStart = $segment['start'] ?? null;
+                        $segmentEnd = $segment['end'] ?? null;
+                        if (!$segmentStart instanceof DateTimeImmutable) {
+                            continue;
+                        }
+                        if (nvTimelineCompareDates($date, $segmentStart) < 0) {
+                            continue;
+                        }
+                        if ($segmentEnd instanceof DateTimeImmutable && nvTimelineCompareDates($date, $segmentEnd) >= 0) {
+                            continue;
+                        }
+                        if (nvTimelineLocationMatches($segment['normalized'] ?? [], $normalized['normalized_parts'])) {
+                            $match = $segment;
+                            if (is_array($debugLog)) {
+                                $debugLog[] = [
+                                    'reason' => 'matched',
+                                    'discussion_id' => $row['id'] ?? null,
+                                    'raw_location' => $locationText,
+                                    'normalized_location' => $normalized['normalized_parts'],
+                                    'event_date' => $date->format('Y-m-d H:i:s'),
+                                    'event_date_finish' => $endDate instanceof DateTimeImmutable ? $endDate->format('Y-m-d H:i:s') : null,
+                                    'matched_segment' => [
+                                        'start' => $segment['start'] instanceof DateTimeImmutable ? $segment['start']->format('Y-m-d H:i:s') : null,
+                                        'end' => $segment['end'] instanceof DateTimeImmutable ? $segment['end']->format('Y-m-d H:i:s') : null,
+                                        'location_text' => $segment['location_text'] ?? null,
+                                        'normalized' => $segment['normalized'] ?? null,
+                                    ],
+                                ];
+                            }
+                            break;
+                        }
                     }
                 }
             }
@@ -687,10 +728,14 @@ if (!function_exists('nvTimelineFormatName')) {
             $content = trim((string) ($row['content'] ?? ''));
             $rawImage = nvTimelineExtractFirstImageSrc((string) ($row['content'] ?? ''));
             $locationSummary = $match['location_text'] ?? $locationText;
-            $locationSummary = $locationSummary !== '' ? $locationSummary : $locationText;
+            if ($locationSummary === '' || $isGlobalEvent) {
+                $locationSummary = 'Worldwide';
+            }
             $locationSummaryHtml = htmlspecialchars($locationSummary, ENT_QUOTES, 'UTF-8');
-            $descriptionText = 'This historical event affected ' . $locationSummary . ' and would have impacted on ' . $personName;
-            $descriptionHtml = 'This historical event affected <strong>' . $locationSummaryHtml . '</strong> and would have impacted on ' . htmlspecialchars($personName, ENT_QUOTES, 'UTF-8');
+            $descriptionPlacePlain = $isGlobalEvent ? 'the world' : $locationSummary;
+            $descriptionPlaceHtml = $isGlobalEvent ? htmlspecialchars($descriptionPlacePlain, ENT_QUOTES, 'UTF-8') : $locationSummaryHtml;
+            $descriptionText = 'This historical event affected ' . $descriptionPlacePlain . ' and would have impacted on ' . $personName;
+            $descriptionHtml = 'This historical event affected <strong>' . $descriptionPlaceHtml . '</strong> and would have impacted on ' . htmlspecialchars($personName, ENT_QUOTES, 'UTF-8');
             if ($endDate instanceof DateTimeImmutable) {
                 $endLabel = $endDate->format('j M Y');
                 $descriptionText .= '. It concluded on ' . $endLabel . '.';
@@ -746,9 +791,9 @@ if (!function_exists('nvTimelineFormatName')) {
             }
             $locationSubjectAlt = null;
             if ($locationSubjectAvatar !== '') {
-                $locationSubjectAlt = $locationSummary !== '' ? 'Historical event image for ' . $locationSummary : 'Historical event image';
+                $locationSubjectAlt = 'Historical event image' . ($locationSummary !== '' ? ' for ' . $locationSummary : '');
             } elseif ($locationSubjectIcon !== null) {
-                $locationSubjectAlt = 'Historical event icon';
+                $locationSubjectAlt = $isGlobalEvent ? 'Worldwide historical event' : 'Historical event icon for ' . $locationSummary;
             }
             $events[] = [
                 'id' => 'nv-location-discussion-' . $discussionId,
