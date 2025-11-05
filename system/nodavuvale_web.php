@@ -16,6 +16,17 @@ class Web {
     public static function startSession() {
         if (session_status() == PHP_SESSION_NONE) {
             session_name('nodavuvale_app_session');
+
+            $lifetime = 86400; // 24 hours
+            session_set_cookie_params([
+                'lifetime' => $lifetime,
+                'path'     => '/',
+                'secure'   => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+            ini_set('session.gc_maxlifetime', (string) $lifetime);
+
             session_start();
         }
     }

@@ -348,14 +348,14 @@ function getCommentsForDiscussion($discussion_id) {
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-8 text-sm text-gray-500">
                             <div class="p-2 text-center">
-                                <label for="is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                <label for="is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center discussion-toggle-label">
                                     <input type="checkbox" id="is_event" name="is_event" class="mr-2">
                                     <span class='block sm:hidden'>Family</span>
                                     <span class='hidden sm:block'>This is a Family Event</span>
                                 </label>
                             </div>
                             <div class="p-2 text-center">
-                                <label for="is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                                <label for="is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center discussion-toggle-label">
                                     <input type="checkbox" id="is_historical_event" name="is_historical_event" class="mr-2">
                                     <span class='block sm:hidden'>History</span>
                                     <span class='hidden sm:block'>This is a Historical Event</span>
@@ -456,14 +456,14 @@ function getCommentsForDiscussion($discussion_id) {
                 </div>                
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-500">
                     <div class="p-2 text-center">
-                        <label for="discussion_edit_is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                        <label for="discussion_edit_is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center discussion-toggle-label">
                             <input type="checkbox" id="discussion_edit_is_event" name="discussion_edit_is_event" class="mr-2">
                             <span class='block sm:hidden'>Family</span>
                             <span class='hidden sm:block'>This is a Family Event</span>
                         </label>
                     </div>
                     <div class="p-2 text-center">
-                        <label for="discussion_edit_is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
+                        <label for="discussion_edit_is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center discussion-toggle-label">
                             <input type="checkbox" id="discussion_edit_is_historical_event" name="discussion_edit_is_historical_event" class="mr-2">
                             <span class='block sm:hidden'>History</span>
                             <span class='hidden sm:block'>This is a Historical Event</span>

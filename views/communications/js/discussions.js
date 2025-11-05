@@ -242,6 +242,37 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     toggleEditEventFields();
 
+    var touchToggleLabels = document.querySelectorAll('.discussion-toggle-label');
+    touchToggleLabels.forEach(function (label) {
+        label.addEventListener('touchstart', function (event) {
+            var target = event.target;
+            if (target && target.tagName && target.tagName.toLowerCase() === 'input') {
+                return;
+            }
+            var input = label.querySelector('input[type="checkbox"]');
+            if (!input) {
+                return;
+            }
+            if (event.cancelable) {
+                event.preventDefault();
+            }
+            input.checked = !input.checked;
+            var changeEvent;
+            try {
+                changeEvent = new Event('change', { bubbles: true });
+            } catch (err) {
+                changeEvent = document.createEvent('Event');
+                changeEvent.initEvent('change', true, true);
+            }
+            input.dispatchEvent(changeEvent);
+            if (typeof toggleNewEventFields === 'function' && (input.id === 'is_event' || input.id === 'is_historical_event')) {
+                toggleNewEventFields();
+            } else if (typeof toggleEditEventFields === 'function' && (input.id === 'discussion_edit_is_event' || input.id === 'discussion_edit_is_historical_event')) {
+                toggleEditEventFields();
+            }
+        }, { passive: false });
+    });
+
     reactionButtons.forEach(button => {
         button.addEventListener('click', function () {
             const reaction = this.getAttribute('data-reaction');

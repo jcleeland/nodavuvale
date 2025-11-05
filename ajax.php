@@ -13,10 +13,6 @@
  */
 require 'vendor/autoload.php';
 
-// Load required files
-session_name('nodavuvale_app_session');
-session_start();
-
 /** 
  * Include the configuration files
  */
@@ -43,6 +39,8 @@ spl_autoload_register(function($class) use ($classMap) {
         require_once $classMap[$class];
     }
 });
+
+Web::startSession();
 
 
 // Instantiate the necessary objects

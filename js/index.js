@@ -124,6 +124,18 @@ function showCustomPrompt(title, message, inputs, values, callback) {
     var customPromptClose = document.getElementById('customPromptClose');
     var customPromptOk = document.getElementById('customPromptOk');
 
+    function cleanupEditors() {
+        if (typeof tinymce !== 'undefined' && tinymce.editors) {
+            tinymce.editors
+                .filter(function (editor) {
+                    return editor.id && editor.id.indexOf('customPromptInput') === 0;
+                })
+                .forEach(function (editor) {
+                    editor.remove();
+                });
+        }
+    }
+
     customPromptTitle.textContent = title;
     customPromptMessage.innerHTML = message;
     customPromptInputs.innerHTML = ''; // Clear previous inputs
@@ -482,15 +494,20 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     customPromptClose.onclick = function() {
         customPrompt.classList.remove('show');
+        cleanupEditors();
         callback(null);
     };
 
     customPromptCancel.onclick = function() {
         customPrompt.classList.remove('show');
+        cleanupEditors();
         callback(null);
     };
 
     customPromptOk.onclick = function() {
+        if (typeof tinymce !== 'undefined' && tinymce.editors && tinymce.editors.length > 0) {
+            tinymce.triggerSave();
+        }
         customPrompt.classList.remove('show');
         console.log('Inputs:');
         console.log(inputs);
@@ -505,6 +522,7 @@ function showCustomPrompt(title, message, inputs, values, callback) {
             return inputElement.value;
         });
         console.log('Returning input values:', inputValues);
+        cleanupEditors();
         callback(inputValues);
     };
 

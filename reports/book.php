@@ -1,7 +1,4 @@
 <?php
-session_name('nodavuvale_app_session');
-session_start();
-
 require_once __DIR__ . '/../system/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../system/nodavuvale_database.php';
@@ -9,6 +6,8 @@ require_once __DIR__ . '/../system/nodavuvale_auth.php';
 require_once __DIR__ . '/../system/nodavuvale_web.php';
 require_once __DIR__ . '/../system/nodavuvale_utils.php';
 require_once __DIR__ . '/../vendor/simplepdf/SimplePDF.php';
+
+Web::startSession();
 
 $db = Database::getInstance();
 $auth = new Auth($db);

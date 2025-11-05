@@ -8,10 +8,6 @@
  * 
  * This software is provided as-is, without any warranty or guarantee of any kind.
  */
-session_name('nodavuvale_app_session');
-//session_name('NODAVUVALESESSID');
-session_start();
-
 /**
  * Include the NodaVuvale classes.
  * 
@@ -45,6 +41,8 @@ spl_autoload_register(function($class) use ($classMap) {
         require_once $classMap[$class];
     }
 });
+
+Web::startSession();
 
 // Instantiate the necessary objects
 $db = Database::getInstance();
@@ -149,7 +147,8 @@ if (file_exists($pagePath)) {
     //check if the .js file exists
     $jsload=null;
     if (file_exists($jspath)) {
-        echo '<script src="'. $jspath . '"></script>';
+        $jsVersion = filemtime($jspath);
+        echo '<script src="'. $jspath . '?v=' . $jsVersion . '"></script>';
     }
     include($pagePath);
 
