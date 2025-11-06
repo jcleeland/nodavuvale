@@ -38,7 +38,7 @@ if ($isIndividualPage) {
     <script src="js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
     
     <!-- Link to main js file -->
-    <script src="js/index.js?v=2"></script>
+    <script src="js/index.js?v=3"></script>
 
     <!-- Link to dTree JavaScript -->
     <script src="vendor/lodash/lodash.js"></script>

@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
         }
 
 
-        ?>
         // Reload the page to show the new item and stop the form resubmission
+        ?>
         <script>
             window.location.href = window.location.href;
         </script>

@@ -1493,6 +1493,46 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         .nv-timeline-scroll {
             backdrop-filter: blur(6px);
         }
+        .nv-timeline-filters {
+            gap: 0.75rem;
+        }
+        .nv-timeline-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.9rem;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(255, 255, 255, 0.72);
+            color: #475569;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 18px -16px rgba(15, 118, 110, 0.4);
+        }
+        .nv-timeline-filter:hover {
+            border-color: rgba(14, 116, 144, 0.45);
+            box-shadow: 0 12px 30px -14px rgba(14, 165, 233, 0.35);
+        }
+        .nv-timeline-filter:focus-visible {
+            outline: 2px solid rgba(14, 165, 233, 0.45);
+            outline-offset: 2px;
+        }
+        .nv-timeline-filter-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            line-height: 1;
+        }
+        .nv-timeline-filter-active {
+            border-color: rgba(15, 118, 110, 0.65);
+            background: linear-gradient(135deg, rgba(15, 118, 110, 0.18), rgba(14, 165, 233, 0.18));
+            color: #1e293b;
+            box-shadow: 0 20px 38px -22px rgba(14, 165, 233, 0.55);
+        }
+        .nv-timeline-filter-active .nv-timeline-filter-icon {
+            filter: drop-shadow(0 6px 14px rgba(14, 165, 233, 0.35));
+        }
         .nv-timeline-wrapper {
             position: relative;
             padding: 4rem 6rem;
@@ -1954,19 +1994,43 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                 <?= htmlspecialchars($personName, ENT_QUOTES) ?>
             </p>
         </div>
-        <div class="flex flex-wrap items-center gap-6 text-sm text-slate-600">
-            <label class="flex items-center gap-2 font-medium">
-                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 nv-timeline-toggle" data-timeline-toggle="family" checked>
-                Include other family members
-            </label>
-            <label class="flex items-center gap-2 font-medium">
-                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 nv-timeline-toggle" data-timeline-toggle="location" <?= $locationEventsVisibleByDefault ? 'checked' : '' ?>>
-                Include location events
-            </label>
-            <label class="flex items-center gap-2 font-medium">
-                <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 nv-timeline-toggle" data-timeline-toggle="facts" <?= $factsVisibleByDefault ? 'checked' : '' ?>>
-                Include Facts &amp; Events
-            </label>
+        <div class="nv-timeline-filters flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <button
+                type="button"
+                class="nv-timeline-filter nv-timeline-filter-active"
+                data-timeline-toggle="family"
+                data-active="true"
+                aria-pressed="true"
+                aria-label="Include other family members"
+                title="Toggle family events"
+            >
+                <span class="nv-timeline-filter-icon text-emerald-600"><i class="fa-solid fa-people-group"></i></span>
+                <span class="nv-timeline-filter-label hidden sm:block">Family</span>
+            </button>
+            <button
+                type="button"
+                class="nv-timeline-filter<?= $locationEventsVisibleByDefault ? ' nv-timeline-filter-active' : '' ?>"
+                data-timeline-toggle="location"
+                data-active="<?= $locationEventsVisibleByDefault ? 'true' : 'false' ?>"
+                aria-pressed="<?= $locationEventsVisibleByDefault ? 'true' : 'false' ?>"
+                aria-label="Include location events"
+                title="Toggle location events"
+            >
+                <span class="nv-timeline-filter-icon text-indigo-600"><i class="fa-solid fa-location-dot"></i></span>
+                <span class="nv-timeline-filter-label hidden sm:block">Locations</span>
+            </button>
+            <button
+                type="button"
+                class="nv-timeline-filter<?= $factsVisibleByDefault ? ' nv-timeline-filter-active' : '' ?>"
+                data-timeline-toggle="facts"
+                data-active="<?= $factsVisibleByDefault ? 'true' : 'false' ?>"
+                aria-pressed="<?= $factsVisibleByDefault ? 'true' : 'false' ?>"
+                aria-label="Include facts and events"
+                title="Toggle recorded facts and events"
+            >
+                <span class="nv-timeline-filter-icon text-amber-600"><i class="fa-solid fa-scroll"></i></span>
+                <span class="nv-timeline-filter-label hidden sm:block">Facts &amp; Events</span>
+            </button>
         </div>
     </div>
     <div class="nv-timeline-scroll overflow-y-auto rounded-2xl bg-white/80 p-2 shadow-xl ring-1 ring-slate-100" style="max-height: 72vh;">
@@ -2151,25 +2215,34 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         scrollToEarliestVisible();
         requestAnimationFrame(scrollToEarliestVisible);
         setTimeout(scrollToEarliestVisible, 200);
-        const toggles = root.querySelectorAll('.nv-timeline-toggle');
-        toggles.forEach((toggle) => {
-            const applyState = () => {
-                const category = toggle.getAttribute('data-timeline-toggle');
-                if (!category) {
-                    return;
-                }
-                const visible = toggle.checked;
-                root.querySelectorAll('.nv-timeline-event[data-category="' + category + '"]').forEach((event) => {
-                    event.style.opacity = visible ? '1' : '0';
-                    event.style.pointerEvents = visible ? 'auto' : 'none';
-                    event.style.visibility = visible ? 'visible' : 'hidden';
-                    event.setAttribute('aria-hidden', visible ? 'false' : 'true');
-                });
-                requestAnimationFrame(scrollToEarliestVisible);
-            };
-                toggle.addEventListener('change', applyState);
-                applyState();
+        const toggles = root.querySelectorAll('.nv-timeline-filter');
+        const applyToggleState = (toggle, announce = true) => {
+            const category = toggle.getAttribute('data-timeline-toggle');
+            if (!category) {
+                return;
+            }
+            const active = toggle.getAttribute('data-active') === 'true';
+            toggle.classList.toggle('nv-timeline-filter-active', active);
+            toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+            root.querySelectorAll('.nv-timeline-event[data-category="' + category + '"]').forEach((event) => {
+                event.style.opacity = active ? '1' : '0';
+                event.style.pointerEvents = active ? 'auto' : 'none';
+                event.style.visibility = active ? 'visible' : 'hidden';
+                event.setAttribute('aria-hidden', active ? 'false' : 'true');
             });
+            if (announce) {
+                requestAnimationFrame(scrollToEarliestVisible);
+            }
+        };
+        toggles.forEach((toggle) => {
+            toggle.addEventListener('click', () => {
+                const nextState = toggle.getAttribute('data-active') !== 'true';
+                toggle.setAttribute('data-active', nextState ? 'true' : 'false');
+                applyToggleState(toggle);
+            });
+            applyToggleState(toggle, false);
+        });
+        requestAnimationFrame(scrollToEarliestVisible);
         const setupDiscussionToggles = () => {
             root.querySelectorAll('[data-toggle-discussion]').forEach((button) => {
                 button.addEventListener('click', () => {

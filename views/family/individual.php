@@ -183,24 +183,24 @@ if ($individual_id) {
     $documents = Utils::getFiles($individual_id, 'document');
 
     // Fetch this line of descendancy
-$rootIndividualId = Web::getRootId();
-$descendancy = Utils::getLineOfDescendancy($rootIndividualId, $individual_id);  
+    $rootIndividualId = Web::getRootId();
+    $descendancy = Utils::getLineOfDescendancy($rootIndividualId, $individual_id);  
 
 
-$viewerIndividualId = isset($_SESSION['individuals_id']) ? (int) $_SESSION['individuals_id'] : 0;
-$userdescendancy = [];
-if($viewerIndividualId) {
-    $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
-    $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
-    //Fetch the users line of descendancy
-    $userdescendancy=Utils::getLineOfDescendancy($rootIndividualId, $_SESSION['individuals_id']);
-    if(!is_array($userdescendancy)) {
-        $userdescendancy=[];
+    $viewerIndividualId = isset($_SESSION['individuals_id']) ? (int) $_SESSION['individuals_id'] : 0;
+    $userdescendancy = [];
+    if($viewerIndividualId) {
+        $commonAncestor=Utils::getCommonAncestor($_SESSION['individuals_id'], $individual_id);
+        $relationshipLabel=Utils::getRelationshipLabel($_SESSION['individuals_id'], $individual_id);
+        //Fetch the users line of descendancy
+        $userdescendancy=Utils::getLineOfDescendancy($rootIndividualId, $_SESSION['individuals_id']);
+        if(!is_array($userdescendancy)) {
+            $userdescendancy=[];
+        }
+    } else {
+        $commonAncestor=[];
+        $relationshipLabel="";
     }
-} else {
-    $commonAncestor=[];
-    $relationshipLabel="";
-}
 
     //Find out if the user is a direct descendant of this individual
     $userdescendant=false;
@@ -260,10 +260,6 @@ if($viewerIndividualId) {
         $deathdate= "";
     }    
 }
-
-
-
-
 
 ?>
 <input type='hidden' id='individual_brief_name' value='<?= $individual['fullname'] ?>' />
@@ -568,10 +564,6 @@ $descendancyHasData = !empty($descendancy);
     </section>
 </div>
 
-
-
-
-
 <div class="tab-content" id="storiestab">
     <?php if($is_deceased || (isset($user['user_id']) && $_SESSION['user_id'] == $user['user_id'])) { ?>
     <?php 
@@ -828,7 +820,7 @@ $descendancyHasData = !empty($descendancy);
     </section>
     <?php } ?>
 
-    </div>
+</div>
 
 <div class="tab-content" id="eventstab">
 
@@ -1055,15 +1047,11 @@ $descendancyHasData = !empty($descendancy);
     </section>    
 </div>
 
-
-
 <div class="tab-content active" id="timelinetab">
     <section class="container mx-auto ">
         <?php include __DIR__ . '/timeline.php'; ?>
     </section>
 </div>
-
-
 
 <div class="tab-content" id="relationshipstab">
     <section class="container mx-auto ">
@@ -1182,8 +1170,6 @@ $descendancyHasData = !empty($descendancy);
         </div>
     </section>
 </div>
-
-
 
 <div class="tab-content" id="mediatab">
     <section class="container mx-auto ">    

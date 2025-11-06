@@ -492,26 +492,12 @@ function showCustomPrompt(title, message, inputs, values, callback) {
 
     customPrompt.classList.add('show');
 
-    customPromptClose.onclick = function() {
-        customPrompt.classList.remove('show');
-        cleanupEditors();
-        callback(null);
-    };
+    var promptHandled = false;
 
-    customPromptCancel.onclick = function() {
-        customPrompt.classList.remove('show');
-        cleanupEditors();
-        callback(null);
-    };
-
-    customPromptOk.onclick = function() {
-        if (typeof tinymce !== 'undefined' && tinymce.editors && tinymce.editors.length > 0) {
-            tinymce.triggerSave();
-        }
-        customPrompt.classList.remove('show');
+    function gatherPromptValues() {
         console.log('Inputs:');
         console.log(inputs);
-        var inputValues = inputs.map((input, index) => {
+        return inputs.map((input, index) => {
             var inputElement = document.getElementById('customPromptInput' + index);
             console.log('Inspecting input element:', input);
             //if the last 4 characters of the input string are 'file' then return the file object
@@ -521,10 +507,52 @@ function showCustomPrompt(title, message, inputs, values, callback) {
             }
             return inputElement.value;
         });
-        console.log('Returning input values:', inputValues);
+    }
+
+    function closePrompt(result) {
+        customPrompt.classList.remove('show');
         cleanupEditors();
-        callback(inputValues);
-    };
+        callback(result);
+    }
+
+    function handlePromptOk(event) {
+        if (promptHandled) {
+            if (event && event.type === 'touchstart' && event.cancelable) {
+                event.preventDefault();
+            }
+            return;
+        }
+        promptHandled = true;
+        if (event && event.type === 'touchstart' && event.cancelable) {
+            event.preventDefault();
+        }
+        if (typeof tinymce !== 'undefined' && tinymce.editors && tinymce.editors.length > 0) {
+            tinymce.triggerSave();
+        }
+        var inputValues = gatherPromptValues();
+        console.log('Returning input values:', inputValues);
+        closePrompt(inputValues);
+    }
+
+    function handlePromptCancel(event) {
+        if (promptHandled && event && event.type === 'touchstart') {
+            event.preventDefault();
+            return;
+        }
+        promptHandled = true;
+        if (event && event.type === 'touchstart' && event.cancelable) {
+            event.preventDefault();
+        }
+        closePrompt(null);
+    }
+
+    customPromptClose.onclick = handlePromptCancel;
+    customPromptCancel.onclick = handlePromptCancel;
+    customPromptOk.onclick = handlePromptOk;
+
+    customPromptClose.ontouchstart = handlePromptCancel;
+    customPromptCancel.ontouchstart = handlePromptCancel;
+    customPromptOk.ontouchstart = handlePromptOk;
 
     // Handle Enter key for submission
     customPromptInputs.onkeydown = function(event) {
@@ -803,3 +831,5 @@ function editUserField(fieldname, description, userId, event) {
         }
     );
 }
+
+
