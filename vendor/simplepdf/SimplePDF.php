@@ -94,6 +94,7 @@ class SimplePDF
             ['family' => 'DejaVu Sans', 'style' => '', 'file' => $fontDir . '/DejaVuSans.ttf', 'mono' => false],
             ['family' => 'DejaVu Sans', 'style' => 'B', 'file' => $fontDir . '/DejaVuSans-Bold.ttf', 'mono' => false],
             ['family' => 'DejaVu Sans Mono', 'style' => '', 'file' => $fontDir . '/DejaVuSansMono.ttf', 'mono' => true],
+            ['family' => 'Font Awesome 6 Free', 'style' => '', 'file' => $fontDir . '/fa-solid-900.ttf', 'mono' => false],
         ];
 
         foreach ($bundled as $bundle) {
@@ -418,6 +419,81 @@ class SimplePDF
         );
 
         $this->textColorDirty = true;
+    }
+
+    public function RoundedRect(
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+        float $radius = 3.0,
+        ?array $strokeColor = null,
+        float $strokeWidth = 0.4,
+        ?array $fillColor = null
+    ): void {
+        if ($width <= 0.0 || $height <= 0.0) {
+            return;
+        }
+        if ($this->currentPage === 0) {
+            $this->AddPage();
+        }
+
+        $radius = max(0.0, min($radius, min($width, $height) / 2.0));
+        $k = self::K;
+        $left = $x * $k;
+        $right = ($x + $width) * $k;
+        $top = ($this->pageHeight - $y) * $k;
+        $bottom = ($this->pageHeight - $y - $height) * $k;
+        $r = $radius * $k;
+        $c = $r * 0.5522847498;
+
+        $path = sprintf("%.3F %.3F m ", $left + $r, $top);
+        $path .= sprintf("%.3F %.3F l ", $right - $r, $top);
+        $path .= sprintf("%.3F %.3F %.3F %.3F %.3F %.3F c ", $right - $r + $c, $top, $right, $top - $r + $c, $right, $top - $r);
+        $path .= sprintf("%.3F %.3F l ", $right, $bottom + $r);
+        $path .= sprintf("%.3F %.3F %.3F %.3F %.3F %.3F c ", $right, $bottom + $r - $c, $right - $r + $c, $bottom, $right - $r, $bottom);
+        $path .= sprintf("%.3F %.3F l ", $left + $r, $bottom);
+        $path .= sprintf("%.3F %.3F %.3F %.3F %.3F %.3F c ", $left + $r - $c, $bottom, $left, $bottom + $r - $c, $left, $bottom + $r);
+        $path .= sprintf("%.3F %.3F l ", $left, $top - $r);
+        $path .= sprintf("%.3F %.3F %.3F %.3F %.3F %.3F c ", $left, $top - $r + $c, $left + $r - $c, $top, $left + $r, $top);
+        $path .= "h\n";
+
+        $cmd = "q ";
+
+        if (is_array($fillColor) && count($fillColor) === 3) {
+            $fill = [
+                max(0.0, min(1.0, (int) $fillColor[0] / 255)),
+                max(0.0, min(1.0, (int) $fillColor[1] / 255)),
+                max(0.0, min(1.0, (int) $fillColor[2] / 255)),
+            ];
+            $cmd .= sprintf("%.3F %.3F %.3F rg ", $fill[0], $fill[1], $fill[2]);
+        } else {
+            $fill = null;
+        }
+
+        if (is_array($strokeColor) && count($strokeColor) === 3) {
+            $stroke = [
+                max(0.0, min(1.0, (int) $strokeColor[0] / 255)),
+                max(0.0, min(1.0, (int) $strokeColor[1] / 255)),
+                max(0.0, min(1.0, (int) $strokeColor[2] / 255)),
+            ];
+        } else {
+            $stroke = $this->textColor;
+        }
+
+        $strokeWidth = max(0.01, $strokeWidth);
+        $cmd .= sprintf("%.3F %.3F %.3F RG %.3F w ", $stroke[0], $stroke[1], $stroke[2], $strokeWidth * self::K);
+
+        if ($fill !== null && $stroke !== null) {
+            $operator = 'B';
+        } elseif ($fill !== null) {
+            $operator = 'f';
+        } else {
+            $operator = 'S';
+        }
+
+        $cmd .= $path . $operator . "\nQ\n";
+        $this->pages[$this->currentPage]['content'] .= $cmd;
     }
 
     public function GetPageHeight(): float
