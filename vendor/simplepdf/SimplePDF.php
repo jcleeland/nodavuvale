@@ -673,8 +673,9 @@ class SimplePDF
         }
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if (in_array($extension, ['jpg', 'jpeg'], true)) {
-            $this->imageCache[$path] = $path;
-            return $path;
+            $corrected = $this->correctJpegOrientation($path);
+            $this->imageCache[$path] = $corrected;
+            return $corrected;
         }
         $imageContent = @file_get_contents($path);
         if ($imageContent === false || !function_exists('imagecreatefromstring')) {
@@ -697,6 +698,117 @@ class SimplePDF
         imagedestroy($resource);
         $this->tempImages[] = $tempFile;
         $this->imageCache[$path] = $tempFile;
+        return $tempFile;
+    }
+
+    private function correctJpegOrientation(string $path): string
+    {
+        if (!function_exists('exif_read_data') || !function_exists('imagecreatefromjpeg')) {
+            return $path;
+        }
+        $exif = @exif_read_data($path);
+        if ($exif === false) {
+            return $path;
+        }
+        $orientation = (int) ($exif['Orientation'] ?? 1);
+        if ($orientation === 1) {
+            return $path;
+        }
+        $resource = @imagecreatefromjpeg($path);
+        if (!$resource) {
+            return $path;
+        }
+        $transformed = false;
+        $canFlip = function_exists('imageflip');
+        switch ($orientation) {
+            case 2:
+                if ($canFlip) {
+                    imageflip($resource, defined('IMG_FLIP_HORIZONTAL') ? IMG_FLIP_HORIZONTAL : 1);
+                    $transformed = true;
+                }
+                break;
+            case 3:
+                if (function_exists('imagerotate')) {
+                    $rotated = imagerotate($resource, 180, 0);
+                    if ($rotated !== false) {
+                        imagedestroy($resource);
+                        $resource = $rotated;
+                        $transformed = true;
+                    }
+                }
+                break;
+            case 4:
+                if ($canFlip) {
+                    imageflip($resource, defined('IMG_FLIP_VERTICAL') ? IMG_FLIP_VERTICAL : 2);
+                    $transformed = true;
+                }
+                break;
+            case 5:
+                if ($canFlip) {
+                    imageflip($resource, defined('IMG_FLIP_HORIZONTAL') ? IMG_FLIP_HORIZONTAL : 1);
+                    $transformed = true;
+                }
+                if (function_exists('imagerotate')) {
+                    $rotated = imagerotate($resource, -90, 0);
+                    if ($rotated !== false) {
+                        imagedestroy($resource);
+                        $resource = $rotated;
+                        $transformed = true;
+                    }
+                }
+                break;
+            case 6:
+                if (function_exists('imagerotate')) {
+                    $rotated = imagerotate($resource, -90, 0);
+                    if ($rotated !== false) {
+                        imagedestroy($resource);
+                        $resource = $rotated;
+                        $transformed = true;
+                    }
+                }
+                break;
+            case 7:
+                if ($canFlip) {
+                    imageflip($resource, defined('IMG_FLIP_HORIZONTAL') ? IMG_FLIP_HORIZONTAL : 1);
+                    $transformed = true;
+                }
+                if (function_exists('imagerotate')) {
+                    $rotated = imagerotate($resource, 90, 0);
+                    if ($rotated !== false) {
+                        imagedestroy($resource);
+                        $resource = $rotated;
+                        $transformed = true;
+                    }
+                }
+                break;
+            case 8:
+                if (function_exists('imagerotate')) {
+                    $rotated = imagerotate($resource, 90, 0);
+                    if ($rotated !== false) {
+                        imagedestroy($resource);
+                        $resource = $rotated;
+                        $transformed = true;
+                    }
+                }
+                break;
+        }
+        if (!$transformed) {
+            imagedestroy($resource);
+            return $path;
+        }
+        $tempFile = tempnam(sys_get_temp_dir(), 'nvpdf_orient_');
+        if ($tempFile === false) {
+            imagedestroy($resource);
+            return $path;
+        }
+        $tempFile .= '.jpg';
+        if (!imagejpeg($resource, $tempFile, 90)) {
+            imagedestroy($resource);
+            @unlink($tempFile);
+            return $path;
+        }
+        imagedestroy($resource);
+        $this->tempImages[] = $tempFile;
         return $tempFile;
     }
 

@@ -605,6 +605,9 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
 
     $facts = summariseFacts($bundle['facts']);
     if (!empty($facts)) {
+        $headingReserve = 4.0 + 10.0 + 12.0;
+        $previewHeight = max(18.0, estimateFactPreviewHeight($pdf, $facts));
+        ensureSectionSpace($pdf, $headingReserve + $previewHeight);
         $pdf->Ln(4);
         $pdf->SetFont('Helvetica', 'B', 16);
         $pdf->Cell(0, 10, 'Facts & Events', 1, 'L');
@@ -647,30 +650,43 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
 
     $stories = summariseStories($bundle['stories']);
     if (!empty($stories)) {
+        $storyColumnWidth = 110.0;
+        $headingReserve = 4.0 + 10.0 + 12.0;
+        $storyPreview = max(18.0, estimateStoryPreviewHeight($pdf, $stories, $storyColumnWidth));
+        ensureSectionSpace($pdf, $headingReserve + $storyPreview);
         $pdf->Ln(4);
         $pdf->SetFont('Helvetica', 'B', 16);
         $pdf->Cell(0, 10, 'Stories', 1, 'L');
         $pdf->Ln(12);
         $leftMargin = $pdf->GetLeftMargin();
+        $narrowWidth = $storyColumnWidth; // keep stories readable like typed pages
         foreach ($stories as $story) {
             $titleText = trim((string) ($story['title'] ?? ''));
             $contentText = trim((string) ($story['content'] ?? ''));
 
             if ($titleText !== '') {
-                $pdf->SetFont('Courier', 'B', 11);
-                pdfSetX($pdf, $leftMargin + 3.0);
-                $pdf->MultiCell(0, 5.5, $titleText);
+                $pdf->SetFont('Courier', 'B', 10);
+                $indent = 10.0;
+                $titleWidth = min(
+                    $narrowWidth,
+                    $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - $indent
+                );
+                pdfSetX($pdf, $leftMargin + $indent);
+                $pdf->MultiCell($titleWidth, 5.0, $titleText);
             }
 
             if ($contentText !== '') {
                 if ($titleText !== '') {
                     $pdf->Ln(1.5);
                 }
-                $pdf->SetFont('Courier', '', 10);
-                $indent = 6.0;
-                $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - $indent;
+                $pdf->SetFont('Courier', '', 9);
+                $indent = 12.0;
+                $usableWidth = min(
+                    $narrowWidth,
+                    $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - $indent
+                );
                 pdfSetX($pdf, $leftMargin + $indent);
-                $pdf->MultiCell($usableWidth, 5.0, $contentText);
+                $pdf->MultiCell($usableWidth, 4.5, $contentText);
             }
 
             $pdf->Ln(3);
@@ -679,6 +695,9 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
 
     $photos = filterPhotos($bundle['photos'] ?? [], $bundle['key_image'] ?? null);
     if (!empty($photos)) {
+        $headingReserve = 2.0 + 10.0 + 12.0;
+        $photoPreview = max(30.0, estimatePhotoPreviewHeight($pdf, $photos));
+        ensureSectionSpace($pdf, $headingReserve + $photoPreview);
         $pdf->Ln(2);
         $pdf->SetFont('Helvetica', 'B', 16);
         $pdf->Cell(0, 10, 'Photos', 1, 'L');
@@ -1304,6 +1323,105 @@ function filterPhotos(array $photos, ?string $keyImagePath = null): array
     }
 
     return $filtered;
+}
+
+function ensureSectionSpace(SimplePDF $pdf, float $minHeight): void
+{
+    $minHeight = max(0.0, $minHeight);
+    if ($minHeight <= 0.0) {
+        return;
+    }
+    $currentY = $pdf->GetY();
+    $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
+    if ($currentY + $minHeight > $pageBottom) {
+        $pdf->AddPage();
+    }
+}
+
+function estimateFactPreviewHeight(SimplePDF $pdf, array $facts): float
+{
+    foreach ($facts as $fact) {
+        $title = trim((string) ($fact['title'] ?? ''));
+        $detail = trim((string) ($fact['detail'] ?? ''));
+        $urls = $fact['urls'] ?? [];
+        if ($title === '' && $detail === '' && empty($urls)) {
+            continue;
+        }
+        $height = 6.0; // title line
+        if ($detail !== '') {
+            $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - 5.0;
+            $height += estimateMultiCellHeight($pdf, $usableWidth, 5.5, $detail);
+        }
+        if (is_array($urls) && !empty($urls)) {
+            $height += min(2, count($urls)) * 5.5;
+        }
+        return $height + 2.0;
+    }
+    return 0.0;
+}
+
+function estimateStoryPreviewHeight(SimplePDF $pdf, array $stories, float $columnWidth): float
+{
+    foreach ($stories as $story) {
+        $title = trim((string) ($story['title'] ?? ''));
+        $content = trim((string) ($story['content'] ?? ''));
+        if ($title === '' && $content === '') {
+            continue;
+        }
+        $height = 0.0;
+        if ($title !== '') {
+            $height += 5.0;
+        }
+        if ($title !== '' && $content !== '') {
+            $height += 1.5;
+        }
+        if ($content !== '') {
+            $indent = 12.0;
+            $usableWidth = min(
+                $columnWidth,
+                $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin() - $indent
+            );
+            $height += estimateMultiCellHeight($pdf, $usableWidth, 4.5, $content);
+        }
+        return $height + 3.0;
+    }
+    return 0.0;
+}
+
+function estimatePhotoPreviewHeight(SimplePDF $pdf, array $photos): float
+{
+    if (empty($photos)) {
+        return 0.0;
+    }
+    $perRow = 2;
+    $targetWidth = 70.0;
+    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+    if ($usableWidth < ($targetWidth * $perRow)) {
+        $perRow = 1;
+        $targetWidth = min($targetWidth, $usableWidth);
+    }
+    $contentHeight = $pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin();
+    $maxContentHeight = max(10.0, $contentHeight * 0.2);
+    $rowHeight = 0.0;
+    $lineHeight = 4.5;
+    $sampleCount = min($perRow, count($photos));
+    for ($i = 0; $i < $sampleCount; $i++) {
+        $photo = $photos[$i];
+        $imagePath = preparePdfImagePath($photo['file_path'] ?? null);
+        if ($imagePath !== null) {
+            [$width, $height] = computeImageBoxWithMaxes($imagePath, $targetWidth, $maxContentHeight);
+        } else {
+            $width = $targetWidth;
+            $height = $maxContentHeight * 0.75;
+        }
+        $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
+        $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $width, $lineHeight, $caption) + 4.0 : 0.0;
+        $rowHeight = max($rowHeight, $height + $captionHeight);
+    }
+    if ($rowHeight <= 0.0) {
+        $rowHeight = $maxContentHeight;
+    }
+    return $rowHeight;
 }
 
 function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = null): void
