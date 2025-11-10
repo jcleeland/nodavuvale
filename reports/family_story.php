@@ -83,6 +83,7 @@ $simpleIndex = [
     'generations' => [],
     'appendix_page' => null,
 ];
+$includeSpousePages = $type === 'descendants';
 
 createCoverPage($pdf, $rootBundle, $bookLabel, $siteName, $type);
 // Insert a blank page between the cover and the index
@@ -95,6 +96,7 @@ $rootChapter = renderIndividualPage($pdf, $rootBundle, 'Overview', null, '', [
     'line_colors' => [],
     'direct_parent_map' => [],
     'render_guard' => [],
+    'suppress_spouse_pages' => !$includeSpousePages,
 ]);
 $rootPageNumber = $rootChapter['page'] ?? null;
 if ($rootPageNumber !== null) {
@@ -110,7 +112,7 @@ if ($rootPageNumber !== null) {
         'page' => $rootPageNumber,
     ];
 }
-if (!empty($rootChapter['spouses'])) {
+if ($includeSpousePages && !empty($rootChapter['spouses'])) {
     foreach ($rootChapter['spouses'] as $spouseChapter) {
         $spouseId = (int) ($spouseChapter['id'] ?? 0);
         $spousePage = $spouseChapter['page'] ?? null;
@@ -199,6 +201,7 @@ if ($type === 'descendants') {
                         'line_colors' => $lineColorMap,
                         'direct_parent_map' => $directParentMap,
                         'render_guard' => [],
+                        'suppress_spouse_pages' => !$includeSpousePages,
                     ]
                 );
                 $pageNumber = $chapter['page'] ?? null;
@@ -213,23 +216,25 @@ if ($type === 'descendants') {
                         'relationship' => $relationship,
                     ];
                 }
-                foreach ($chapter['spouses'] ?? [] as $spouseChapter) {
-                    $spouseId = (int) ($spouseChapter['id'] ?? 0);
-                    $spousePage = $spouseChapter['page'] ?? null;
-                    if ($spouseId <= 0 || $spousePage === null) {
-                        continue;
+                if ($includeSpousePages) {
+                    foreach ($chapter['spouses'] ?? [] as $spouseChapter) {
+                        $spouseId = (int) ($spouseChapter['id'] ?? 0);
+                        $spousePage = $spouseChapter['page'] ?? null;
+                        if ($spouseId <= 0 || $spousePage === null) {
+                            continue;
+                        }
+                        if (isset($indexEntries[$spouseId])) {
+                            continue;
+                        }
+                        $spouseName = trim((string) ($spouseChapter['name'] ?? 'Spouse'));
+                        $indexEntries[$spouseId] = [
+                            'name' => $spouseName !== '' ? $spouseName : 'Spouse',
+                            'page' => $spousePage,
+                            'color' => $accentColor,
+                            'line' => $line['name'] ?? '',
+                            'relationship' => 'Spouse of ' . ($fullName !== '' ? $fullName : 'descendant'),
+                        ];
                     }
-                    if (isset($indexEntries[$spouseId])) {
-                        continue;
-                    }
-                    $spouseName = trim((string) ($spouseChapter['name'] ?? 'Spouse'));
-                    $indexEntries[$spouseId] = [
-                        'name' => $spouseName !== '' ? $spouseName : 'Spouse',
-                        'page' => $spousePage,
-                        'color' => $accentColor,
-                        'line' => $line['name'] ?? '',
-                        'relationship' => 'Spouse of ' . ($fullName !== '' ? $fullName : 'descendant'),
-                    ];
                 }
             }
         }
@@ -268,6 +273,7 @@ if ($type === 'descendants') {
                         'line_colors' => [],
                         'direct_parent_map' => [],
                         'render_guard' => [],
+                        'suppress_spouse_pages' => true,
                     ]
                 );
                 $pageNumber = $chapter['page'] ?? null;
@@ -280,24 +286,6 @@ if ($type === 'descendants') {
                         'color' => null,
                         'line' => '',
                         'relationship' => $relationship,
-                    ];
-                }
-                foreach ($chapter['spouses'] ?? [] as $spouseChapter) {
-                    $spouseId = (int) ($spouseChapter['id'] ?? 0);
-                    $spousePage = $spouseChapter['page'] ?? null;
-                    if ($spouseId <= 0 || $spousePage === null) {
-                        continue;
-                    }
-                    if (isset($indexEntries[$spouseId])) {
-                        continue;
-                    }
-                    $spouseName = trim((string) ($spouseChapter['name'] ?? 'Spouse'));
-                    $indexEntries[$spouseId] = [
-                        'name' => $spouseName !== '' ? $spouseName : 'Spouse',
-                        'page' => $spousePage,
-                        'color' => null,
-                        'line' => '',
-                        'relationship' => 'Spouse of ' . ($fullName !== '' ? $fullName : 'ancestor'),
                     ];
                 }
             }
