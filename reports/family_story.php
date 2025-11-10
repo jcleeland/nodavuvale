@@ -1233,6 +1233,11 @@ function buildTimelineNarrative(array $bundle): array
         $events[] = $docEvent;
     }
 
+    $historicalEvents = buildHistoricalTimelineEvents($bundle);
+    if (!empty($historicalEvents)) {
+        $events = array_merge($events, $historicalEvents);
+    }
+
     usort($events, static function (array $a, array $b): int {
         return strcmp($a['sort'], $b['sort']);
     });
@@ -1292,6 +1297,7 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
     $hasDated = !empty($datedEvents);
 
     $lastDateLabel = null;
+    $historicalTextColor = [130, 170, 230];
     foreach ($datedEvents as $event) {
         $label = trim((string) ($event['label'] ?? ''));
         if ($label !== '' && strcasecmp($label, (string) $lastDateLabel) !== 0) {
@@ -1306,10 +1312,17 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
         $icon = timelineIconForEvent($event);
         $titleText = trim((string) ($event['title'] ?? ''));
         $author = trim((string) ($event['author'] ?? ''));
-        if ($author !== '') {
+        if ($author !== '' && strcasecmp((string) ($event['type'] ?? ''), 'historical') !== 0) {
             $titleText .= ' [written by ' . $author . ']';
         }
-        renderTimelineHeadingLine($pdf, $usableWidth, $titleText, $icon, 6.0);
+        if (strcasecmp((string) ($event['type'] ?? ''), 'historical') === 0) {
+            renderTimelineHeadingLine($pdf, $usableWidth, 'Historical Event', $icon, 6.0, 11.0, $historicalTextColor);
+            if ($titleText !== '') {
+                renderTimelineHeadingLine($pdf, $usableWidth, $titleText, '', 5.0, 10.0, $historicalTextColor);
+            }
+        } else {
+            renderTimelineHeadingLine($pdf, $usableWidth, $titleText, $icon, 6.0);
+        }
         if (!empty($event['image'])) {
             $caption = trim((string) ($event['caption'] ?? ''));
             renderTimelinePhoto($pdf, $event['image'], $maxImageWidth, $maxImageHeight, $caption);
@@ -1347,10 +1360,17 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
             $icon = timelineIconForEvent($event);
             $titleText = trim((string) ($event['title'] ?? 'Item'));
             $author = trim((string) ($event['author'] ?? ''));
-            if ($author !== '') {
+            if ($author !== '' && strcasecmp((string) ($event['type'] ?? ''), 'historical') !== 0) {
                 $titleText .= ' [written by ' . $author . ']';
             }
-            renderTimelineHeadingLine($pdf, $usableWidth, $titleText, $icon, 5.5);
+            if (strcasecmp((string) ($event['type'] ?? ''), 'historical') === 0) {
+                renderTimelineHeadingLine($pdf, $usableWidth, 'Historical Event', $icon, 5.5, 11.0, $historicalTextColor);
+                if ($titleText !== '') {
+                    renderTimelineHeadingLine($pdf, $usableWidth, $titleText, '', 5.0, 10.0, $historicalTextColor);
+                }
+            } else {
+                renderTimelineHeadingLine($pdf, $usableWidth, $titleText, $icon, 5.5);
+            }
             if (!empty($event['image'])) {
                 $caption = trim((string) ($event['caption'] ?? ''));
                 renderTimelinePhoto($pdf, $event['image'], $maxImageWidth, $maxImageHeight, $caption);
@@ -1500,26 +1520,40 @@ function renderTimelineHeadingLine(
     string $titleText,
     string $icon = '',
     float $lineHeight = 6.0,
-    float $textFontSize = 11.0
+    float $textFontSize = 11.0,
+    ?array $textColor = null
 ): void {
     $titleText = normalisePdfText(trim($titleText));
     if ($titleText === '') {
         return;
     }
 
+    $resetColor = false;
+    if (is_array($textColor) && count($textColor) === 3) {
+        $pdf->SetTextColor(
+            max(0, min(255, (int) $textColor[0])),
+            max(0, min(255, (int) $textColor[1])),
+            max(0, min(255, (int) $textColor[2]))
+        );
+        $resetColor = true;
+    }
+
     if ($icon === '') {
         $pdf->SetFont('Helvetica', 'B', $textFontSize);
         $pdf->MultiCell($usableWidth, $lineHeight, $titleText, 'L');
-        return;
+    } else {
+        $iconWidth = 6.5;
+        $startX = $pdf->GetX();
+        $pdf->SetFont('Font Awesome 6 Free', '', max(6.0, $textFontSize + 0.5));
+        $pdf->Cell($iconWidth, $lineHeight, $icon, 0, 0, 'L');
+        $pdf->SetFont('Helvetica', 'B', $textFontSize);
+        pdfSetX($pdf, $startX + $iconWidth + 1.0);
+        $pdf->MultiCell(max(10.0, $usableWidth - $iconWidth - 1.0), $lineHeight, $titleText, 'L');
     }
 
-    $iconWidth = 6.5;
-    $startX = $pdf->GetX();
-    $pdf->SetFont('Font Awesome 6 Free', '', max(6.0, $textFontSize + 0.5));
-    $pdf->Cell($iconWidth, $lineHeight, $icon, 0, 0, 'L');
-    $pdf->SetFont('Helvetica', 'B', $textFontSize);
-    pdfSetX($pdf, $startX + $iconWidth + 1.0);
-    $pdf->MultiCell(max(10.0, $usableWidth - $iconWidth - 1.0), $lineHeight, $titleText, 'L');
+    if ($resetColor) {
+        $pdf->SetTextColor(0, 0, 0);
+    }
 }
 
 function determineFrameColor(?array $accentColor): array
@@ -1668,6 +1702,306 @@ function timelineIconForEvent(array $event): string
         return $map[$type];
     }
     return '';
+}
+
+function buildHistoricalTimelineEvents(array $bundle): array
+{
+    $facts = $bundle['facts'] ?? [];
+    $person = $bundle['person'] ?? [];
+
+    $anchors = collectLocationAnchorsFromFacts($facts);
+    $deathIso = formatIsoDateFromParts($person['death_year'] ?? null, $person['death_month'] ?? null, $person['death_date'] ?? null);
+    $deathDate = $deathIso ? timelineIsoToDateTime($deathIso) : null;
+    $locationHistory = buildLocationHistorySegments($anchors, $deathDate);
+    $historicalRows = fetchHistoricalDiscussionRows($locationHistory);
+    if (empty($historicalRows)) {
+        return [];
+    }
+
+    $birthIso = formatIsoDateFromParts($person['birth_year'] ?? null, $person['birth_month'] ?? null, $person['birth_date'] ?? null);
+    $birthDate = $birthIso ? timelineIsoToDateTime($birthIso) : null;
+
+    $events = [];
+    foreach ($historicalRows as $row) {
+        $startParsed = parseTimelineDate($row['event_date'] ?? null);
+        if (!$startParsed || empty($startParsed['sort'])) {
+            continue;
+        }
+        $startDt = timelineSortToDateTime($startParsed['sort']);
+        if (!$startDt) {
+            continue;
+        }
+        $endParsed = null;
+        $endDt = null;
+        if (!empty($row['event_date_finish'])) {
+            $endParsed = parseTimelineDate($row['event_date_finish']);
+            if ($endParsed && !empty($endParsed['sort'])) {
+                $endDt = timelineSortToDateTime($endParsed['sort']);
+            }
+        }
+        if (!historicalEventMatchesLocation($row, $locationHistory)) {
+            continue;
+        }
+        if (!historicalEventOverlapsLifespan($startDt, $endDt, $birthDate, $deathDate)) {
+            continue;
+        }
+        $title = trim((string) ($row['title'] ?? 'Historical Event'));
+        if ($title === '') {
+            $title = 'Historical Event';
+        }
+        $events[] = [
+            'sort' => $startParsed['sort'],
+            'label' => $startParsed['label'],
+            'title' => $title,
+            'body' => '',
+            'type' => 'historical',
+            'image' => null,
+        ];
+        if ($endParsed && $endDt) {
+            $events[] = [
+                'sort' => $endParsed['sort'],
+                'label' => $endParsed['label'],
+                'title' => $title . ' ends',
+                'body' => '',
+                'type' => 'historical',
+                'image' => null,
+            ];
+        }
+    }
+
+    return $events;
+}
+
+function collectLocationAnchorsFromFacts(array $facts): array
+{
+    $anchors = [];
+    foreach ($facts as $group) {
+        $location = extractLocationTextFromGroup($group);
+        if ($location === null) {
+            continue;
+        }
+        $dateSource = extractTimelineDateFromGroup($group);
+        $parsed = parseTimelineDate($dateSource);
+        if (!$parsed || empty($parsed['sort'])) {
+            continue;
+        }
+        $dateTime = timelineSortToDateTime($parsed['sort']);
+        if (!$dateTime) {
+            continue;
+        }
+        $normalized = normalizeLocationParts($location);
+        if (empty($normalized['raw_parts'])) {
+            continue;
+        }
+        $anchors[] = [
+            'date' => $dateTime,
+            'location_text' => $location,
+            'parts' => $normalized['raw_parts'],
+            'normalized' => $normalized['normalized_parts'],
+        ];
+    }
+    return $anchors;
+}
+
+function buildLocationHistorySegments(array $anchors, ?DateTimeImmutable $deathDate): array
+{
+    if (empty($anchors)) {
+        return [];
+    }
+    usort($anchors, static function (array $a, array $b): int {
+        $aDate = $a['date'] ?? null;
+        $bDate = $b['date'] ?? null;
+        if (!$aDate instanceof DateTimeImmutable || !$bDate instanceof DateTimeImmutable) {
+            return 0;
+        }
+        return $aDate <=> $bDate;
+    });
+    $history = [];
+    $count = count($anchors);
+    for ($i = 0; $i < $count; $i++) {
+        $startDate = $anchors[$i]['date'] ?? null;
+        if (!$startDate instanceof DateTimeImmutable) {
+            continue;
+        }
+        $endDate = null;
+        if ($i < $count - 1) {
+            $next = $anchors[$i + 1]['date'] ?? null;
+            if ($next instanceof DateTimeImmutable) {
+                $endDate = $next;
+            }
+        } elseif ($deathDate instanceof DateTimeImmutable) {
+            $endDate = $deathDate;
+        }
+        if ($endDate instanceof DateTimeImmutable && $endDate <= $startDate) {
+            $endDate = null;
+        }
+        $history[] = [
+            'start' => $startDate,
+            'end' => $endDate,
+            'location_text' => $anchors[$i]['location_text'] ?? '',
+            'parts' => $anchors[$i]['parts'] ?? [],
+            'normalized' => $anchors[$i]['normalized'] ?? [],
+        ];
+    }
+    return $history;
+}
+
+function extractLocationTextFromGroup(array $group): ?string
+{
+    foreach ($group['items'] ?? [] as $item) {
+        $type = strtolower(trim((string) ($item['detail_type'] ?? '')));
+        $value = normalisePdfText(trim((string) ($item['detail_value'] ?? '')));
+        if ($value === '') {
+            continue;
+        }
+        $matchesType = in_array($type, ['location', 'place', 'address', 'residence', 'burial place', 'birthplace'], true)
+            || ($type !== '' && preg_match('/(location|place|address|residence|where|city|state|country|parish)/', $type));
+        if ($matchesType) {
+            return $value;
+        }
+    }
+    $fallback = normalisePdfText(trim((string) ($group['location_text'] ?? '')));
+    return $fallback !== '' ? $fallback : null;
+}
+
+function normalizeLocationParts(string $location): array
+{
+    $fragments = array_values(array_filter(array_map('trim', explode(',', $location)), static fn($fragment) => $fragment !== ''));
+    $normalized = array_map(static function (string $fragment): string {
+        $fragment = preg_replace('/\s+/u', ' ', $fragment);
+        $fragment = trim((string) $fragment, " \t\n\r\0\x0B,.");
+        return mb_strtolower($fragment ?? '');
+    }, $fragments);
+    return [
+        'raw_parts' => $fragments,
+        'normalized_parts' => $normalized,
+    ];
+}
+
+function collectLocationTokens(array $locationHistory): array
+{
+    $tokens = [];
+    foreach ($locationHistory as $segment) {
+        foreach ($segment['normalized'] ?? [] as $part) {
+            $part = trim((string) $part);
+            if ($part === '' || is_numeric($part)) {
+                continue;
+            }
+            $tokens[$part] = true;
+        }
+    }
+    return array_slice(array_keys($tokens), 0, 12);
+}
+
+function fetchHistoricalDiscussionRows(array $locationHistory): array
+{
+    $tokens = collectLocationTokens($locationHistory);
+    $hasTokens = !empty($tokens);
+    try {
+        $db = Database::getInstance();
+    } catch (Exception $exception) {
+        error_log('[family_story] Unable to fetch historical events: ' . $exception->getMessage());
+        return [];
+    }
+    $params = [];
+    if ($hasTokens) {
+        $likeParts = [];
+        foreach ($tokens as $token) {
+            $likeParts[] = "LOWER(d.event_location) LIKE ?";
+            $params[] = '%' . $token . '%';
+        }
+        $locationCondition = 'AND ((d.event_location IS NULL OR d.event_location = \'\') OR (' . implode(' OR ', $likeParts) . '))';
+    } else {
+        $locationCondition = 'AND (d.event_location IS NULL OR d.event_location = \'\')';
+    }
+    $sql = "
+        SELECT d.id, d.title, d.event_date, d.event_date_finish, d.event_location
+        FROM discussions d
+        WHERE d.is_historical_event = 1
+          AND d.event_date IS NOT NULL
+          $locationCondition
+        ORDER BY d.event_date IS NULL, d.event_date ASC, d.updated_at ASC
+        LIMIT 250
+    ";
+    return $db->fetchAll($sql, $params) ?? [];
+}
+
+function historicalEventMatchesLocation(array $row, array $locationHistory): bool
+{
+    $rawLocation = trim((string) ($row['event_location'] ?? ''));
+    if ($rawLocation === '') {
+        return true;
+    }
+    $normalized = normalizeLocationParts($rawLocation);
+    $needle = $normalized['normalized_parts'] ?? [];
+    if (empty($needle)) {
+        return false;
+    }
+    foreach ($locationHistory as $segment) {
+        if (timelineLocationMatches($segment['normalized'] ?? [], $needle)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function timelineLocationMatches(array $haystack, array $needle): bool
+{
+    $haystack = array_values(array_filter($haystack, static fn($part) => trim((string) $part) !== ''));
+    $needle = array_values(array_filter($needle, static fn($part) => trim((string) $part) !== ''));
+    $hayLen = count($haystack);
+    $needleLen = count($needle);
+    if ($hayLen === 0 || $needleLen === 0 || $needleLen > $hayLen) {
+        return false;
+    }
+    for ($offset = 1; $offset <= $needleLen; $offset++) {
+        if ($needle[$needleLen - $offset] !== $haystack[$hayLen - $offset]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function historicalEventOverlapsLifespan(?DateTimeImmutable $start, ?DateTimeImmutable $end, ?DateTimeImmutable $lifeStart, ?DateTimeImmutable $lifeEnd): bool
+{
+    if (!$start instanceof DateTimeImmutable) {
+        return false;
+    }
+    $effectiveEnd = $end instanceof DateTimeImmutable ? $end : $start;
+    if ($lifeStart instanceof DateTimeImmutable && $effectiveEnd < $lifeStart) {
+        return false;
+    }
+    if ($lifeEnd instanceof DateTimeImmutable && $start > $lifeEnd) {
+        return false;
+    }
+    return true;
+}
+
+function timelineSortToDateTime(string $sort): ?DateTimeImmutable
+{
+    if (!preg_match('/^\d{8}$/', $sort)) {
+        return null;
+    }
+    $year = substr($sort, 0, 4);
+    $month = substr($sort, 4, 2);
+    $day = substr($sort, 6, 2);
+    try {
+        return new DateTimeImmutable(sprintf('%04d-%02d-%02d', (int) $year, (int) $month, (int) $day));
+    } catch (Exception $exception) {
+        return null;
+    }
+}
+
+function timelineIsoToDateTime(string $iso): ?DateTimeImmutable
+{
+    if (trim($iso) === '') {
+        return null;
+    }
+    try {
+        return new DateTimeImmutable($iso);
+    } catch (Exception $exception) {
+        return null;
+    }
 }
 
 function pdfSetY(SimplePDF $pdf, float $y): void
@@ -2255,6 +2589,13 @@ function normalisePdfText(string $text): string
         "\u{2033}" => '"',
         "\u{2036}" => '"',
         "\u{00A0}" => ' ',
+        "\u{2010}" => '-',
+        "\u{2011}" => '-',
+        "\u{2012}" => '-',
+        "\u{2013}" => '-',
+        "\u{2014}" => '-',
+        "\u{2015}" => '-',
+        "\u{2212}" => '-',
     ];
     return str_replace(array_keys($map), array_values($map), $text);
 }
