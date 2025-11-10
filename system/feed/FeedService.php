@@ -1918,19 +1918,38 @@ class FeedService
                             ? ' data-item-identifier="' . (int) $interaction['item_identifier'] . '"'
                             : '';
                         $reactionSummaryHtml = $this->renderReactionSummaryHtml($interaction['reaction_summary'] ?? [], $reactionEmojiMap);
+                        $reactionEmoticons = Web::getReactionEmoticons();
+                        $reactionOrder = ['like', 'love', 'haha', 'wow', 'sad', 'angry', 'care', 'remove'];
                         $comments = is_array($interaction['comments'] ?? null) ? $interaction['comments'] : [];
                 ?>
                     <div class="feed-item-interactions mt-4" data-feed-interaction="<?= htmlspecialchars($interactionType, ENT_QUOTES, 'UTF-8') ?>" <?= $targetAttributeName ?>="<?= $targetId ?>">
                         <div class="<?= $reactionContainerClass ?> feed-reactions flex items-center gap-3" <?= $targetAttributeName ?>="<?= $targetId ?>"<?= $itemIdentifierAttribute ?>>
-                            <button type="button" class="like-image inline-flex items-center justify-center pl-2 h-8 w-8 rounded-full bg-gray-100 text-lg" title="React">
-                                <svg alt="Like" class="like-image flex-item" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
-                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                    <g id="SVGRepo_iconCarrier">
-                                        <path fill="#3b82f6" d="M16 3.2l2.2 6.8h7.2l-5.8 4.2 2.2 6.8-5.8-4.2-5.8 4.2 2.2-6.8-5.8-4.2h7.2z"></path>
-                                    </g>
-                                </svg>
-                            </button>
+                            <svg alt="Like" class="like-image flex-item" viewBox="0 0 32 32" xml:space="preserve" width="18px" height="18px" fill="#000000">
+                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                <g id="SVGRepo_iconCarrier">
+                                    <style type="text/css">
+                                        .st0{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+                                        .st1{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+                                        .st2{fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5.2066,0;}
+                                    </style>
+                                    <path class="st0" d="M11,24V14H5v12h6v-2.4l0,0c1.5,1.6,4.1,2.4,6.2,2.4h6.5c1.1,0,2.1-0.8,2.3-2l1.5-8.6c0.3-1.5-0.9-2.4-2.3-2.4H20V6.4C20,5.1,18.7,4,17.4,4h0C16.1,4,15,5.1,15,6.4v0c0,1.6-0.5,3.1-1.4,4.4L11,13.8"></path>
+                                </g>
+                            </svg>
+                            <?php if (!empty($reactionEmoticons)): ?>
+                                <div class="reaction-buttons" title="Reactions">
+                                    <?php foreach ($reactionOrder as $reactionKey): ?>
+                                        <?php if (!isset($reactionEmoticons[$reactionKey])) { continue; } ?>
+                                        <?php
+                                            $emojiSymbol = (string) $reactionEmoticons[$reactionKey];
+                                            $reactionLabel = $reactionKey === 'remove' ? 'Remove' : ucfirst($reactionKey);
+                                        ?>
+                                        <button class="reaction-btn" data-reaction="<?= htmlspecialchars($reactionKey, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($reactionLabel, ENT_QUOTES, 'UTF-8') ?>">
+                                            <?= htmlspecialchars($emojiSymbol, ENT_QUOTES, 'UTF-8') ?>
+                                        </button>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="reaction-summary text-sm text-gray-600" data-reaction-summary>
                                 <?= $reactionSummaryHtml !== '' ? $reactionSummaryHtml : '<span class="text-gray-400">No reactions yet</span>' ?>
                             </div>

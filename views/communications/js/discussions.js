@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         return Boolean(value);
     };
+    window.toBool = toBool;
 
     const newEventCheckbox = document.getElementById('is_event');
     const newHistoricalCheckbox = document.getElementById('is_historical_event');
@@ -234,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     };
+    window.toggleEditEventFields = toggleEditEventFields;
     if (editEventCheckbox) {
         editEventCheckbox.addEventListener('change', toggleEditEventFields);
     }

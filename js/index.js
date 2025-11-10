@@ -215,10 +215,15 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                 // Create a hidden input to store the selected languages
                 var inputElement = document.createElement('input');
                 inputElement.type = 'hidden';
-                inputElement.id = 'customPromptInput' + index;
-                inputElement.name = 'customPromptInput' + index;
-                inputElement.value = values[index] || '';
-                customPromptInputs.appendChild(inputElement);
+        inputElement.id = 'customPromptInput' + index;
+        inputElement.name = 'customPromptInput' + index;
+        inputElement.placeholder = input || '';
+        if (typeof values[index] !== 'undefined' && values[index] !== null) {
+            inputElement.value = values[index];
+        } else {
+            inputElement.value = '';
+        }
+        customPromptInputs.appendChild(inputElement);
 
                 // Create a list of languages to display as options
                 var languageList = document.createElement('div');

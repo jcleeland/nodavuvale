@@ -1,10 +1,12 @@
 <?php
 //If this is an individual page, get their name so it can be shown in the page title
 $pagetitlesuffix="";
-if(isset($_GET['individual_id'])) {
-    $individual_id = $_GET['individual_id'];
-    $pagetitlesuffix = Utils::getIndividualName($individual_id);
+$individualIdForReports = isset($_GET['individual_id']) ? (int) $_GET['individual_id'] : null;
+if ($individualIdForReports) {
+    $pagetitlesuffix = Utils::getIndividualName($individualIdForReports);
 }
+$individual_id = $individualIdForReports;
+$individualIdQuery = $individualIdForReports ? urlencode((string) $individualIdForReports) : '';
 
 $bodyClasses = ['bg-cream', 'text-brown', 'font-sans'];
 $currentRoute = isset($_GET['to']) ? strtolower($_GET['to']) : '';
@@ -96,8 +98,28 @@ if($auth->getUserRole() == 'admin') {
                 <a href="?to=family/tree" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Tree</a>
                 <span class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
                 <a href="?to=family/users" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Members</a>
-                <a href="?to=communications/discussions" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Chat</a>
-                <a href="?to=family/gallery" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Gallery</a>
+                <a href="?to=communications/discussions" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Discussions</a>
+                <?php if ($individualIdForReports) : ?>
+                <div class="relative">
+                    <button type="button" class="flex items-center gap-1 text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md focus:outline-none js-report-toggle" aria-haspopup="true" aria-expanded="false">
+                        Reports
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-56 bg-deep-green text-left rounded-md shadow-lg hidden js-report-menu">
+                        <a href="reports/book.php?type=descendants&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 rounded-t-md js-report-link" data-report-type="descendants" data-report-label="Descendants Book">Descendants Book</a>
+                        <a href="reports/book.php?type=ancestors&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 js-report-link" data-report-type="ancestors" data-report-label="Ancestry Book">Ancestry Book</a>
+                        <a href="reports/graphical_tree.php?individual_id=<?= $individualIdQuery ?>&amp;generations=All" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 rounded-b-md" target="_blank" rel="noopener">Descendant Chart</a>
+                    </div>
+                </div>
+                <?php else : ?>
+                <div class="relative">
+                    <button type="button" class="text-white px-2 pb-1 rounded-md opacity-60 cursor-not-allowed" title="Open an individual's page to access reports">
+                        Reports
+                    </button>
+                </div>
+                <?php endif; ?>
+                
+                <!--<a href="?to=family/gallery" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Gallery</a>-->
                 <?php endif; ?>
             </nav>
             
@@ -117,8 +139,23 @@ if($auth->getUserRole() == 'admin') {
                 <a href="?to=family/tree" class="block px-4 py-2 text-white">Tree</a>
                 <span class="block text-white hover:bg-burnt-orange-800 px-4 py-2" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>
                 <a href="?to=family/users" class="block px-4 py-2 text-white">Members</a>
-                <a href="?to=communications/discussions" class="block px-4 py-2 text-white">Chat</a>
-                <a href="?to=family/gallery" class="block px-4 py-2 text-white">Gallery</a>
+                <a href="?to=communications/discussions" class="block px-4 py-2 text-white">Discussions</a>
+                <!--<a href="?to=family/gallery" class="block px-4 py-2 text-white">Gallery</a>-->
+                <?php if ($individualIdForReports) : ?>
+                <div class="text-left border-t border-deep-green-700">
+                    <button type="button" class="w-full text-left px-4 py-2 text-white font-semibold uppercase tracking-wide text-xs flex items-center justify-between js-mobile-report-toggle" aria-expanded="false">
+                        <span>Reports</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div class="hidden js-mobile-report-menu">
+                        <a href="reports/book.php?type=descendants&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800 js-report-link" data-report-type="descendants" data-report-label="Descendants Book">Descendants Book</a>
+                        <a href="reports/book.php?type=ancestors&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800 js-report-link" data-report-type="ancestors" data-report-label="Ancestry Book">Ancestry Book</a>
+                        <a href="reports/graphical_tree.php?individual_id=<?= $individualIdQuery ?>&amp;generations=All" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800" target="_blank" rel="noopener">Descendant Chart</a>
+                    </div>
+                </div>
+                <?php else : ?>
+                <span class="block px-4 py-2 text-white opacity-60">Reports available on individual pages</span>
+                <?php endif; ?>
                 <?php endif; ?>
             </div>
             
@@ -330,6 +367,144 @@ if($auth->getUserRole() == 'admin') {
                             positionNavMenu();
                         }
                     }, true);
+                }
+
+                var reportToggles = Array.prototype.slice.call(document.querySelectorAll('.js-report-toggle'));
+
+                function getReportMenu(button) {
+                    return button ? button.nextElementSibling : null;
+                }
+
+                function closeReportMenu(button) {
+                    var menu = getReportMenu(button);
+                    if (menu && !menu.classList.contains('hidden')) {
+                        menu.classList.add('hidden');
+                    }
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'false');
+                    }
+                }
+
+                function closeAllReportMenus(exceptButton) {
+                    reportToggles.forEach(function (toggle) {
+                        if (toggle !== exceptButton) {
+                            closeReportMenu(toggle);
+                        }
+                    });
+                }
+
+                reportToggles.forEach(function (button) {
+                    var menu = getReportMenu(button);
+                    if (!menu) {
+                        return;
+                    }
+
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        var isOpen = !menu.classList.contains('hidden');
+                        closeAllReportMenus(button);
+
+                        if (isOpen) {
+                            closeReportMenu(button);
+                        } else {
+                            menu.classList.remove('hidden');
+                            button.setAttribute('aria-expanded', 'true');
+                        }
+                    });
+
+                    menu.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                    });
+
+                    Array.prototype.slice.call(menu.querySelectorAll('a')).forEach(function (link) {
+                        link.addEventListener('click', function () {
+                            closeReportMenu(button);
+                        });
+                    });
+                });
+
+                if (reportToggles.length) {
+                    document.addEventListener('click', function () {
+                        closeAllReportMenus(null);
+                    });
+
+                    document.addEventListener('keydown', function (event) {
+                        if (event.key === 'Escape') {
+                            closeAllReportMenus(null);
+                        }
+                    });
+                }
+
+                var mobileReportToggle = document.querySelector('.js-mobile-report-toggle');
+                var mobileReportMenu = document.querySelector('.js-mobile-report-menu');
+
+                if (mobileReportToggle && mobileReportMenu) {
+                    mobileReportToggle.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        closeAllReportMenus(null);
+                        var isExpanded = mobileReportMenu.classList.contains('hidden') === false;
+                        if (isExpanded) {
+                            mobileReportMenu.classList.add('hidden');
+                            mobileReportToggle.setAttribute('aria-expanded', 'false');
+                        } else {
+                            mobileReportMenu.classList.remove('hidden');
+                            mobileReportToggle.setAttribute('aria-expanded', 'true');
+                        }
+                    });
+                }
+
+                var reportLinks = Array.prototype.slice.call(document.querySelectorAll('.js-report-link'));
+
+                if (reportLinks.length) {
+                    reportLinks.forEach(function (link) {
+                        link.addEventListener('click', function (event) {
+                            var reportType = link.getAttribute('data-report-type');
+                            if (!reportType) {
+                                return;
+                            }
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            var label = link.getAttribute('data-report-label') || 'report';
+                            var generations = window.prompt('How many generations should be included in the ' + label + '? Enter a number or type \"All\".', 'All');
+                            if (generations === null) {
+                                closeAllReportMenus(null);
+                                return;
+                            }
+                            generations = generations.trim();
+                            if (generations === '') {
+                                generations = 'All';
+                            }
+                            if (generations.toLowerCase() !== 'all') {
+                                if (!/^[0-9]+$/.test(generations) || parseInt(generations, 10) < 1) {
+                                    window.alert('Please enter \"All\" or a positive whole number.');
+                                    return;
+                                }
+                            } else {
+                                generations = 'All';
+                            }
+
+                            closeAllReportMenus(null);
+                            if (typeof closeNavMenu === 'function') {
+                                closeNavMenu();
+                            }
+
+                            try {
+                                var targetUrl = new URL(link.getAttribute('href'), window.location.href);
+                                targetUrl.searchParams.set('generations', generations);
+                                if (reportType) {
+                                    targetUrl.searchParams.set('type', reportType);
+                                }
+                                window.location.href = targetUrl.toString();
+                            } catch (error) {
+                                var separator = link.href.indexOf('?') === -1 ? '?' : '&';
+                                window.location.href = link.href + separator + 'generations=' + encodeURIComponent(generations);
+                            }
+                        });
+                    });
                 }
 
                 var userMenuButton = document.getElementById('user-menu-button');

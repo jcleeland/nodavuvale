@@ -263,7 +263,6 @@ if ($individual_id) {
 
 ?>
 <input type='hidden' id='individual_brief_name' value='<?= $individual['fullname'] ?>' />
-<input type='hidden' id='report_individual_id' value='<?= $individual['id'] ?>' />
 <section class="hero text-white py-20 relative">
     <div class="container hero-content relative">
         <div class="hero-image">
@@ -351,30 +350,6 @@ if ($individual_id) {
                 <span class="hidden sm:inline">Member</span>
             </div>
         <?php endif; ?>
-    </div>
-
-    <div class="flex flex-wrap justify-center gap-4 mt-2">
-        <button class="report-book-trigger flex items-center gap-2 bg-deep-green nv-bg-opacity-70 text-white px-5 py-2 rounded-full shadow"
-                data-report-type="descendants"
-                data-report-label="Descendants Book"
-                title="Download a PDF containing <?= $individual['first_name'] ?>'s descendants">
-            <i class="fas fa-book"></i>
-            <span>Descendants Book</span>
-        </button>
-        <button class="report-book-trigger flex items-center gap-2 bg-deep-green nv-bg-opacity-70 text-white px-5 py-2 rounded-full shadow"
-                data-report-type="ancestors"
-                data-report-label="Ancestry Book"
-                title="Download a PDF containing <?= $individual['first_name'] ?>'s ancestors">
-            <i class="fas fa-book"></i>
-            <span>Ancestry Book</span>
-        </button>
-        <button class="flex items-center gap-2 bg-deep-green nv-bg-opacity-70 text-white px-5 py-2 rounded-full shadow"
-                type="button"
-                title="Open a printable descendant chart for <?= $individual['first_name'] ?>"
-                onclick="window.open('reports/graphical_tree.php?individual_id=<?= $individual['id'] ?>&generations=All', '_blank')">
-            <i class="fas fa-sitemap"></i>
-            <span>Descendant Chart</span>
-        </button>
     </div>
 
 </section>
@@ -1184,6 +1159,29 @@ $descendancyHasData = !empty($descendancy);
             </h3>
             <div class="file-list grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6 bg-white shadow-lg rounded-lg justify-items-center relative">
             <?php foreach ($photos as $photo): ?>
+                <?php
+                    $rawDescription = (string) ($photo['file_description'] ?? '');
+                    $displayDescription = $rawDescription !== '' ? $rawDescription : 'Add description';
+                    $descriptionClass = $rawDescription !== '' ? 'mt-2 text-xs text-gray-600 cursor-pointer' : 'mt-2 text-xs text-gray-400 italic cursor-pointer';
+                    $dateSource = $photo['link_date'] ?? $photo['media_date'] ?? null;
+                    $precision = $photo['link_date_precision'] ?? $photo['media_date_precision'] ?? null;
+                    $approximate = (int) ($photo['link_date_is_approximate'] ?? $photo['media_date_is_approximate'] ?? 0);
+                    $mediaYear = '';
+                    $mediaMonth = '';
+                    $mediaDay = '';
+                    if ($dateSource) {
+                        $parts = explode('-', $dateSource);
+                        if (count($parts) === 3) {
+                            $mediaYear = $parts[0];
+                            if ($precision === 'month' || $precision === 'day') {
+                                $mediaMonth = ltrim($parts[1], '0');
+                            }
+                            if ($precision === 'day') {
+                                $mediaDay = ltrim($parts[2], '0');
+                            }
+                        }
+                    }
+                ?>
                     <div id="file_id_<?= $photo['id'] ?>" class="photo-item mb-4 text-center p-1 shadow-lg rounded-lg relative max-w-3xs">
                         <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_photo', '<?= $individual['id'] ?>', '<?= $photo['id'] ?>');">
                             <i class="fas fa-trash"></i>
@@ -1191,9 +1189,18 @@ $descendancyHasData = !empty($descendancy);
                         <a href="<?php echo $photo['file_path']; ?>" target="_blank">
                             <img src="<?php echo $photo['file_path']; ?>" alt="Photo of <?php echo $individual['first_name']; ?>" class="w-full h-auto rounded-lg">
                         </a>
-                        <?php if (!empty($photo['file_description'])): ?>
-                            <p id="photo_<?= $photo['id'] ?>" class="mt-2 text-xs text-gray-600" title="Double click to edit this description" onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')" ><?php echo $photo['file_description']; ?></p>
-                        <?php endif; ?>
+                        <p
+                            id="photo_<?= $photo['id'] ?>"
+                            class="<?= $descriptionClass ?>"
+                            title="Double click to edit these details"
+                            data-description="<?= htmlspecialchars($rawDescription, ENT_QUOTES, 'UTF-8') ?>"
+                            data-media-year="<?= htmlspecialchars($mediaYear, ENT_QUOTES, 'UTF-8') ?>"
+                            data-media-month="<?= htmlspecialchars($mediaMonth, ENT_QUOTES, 'UTF-8') ?>"
+                            data-media-day="<?= htmlspecialchars($mediaDay, ENT_QUOTES, 'UTF-8') ?>"
+                            data-media-approx="<?= $approximate ?>"
+                            data-link-id="<?= isset($photo['link_id']) ? (int) $photo['link_id'] : '' ?>"
+                            onDblClick="triggerEditFileDescription('photo_<?= $photo['id'] ?>')"
+                        ><?= htmlspecialchars($displayDescription, ENT_QUOTES, 'UTF-8') ?></p>
                             <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
                                 <i class="fas fa-info-circle" title="Added by <?= $photo['first_name'] ?> <?= $photo['last_name'] ?> on <?= date("d M Y", strtotime($photo['upload_date'])); ?>"></i>
                             </button>
@@ -1221,21 +1228,53 @@ $descendancyHasData = !empty($descendancy);
                         <button class="absolute text-burnt-orange bg-gray-800 bg-opacity-20 rounded-full py-1 px-2 m-0 right-0 top-0 font-normal text-xs" title="Delete this item" onclick="doAction('delete_document', '<?= $individual['id'] ?>', '<?= $document['id'] ?>');">
                             <i class="fas fa-trash"></i>
                         </button>
-                        <div class="pt-4 leading-none overflow-hidden">
-                            <a href="<?php echo $document['file_path']; ?>" target="_blank" class="hover:text-blue-800" title="<?= $document['original_file_name'] ?>">
-                                <?php $iconClass = $web->getFontawesomeIconClassForFile($document['file_type']); ?>
-                                <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
-                                <span class="text-xs"><?= $document['original_file_name'] ?></span>
-                            </a>
-                        </div>
-                        <?php if (!empty($document['file_description'])): ?>
-                            <p id = "document_<?= $document['id'] ?>" class="mt-2 text-xs text-gray-600" title="Double click to edit this description" onDblClick="triggerEditFileDescription('document_<?= $document['id'] ?>')"><?php echo $document['file_description']; ?></p>
-                        <?php endif; ?>
-                        <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
-                            <i class="fas fa-info-circle" title="Added by <?= $document['first_name'] ?> <?= $document['last_name'] ?> on <?= date("d M Y", strtotime($document['upload_date'])); ?>"></i>
-                        </button>                        
-                    </div>
-                <?php endforeach; ?>
+                <div class="pt-4 leading-none overflow-hidden">
+                    <a href="<?php echo $document['file_path']; ?>" target="_blank" class="hover:text-blue-800" title="<?= $document['original_file_name'] ?>">
+                        <?php $iconClass = $web->getFontawesomeIconClassForFile($document['file_type']); ?>
+                        <i class="<?= $iconClass ?> text-4xl pb-2"></i><br />
+                        <span class="text-xs"><?= $document['original_file_name'] ?></span>
+                    </a>
+                </div>
+                <?php
+                    $docRawDescription = (string) ($document['file_description'] ?? '');
+                    $docDisplayDescription = $docRawDescription !== '' ? $docRawDescription : 'Add description';
+                    $docDescriptionClass = $docRawDescription !== '' ? 'mt-2 text-xs text-gray-600 cursor-pointer' : 'mt-2 text-xs text-gray-400 italic cursor-pointer';
+                    $docDateSource = $document['link_date'] ?? $document['media_date'] ?? null;
+                    $docPrecision = $document['link_date_precision'] ?? $document['media_date_precision'] ?? null;
+                    $docApproximate = (int) ($document['link_date_is_approximate'] ?? $document['media_date_is_approximate'] ?? 0);
+                    $docYear = '';
+                    $docMonth = '';
+                    $docDay = '';
+                    if ($docDateSource) {
+                        $docParts = explode('-', $docDateSource);
+                        if (count($docParts) === 3) {
+                            $docYear = $docParts[0];
+                            if ($docPrecision === 'month' || $docPrecision === 'day') {
+                                $docMonth = ltrim($docParts[1], '0');
+                            }
+                            if ($docPrecision === 'day') {
+                                $docDay = ltrim($docParts[2], '0');
+                            }
+                        }
+                    }
+                ?>
+                <p
+                    id="document_<?= $document['id'] ?>"
+                    class="<?= $docDescriptionClass ?>"
+                    title="Double click to edit these details"
+                    data-description="<?= htmlspecialchars($docRawDescription, ENT_QUOTES, 'UTF-8') ?>"
+                    data-media-year="<?= htmlspecialchars($docYear, ENT_QUOTES, 'UTF-8') ?>"
+                    data-media-month="<?= htmlspecialchars($docMonth, ENT_QUOTES, 'UTF-8') ?>"
+                    data-media-day="<?= htmlspecialchars($docDay, ENT_QUOTES, 'UTF-8') ?>"
+                    data-media-approx="<?= $docApproximate ?>"
+                    data-link-id="<?= isset($document['link_id']) ? (int) $document['link_id'] : '' ?>"
+                    onDblClick="triggerEditFileDescription('document_<?= $document['id'] ?>')"
+                ><?= htmlspecialchars($docDisplayDescription, ENT_QUOTES, 'UTF-8') ?></p>
+                <button class="absolute text-ocean-blue -right-1 -bottom-1 text-xs rounded-full p-0 m-0">
+                    <i class="fas fa-info-circle" title="Added by <?= $document['first_name'] ?> <?= $document['last_name'] ?> on <?= date("d M Y", strtotime($document['upload_date'])); ?>"></i>
+                </button>                        
+            </div>
+        <?php endforeach; ?>
             </div>
         </div>
     </section>

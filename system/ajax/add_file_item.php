@@ -10,6 +10,43 @@ $group_id = !empty($data['item_identifier']) ? $data['item_identifier'] : null;
 $new_item_identifier = Utils::getNextItemIdentifier();
 $item_styles=Utils::getItemStyles();
 
+$mediaDateRaw = $data['media_date'] ?? null;
+if (is_string($mediaDateRaw)) {
+    $decoded = json_decode($mediaDateRaw, true);
+    if (is_array($decoded)) {
+        $mediaDateRaw = $decoded;
+    }
+}
+if (!is_array($mediaDateRaw)) {
+    $mediaDateRaw = [
+        'year' => $data['media_date_year'] ?? null,
+        'month' => $data['media_date_month'] ?? null,
+        'day' => $data['media_date_day'] ?? null,
+        'approx' => $data['media_date_is_approximate'] ?? null,
+    ];
+}
+[$mediaDateValue, $mediaDatePrecision, $mediaDateApprox] = Utils::prepareFlexibleDateFromArray($mediaDateRaw);
+
+$linkDateRaw = $data['link_date'] ?? null;
+if (is_string($linkDateRaw)) {
+    $decoded = json_decode($linkDateRaw, true);
+    if (is_array($decoded)) {
+        $linkDateRaw = $decoded;
+    }
+}
+if (!is_array($linkDateRaw)) {
+    $linkDateRaw = [
+        'year' => $data['link_date_year'] ?? null,
+        'month' => $data['link_date_month'] ?? null,
+        'day' => $data['link_date_day'] ?? null,
+        'approx' => $data['link_date_is_approximate'] ?? null,
+    ];
+}
+if (empty(array_filter($linkDateRaw))) {
+    $linkDateRaw = $mediaDateRaw;
+}
+[$linkDateValue, $linkDatePrecision, $linkDateApprox] = Utils::prepareFlexibleDateFromArray($linkDateRaw);
+
 /**
  * Initialize 
  *  - the response array which is returned at the end of this process
@@ -125,22 +162,21 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             
             // Insert the file metadata into the 'files' table
             $response['log'][] = 'Inserting file metadata into the files table';
-            $file_insert_sql = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) 
-                                VALUES (?, ?, ?, ?, ?)";
-            $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description, $user_id]);
+            $file_insert_sql = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id, media_date, media_date_precision, media_date_is_approximate) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $db->insert($file_insert_sql, [$file_type, $file_path, $file_format, $file_description, $user_id, $mediaDateValue, $mediaDatePrecision, $mediaDateApprox]);
             $file_id = $db->lastInsertId(); // Get the ID of the uploaded file
-            $response['sql']['file_insert_sql'][] = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id) VALUES ('$file_type', '$file_path', '$file_format', '$file_description', $user_id)";
+            $response['sql']['file_insert_sql'][] = "INSERT INTO files (file_type, file_path, file_format, file_description, user_id, media_date, media_date_precision, media_date_is_approximate) VALUES ('$file_type', '$file_path', '$file_format', '$file_description', $user_id, " . ($mediaDateValue ? "'$mediaDateValue'" : 'NULL') . ", " . ($mediaDatePrecision ? "'$mediaDatePrecision'" : 'NULL') . ", $mediaDateApprox)";
+            $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id, link_date, link_date_precision, link_date_is_approximate) VALUES (?, ?, ?, ?, ?, ?)";
             if(empty($filelink_item_ids)) { //If this is a file that isn't associated with an event, better create a file link
                 $response['log'][] = 'No file link items detected so this is a standalone file - creating a file link anyway with the file_id as '.$file_id.' and the individual_id as '.$individual_id.'';
-                $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id) VALUES ($file_id, $individual_id)";
-                $file_link_sql = "INSERT INTO file_links (file_id, individual_id) VALUES (?, ?)";
-                $db->insert($file_link_sql, [$file_id, $individual_id]);
+                $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id, item_id, link_date, link_date_precision, link_date_is_approximate) VALUES ($file_id, $individual_id, NULL, " . ($linkDateValue ? "'$linkDateValue'" : 'NULL') . ", " . ($linkDatePrecision ? "'$linkDatePrecision'" : 'NULL') . ", $linkDateApprox)";
+                $db->insert($file_link_sql, [$file_id, $individual_id, null, $linkDateValue, $linkDatePrecision, $linkDateApprox]);
             } else {
                 // Link the file to the individual in 'file_links'
                 foreach($filelink_item_ids as $filelink_item_id) {
-                    $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES ($file_id, $individual_id, $filelink_item_id)";
-                    $file_link_sql = "INSERT INTO file_links (file_id, individual_id, item_id) VALUES (?, ?, ?)";
-                    $db->insert($file_link_sql, [$file_id, $individual_id, $filelink_item_id]); // item_id can be null
+                    $response['sql']['file_link_sql'][] = "INSERT INTO file_links (file_id, individual_id, item_id, link_date, link_date_precision, link_date_is_approximate) VALUES ($file_id, $individual_id, $filelink_item_id, " . ($linkDateValue ? "'$linkDateValue'" : 'NULL') . ", " . ($linkDatePrecision ? "'$linkDatePrecision'" : 'NULL') . ", $linkDateApprox)";
+                    $db->insert($file_link_sql, [$file_id, $individual_id, $filelink_item_id, $linkDateValue, $linkDatePrecision, $linkDateApprox]); // item_id can be null
                 }
             }
             

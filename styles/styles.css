@@ -1760,7 +1760,13 @@ section.content a {
     width: 96px;
     flex-shrink: 0;
 }
- 
+
+.nv-timeline-media--photo {
+    width: clamp(200px, 40%, 320px);
+    max-width: 60%;
+    justify-content: center;
+}
+
 .nv-timeline-media-thumb {
     width: 90px;
     height: 90px;
@@ -1771,13 +1777,40 @@ section.content a {
     background-color: #fff;
 }
 
+.nv-timeline-media-trigger {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nv-timeline-media-trigger:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.6);
+    outline-offset: 2px;
+}
+
+.nv-timeline-media-thumb--photo {
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 2 / 3;
+    min-height: 220px;
+    height: auto;
+    border-radius: 0.9rem;
+}
+
 .nv-timeline-media-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
+.nv-timeline-media-thumb--photo img {
+    border-radius: inherit;
+}
+
 .nv-timeline-text h4 {
     margin-top: 0;
 }
-

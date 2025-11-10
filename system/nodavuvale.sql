@@ -171,6 +171,9 @@ CREATE TABLE IF NOT EXISTS `files` (
   `file_description` text CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci,
   `user_id` int DEFAULT NULL,
   `upload_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `media_date` date DEFAULT NULL,
+  `media_date_precision` enum('year','month','day') DEFAULT NULL,
+  `media_date_is_approximate` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
@@ -186,6 +189,9 @@ CREATE TABLE IF NOT EXISTS `file_links` (
   `file_id` int NOT NULL,
   `individual_id` int DEFAULT NULL,
   `item_id` int DEFAULT NULL,
+  `link_date` date DEFAULT NULL,
+  `link_date_precision` enum('year','month','day') DEFAULT NULL,
+  `link_date_is_approximate` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `file_id` (`file_id`),
   KEY `individual_id` (`individual_id`),

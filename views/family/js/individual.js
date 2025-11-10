@@ -516,29 +516,72 @@ function triggerEditItemDescription(id) {
 }
 
 function triggerEditFileDescription(id) {
-    console.log('Triggering edit file description for: ' + id);
-    var currentDescription=document.getElementById(id).textContent;
-    var newFileDescription=prompt("Enter your description here:", currentDescription);
-
-    if(newFileDescription===null) {
-        //User pressed cancel - abort
+    var element = document.getElementById(id);
+    if (!element) {
         return;
     }
-    //the actual id we want to use is after the underscore in the text of the id passed to the function
-    var file_id=id.split('_')[1];
-    getAjax('update_file', {fileId: file_id, fileDescription: newFileDescription})
-        .then(response => {
-            if(response.status === 'success') {
-                document.getElementById(id).textContent=newFileDescription;
-            } else {
-                alert('Error: ' + response.message);
+    var fileId = parseInt(id.split('_')[1], 10);
+    var defaults = {
+        description: element.dataset.description || '',
+        year: element.dataset.mediaYear || '',
+        month: element.dataset.mediaMonth || '',
+        day: element.dataset.mediaDay || '',
+        approx: element.dataset.mediaApprox === '1'
+    };
+    if (defaults.description === '' && element.textContent) {
+        var fallbackText = element.textContent.trim();
+        if (fallbackText !== 'Add description') {
+            defaults.description = fallbackText;
+        }
+    }
+
+    promptMediaDetails(
+        'Edit Media Details',
+        'Update the description and optional timeline date for this item.',
+        defaults,
+        function (result) {
+            if (result === null) {
+                return;
             }
-        })
-        .catch(error => {
-            alert('An error occurred while updating the file description: ' + error.message);
-        });
+            var payload = {
+                fileId: fileId,
+                fileDescription: result.description
+            };
+            if (element.dataset.linkId) {
+                payload.linkId = parseInt(element.dataset.linkId, 10);
+            }
+            if (result.date) {
+                payload.media_date = result.date;
+            } else {
+                payload.media_date = null;
+            }
 
-
+            getAjax('update_file', payload)
+                .then(response => {
+                    if (response.status === 'success') {
+                        var displayDescription = result.description !== '' ? result.description : 'Add description';
+                        element.textContent = displayDescription;
+                        element.dataset.description = result.description || '';
+                        if (result.description === '') {
+                            element.classList.add('text-gray-400', 'italic');
+                        } else {
+                            element.classList.remove('text-gray-400', 'italic');
+                        }
+                        if (typeof response.media_year !== 'undefined') {
+                            element.dataset.mediaYear = response.media_year || '';
+                            element.dataset.mediaMonth = response.media_month || '';
+                            element.dataset.mediaDay = response.media_day || '';
+                            element.dataset.mediaApprox = response.media_is_approximate ? '1' : '0';
+                        }
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                })
+                .catch(error => {
+                    alert('An error occurred while updating the file details: ' + error.message);
+                });
+        }
+    );
 }
 
 async function openStoryModal(individualId) {
@@ -581,58 +624,96 @@ async function openStoryModal(individualId) {
     }
 }
 
+function promptMediaDetails(title, message, defaults, callback) {
+    var descriptionDefault = defaults.description || '';
+    var yearDefault = defaults.year || '';
+    var monthDefault = defaults.month || '';
+    var dayDefault = defaults.day || '';
+    var approximateDefault = defaults.approx ? 1 : 0;
+
+    showCustomPrompt(
+        title,
+        message,
+        ['text_Description', 'text_Year (optional)', 'text_Month (optional)', 'text_Day (optional)'],
+        [descriptionDefault, yearDefault, monthDefault, dayDefault],
+        function (inputValues) {
+            if (inputValues === null) {
+                callback(null);
+                return;
+            }
+            var description = (inputValues[0] || '').trim();
+            var year = (inputValues[1] || '').trim();
+            var month = (inputValues[2] || '').trim();
+            var day = (inputValues[3] || '').trim();
+            var datePayload = null;
+            if (year !== '' || month !== '' || day !== '') {
+                var approx = window.confirm(
+                    approximateDefault
+                        ? 'This date was previously marked approximate. Keep it approximate?'
+                        : 'Should this date be marked as approximate?'
+                ) ? 1 : 0;
+                datePayload = { year: year, month: month, day: day, approx: approx };
+            }
+            callback({
+                description: description,
+                date: datePayload
+            });
+        }
+    );
+}
+
 async function uploadPhoto(individualId) {
     var fileInput = document.getElementById('photoUpload');
     var file = fileInput.files[0]; // Get the selected file
     console.log('Starting the upload photo process');
     if (file) {
-        // Prepare the data for uploading
         var fileName = file.name;
         var formData = new FormData();
-        formData.append('file', file);  // Append the selected file
-        formData.append('method', 'add_file_item');  // Method for your ajax.php
-        
-        var events = []; //This isn't an event, just a file upload
-        var event_group_name = null;   //This isn't an event group either, just a file upload
+        formData.append('file', file);
+        formData.append('method', 'add_file_item');
+
+        var events = [];
+        var event_group_name = null;
         var fileDescriptionDefault = "Photo of " + document.getElementById('individual_brief_name').value;
 
-        // Show the custom prompt
-        showCustomPrompt(
-            'Add Photo Description',
-            'Please enter a description for this photo:<br /><span class="text-sm">' + fileName+ '</span>',
-            ['Description'],
-            [fileDescriptionDefault],
-            function(inputValues) {
-                if (inputValues !== null) {
-                    var fileDescription = inputValues[0];
-
-                    formData.append('data', JSON.stringify({
-                        individual_id: individualId,
-                        events: events,
-                        event_group_name: event_group_name,
-                        file_description: fileDescription,  // Description for the file
-                    }));
-
-                    // Perform the AJAX call using getAjax
-                    getAjax('add_file_item', formData)
-                        .then(response => {
-                            // Convert response from JSON to object
-                            console.log(response);
-                            console.log(response.status);
-                            if (response.status === 'success') {
-                                // Reload the page, to show the newly uploaded photo (and also stop accidental re-uploads)
-                                location.reload();
-                            } else {
-                                alert('Error: ' + response.message);
-                            }
-                        })
-                        .catch(error => {
-                            alert('An error occurred while uploading the image: ' + error.message);
-                        });
+        promptMediaDetails(
+            'Add Photo Details',
+            'Provide a description and optional timeline date for this photo.<br /><span class="text-sm">' + fileName + '</span>',
+            { description: fileDescriptionDefault, approx: false },
+            function (result) {
+                if (result === null) {
+                    fileInput.value = '';
+                    return;
                 }
+                var payload = {
+                    individual_id: individualId,
+                    events: events,
+                    event_group_name: event_group_name,
+                    file_description: result.description
+                };
+                if (result.date) {
+                    payload.media_date = result.date;
+                    payload.link_date = result.date;
+                }
+
+                formData.append('data', JSON.stringify(payload));
+
+                getAjax('add_file_item', formData)
+                    .then(response => {
+                        console.log(response);
+                        console.log(response.status);
+                        if (response.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while uploading the image: ' + error.message);
+                    });
             }
         );
-    }    
+    }
 }
 
 async function uploadDocument(individualId) {
@@ -640,133 +721,130 @@ async function uploadDocument(individualId) {
     var file = fileInput.files[0]; // Get the selected file
     console.log('Starting the upload document process');
     if (file) {
-        // Prepare the data for uploading
         var fileName = file.name;
         var formData = new FormData();
-        formData.append('file', file);  // Append the selected file
-        formData.append('method', 'add_file_item');  // Method for your ajax.php
-        
-        var events = []; //This isn't an event, just a file upload
-        var event_group_name = null;   //This isn't an event group either, just a file upload
+        formData.append('file', file);
+        formData.append('method', 'add_file_item');
+
+        var events = [];
+        var event_group_name = null;
         var fileDescriptionDefault = "Document for " + document.getElementById('individual_brief_name').value;
 
-        // Show the custom prompt
-        showCustomPrompt(
-            'Add Document Description',
-            'Please enter a description for this document:<br /><span class="text-sm">' + fileName+ '</span>',
-            ['Description'],
-            [fileDescriptionDefault],
-            function(inputValues) {
-                if (inputValues !== null) {
-                    var fileDescription = inputValues[0];
-
-                    formData.append('data', JSON.stringify({
-                        individual_id: individualId,
-                        events: events,
-                        event_group_name: event_group_name,
-                        file_description: fileDescription,  // Description for the file
-                    }));
-
-                    // Perform the AJAX call using getAjax
-                    getAjax('add_file_item', formData)
-                        .then(response => {
-                            // Convert response from JSON to object
-                            console.log(response);
-                            console.log(response.status);
-                            if (response.status === 'success') {
-                                // Reload the page to show the newly uploaded document (and also stop accidental re-uploads)
-                                location.reload();
-                            } else {
-                                alert('Error: ' + response.message);
-                            }
-                        })
-                        .catch(error => {
-                            alert('An error occurred while uploading the document: ' + error.message);
-                        });
+        promptMediaDetails(
+            'Add Document Details',
+            'Provide a description and optional timeline date for this document.<br /><span class="text-sm">' + fileName + '</span>',
+            { description: fileDescriptionDefault, approx: false },
+            function (result) {
+                if (result === null) {
+                    fileInput.value = '';
+                    return;
                 }
+                var payload = {
+                    individual_id: individualId,
+                    events: events,
+                    event_group_name: event_group_name,
+                    file_description: result.description
+                };
+                if (result.date) {
+                    payload.media_date = result.date;
+                    payload.link_date = result.date;
+                }
+
+                formData.append('data', JSON.stringify(payload));
+
+                getAjax('add_file_item', formData)
+                    .then(response => {
+                        console.log(response);
+                        console.log(response.status);
+                        if (response.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while uploading the document: ' + error.message);
+                    });
             }
         );
     }
+    fileInput.value = '';
 }
 // Handle the keyImage file selection and upload
 async function uploadKeyImage(individualId) {
     var fileInput = document.getElementById('keyPhotoUpload');
     var file = fileInput.files[0];  // Get the selected file
 
-    let fileLinkId=null; //This will be used to store the file_link_id of the original file that was the key image for the individual
-    //A key image is a special type of event/item
-    // There can only be one of these per individual
-    // so, if there is already one, we need to delete that "item" from the "items" table, along
-    // with its item_link. We should also delete the link between the original photo & the item_id
+    let fileLinkId = null; // This will store the file_link_id of the original key image
 
     try {
         const response = await getAjax('get_item', {individual_id: individualId, event_type: 'Key Image'});
         console.log(response);
-        if (response.status === 'success') {
-            if (response.items.length > 0) {
-                // Gather the item_id and item_link_id
-                var itemId = response.items[0].item_id;
-                var itemLinkId = response.items[0].item_link_id;
-                var fileId = response.items[0].file_id;
-                fileLinkId = response.items[0].file_link_id;
+        if (response.status === 'success' && response.items.length > 0) {
+            var itemId = response.items[0].item_id;
+            var fileId = response.items[0].file_id;
+            fileLinkId = response.items[0].file_link_id;
 
-                console.log('Theres already a key image for this individual - its item_id is: ' + itemId + ' and its fileId is: ' + fileId +' and its file_link_id is: ' + fileLinkId);
-                // All we need to do is: delete the item_id from the file_links record. That frees the original file up to be just a photo for the individual
-                // After we've uploaded the new photo, we'll simply create a new file_links record for the new file_id and add this itemId to it's file_links.item_id                    
-                
-                const updateResponse = await getAjax('update_file_links', {file_link_id: fileLinkId, updates: {item_id: 'null'}});
-                    if (response.status === 'success') {
-                        console.log('Original file has been freed up to be a photo for the individual');
-                    } else {
-                        console.log('Error: ' + response.message);
-                        return; //Exit the function if there was an error
-                    }
-                }
+            console.log('Theres already a key image for this individual - its item_id is: ' + itemId + ' and its fileId is: ' + fileId + ' and its file_link_id is: ' + fileLinkId);
+            const updateResponse = await getAjax('update_file_links', {file_link_id: fileLinkId, updates: {item_id: 'null'}});
+            if (updateResponse.status === 'success') {
+                console.log('Original file has been freed up to be a photo for the individual');
+            } else {
+                console.log('Error: ' + updateResponse.message);
+                return;
+            }
         }
     } catch (error) {
-            alert('An error occurred while checking for an existing key image: ' + error.message);
-            return; //Exit the function if there was an error
+        alert('An error occurred while checking for an existing key image: ' + error.message);
+        return;
     }
-
-    
 
     if (file) {
-        // Prepare the data for uploading
         var formData = new FormData();
-        formData.append('file', file);  // Append the selected file
-        formData.append('method', 'add_file_item');  // Method for your ajax.php
-        
-        if(fileLinkId){
-            //make the events array empty
-            var events = [];
-        } else {
-            var events = [
-                {event_type: 'Key Image',  event_detail: 'Key image for individual'},
-            ];
-        }
-        var event_group_name=null;
-        formData.append('data', JSON.stringify({
-            individual_id: individualId,
-            events: events,
-            event_group_name: event_group_name,
-            file_description: 'Image for individual'  // Description for the file
-        }));
+        formData.append('file', file);
+        formData.append('method', 'add_file_item');
 
-        // Perform the AJAX call using getAjax
-        getAjax('add_file_item', formData)
-            .then(response => {
-                //convert response from json to object
-                console.log(response);
-                console.log(response.status);
-                if(response.filepath) {
-                    console.log('Add picture to page');
-                    document.getElementById('keyImage').src = response.filepath;
+        var events = fileLinkId ? [] : [{ event_type: 'Key Image', event_detail: 'Key image for individual' }];
+        var event_group_name = null;
+
+        promptMediaDetails(
+            'Key Image Details',
+            'Optionally provide a timeline date for this key image.',
+            { description: 'Image for individual', approx: false },
+            function (result) {
+                if (result === null) {
+                    fileInput.value = '';
+                    return;
                 }
-            })
-            .catch(error => {
-                alert('An error occurred while uploading the image: ' + error.message);
-            });
+                var payload = {
+                    individual_id: individualId,
+                    events: events,
+                    event_group_name: event_group_name,
+                    file_description: result.description || 'Image for individual'
+                };
+                if (result.date) {
+                    payload.media_date = result.date;
+                    payload.link_date = result.date;
+                }
+
+                formData.append('data', JSON.stringify(payload));
+
+                getAjax('add_file_item', formData)
+                    .then(response => {
+                        console.log(response);
+                        console.log(response.status);
+                        if (response.filepath) {
+                            console.log('Add picture to page');
+                            document.getElementById('keyImage').src = response.filepath;
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while uploading the image: ' + error.message);
+                    });
+            }
+        );
     }
+    fileInput.value = '';
 }
 
 function doAction(action, individualId, actionId, event) {

@@ -356,6 +356,107 @@ if (!function_exists('nvTimelineFormatName')) {
         return $path;
     }
     /**
+     * Locate marriage item groups owned by other individuals that reference the current person as a spouse.
+     *
+     * @param int $individualId
+     * @param array<int,string> $excludeIdentifiers
+     * @param string $personName
+     * @return array<int,array<string,mixed>>
+     */
+    function nvTimelineFetchReferencedMarriageGroups(int $individualId, array $excludeIdentifiers, string $personName): array
+    {
+        if ($individualId <= 0) {
+            return [];
+        }
+        $excludeLookup = [];
+        foreach ($excludeIdentifiers as $identifier) {
+            if ($identifier !== null && $identifier !== '') {
+                $excludeLookup[$identifier] = true;
+            }
+        }
+        $db = Database::getInstance();
+        $rows = $db->fetchAll(
+            "SELECT DISTINCT
+                items.item_identifier,
+                item_links.individual_id AS owner_id
+            FROM items
+            INNER JOIN item_links ON item_links.item_id = items.item_id
+            INNER JOIN item_groups ON item_groups.item_identifier = items.item_identifier
+            WHERE items.detail_type = 'Spouse'
+              AND (
+                    TRIM(items.detail_value) = ?
+                    OR CAST(items.detail_value AS UNSIGNED) = ?
+              )
+              AND item_links.individual_id <> ?
+              AND item_groups.item_group_name = 'Marriage'",
+            [(string) $individualId, $individualId, $individualId]
+        );
+        if (empty($rows)) {
+            return [];
+        }
+        $groupsByOwner = [];
+        foreach ($rows as $row) {
+            $identifier = $row['item_identifier'] ?? null;
+            $ownerId = isset($row['owner_id']) ? (int) $row['owner_id'] : 0;
+            if ($identifier === null || $identifier === '' || $ownerId <= 0) {
+                continue;
+            }
+            if (isset($excludeLookup[$identifier])) {
+                continue;
+            }
+            $groupsByOwner[$ownerId][] = (string) $identifier;
+        }
+        if (empty($groupsByOwner)) {
+            return [];
+        }
+        $referencedGroups = [];
+        foreach ($groupsByOwner as $ownerId => $identifiers) {
+            $ownerItems = Utils::getItems($ownerId);
+            if (empty($ownerItems)) {
+                continue;
+            }
+            $ownerRecord = Utils::getIndividual($ownerId);
+            $ownerName = $ownerRecord && is_array($ownerRecord) ? nvTimelineFormatName($ownerRecord) : 'Spouse';
+            foreach ($ownerItems as $group) {
+                $groupItems = $group['items'] ?? [];
+                if (empty($groupItems)) {
+                    continue;
+                }
+                $identifier = $groupItems[0]['item_identifier'] ?? null;
+                if ($identifier === null || $identifier === '') {
+                    continue;
+                }
+                if (!in_array((string) $identifier, $identifiers, true)) {
+                    continue;
+                }
+                if (isset($excludeLookup[$identifier])) {
+                    continue;
+                }
+                $clonedGroup = $group;
+                $clonedGroup['timeline_reference_owner'] = [
+                    'id' => $ownerId,
+                    'name' => $ownerName,
+                ];
+                $clonedGroup['timeline_reference_source'] = 'spouse';
+                $clonedGroup['timeline_spouse_override'] = [
+                    'id' => $ownerId,
+                    'name' => $ownerName,
+                ];
+                foreach ($clonedGroup['items'] as &$detail) {
+                    if (($detail['detail_type'] ?? '') === 'Spouse') {
+                        $detail['detail_value'] = $personName;
+                        $detail['individual_name'] = $personName;
+                        $detail['individual_name_id'] = $individualId;
+                    }
+                }
+                unset($detail);
+                $excludeLookup[$identifier] = true;
+                $referencedGroups[] = $clonedGroup;
+            }
+        }
+        return $referencedGroups;
+    }
+    /**
      * Determine whether a discussion location (needle) matches an individual's location (haystack).
      *
      * @param array<int,string> $haystack Normalized location parts for the individual (specific -> general).
@@ -923,6 +1024,23 @@ if ($assumedDeath && $deathInfo) {
     }
 }
 $timelineEvents = [];
+$currentItemIdentifiers = [];
+if (is_array($items)) {
+    foreach ($items as $group) {
+        $firstItem = $group['items'][0] ?? null;
+        $identifier = is_array($firstItem) ? ($firstItem['item_identifier'] ?? null) : null;
+        if ($identifier !== null && $identifier !== '') {
+            $currentItemIdentifiers[] = (string) $identifier;
+        }
+    }
+}
+$referencedMarriageGroups = nvTimelineFetchReferencedMarriageGroups($individualId, $currentItemIdentifiers, $personName);
+if (!empty($referencedMarriageGroups)) {
+    if (!is_array($items)) {
+        $items = [];
+    }
+    $items = array_merge($items, $referencedMarriageGroups);
+}
 $deathEventIncluded = false;
 $birthDetails = null;
 $deathDetails = null;
@@ -1041,6 +1159,15 @@ foreach ($itemGroupsByName['Marriage'] ?? [] as $marriageGroup) {
     }
     $spouseName = $spouseDetail['individual_name'] ?? $spouseDetail['detail_value'] ?? 'Spouse';
     $spouseId = isset($spouseDetail['individual_name_id']) ? (int) $spouseDetail['individual_name_id'] : (isset($spouseDetail['individual_id']) ? (int) $spouseDetail['individual_id'] : 0);
+    $override = $marriageGroup['timeline_spouse_override'] ?? null;
+    if (is_array($override)) {
+        if (!empty($override['name'])) {
+            $spouseName = (string) $override['name'];
+        }
+        if (!empty($override['id'])) {
+            $spouseId = (int) $override['id'];
+        }
+    }
     $spouseLink = nvTimelineLinkLabel($spouseName, $spouseId);
     $location = $locationDetail['detail_value'] ?? null;
     $locationHtml = $location ? htmlspecialchars($location, ENT_QUOTES, 'UTF-8') : null;
@@ -1050,6 +1177,35 @@ foreach ($itemGroupsByName['Marriage'] ?? [] as $marriageGroup) {
         if ($marriageAvatarCandidate !== '') {
             $marriageAvatar = $marriageAvatarCandidate;
         }
+    }
+    $mediaGallery = [];
+    foreach ($indexed as $detailGroup) {
+        foreach ($detailGroup as $detailItem) {
+            if (!empty($detailItem['file_path']) && !empty($detailItem['file_type']) && strtolower((string) $detailItem['file_type']) === 'image') {
+                $altText = trim((string) ($detailItem['file_description'] ?? $spouseName));
+                $mediaGallery[] = [
+                    'src' => $detailItem['file_path'],
+                    'alt' => $altText !== '' ? $altText : $spouseName,
+                ];
+                if ($marriageAvatar === $personAvatar) {
+                    $marriageAvatar = (string) $detailItem['file_path'];
+                }
+            }
+        }
+    }
+    $fullDescriptionHtml = $locationHtml ? 'Celebrated in ' . $locationHtml : 'Marriage recorded with ' . $spouseLink;
+    $sourceNoteHtml = '';
+    if (!empty($marriageGroup['timeline_reference_owner']) && is_array($marriageGroup['timeline_reference_owner'])) {
+        $referenceOwner = $marriageGroup['timeline_reference_owner'];
+        $referenceName = $referenceOwner['name'] ?? '';
+        $referenceId = isset($referenceOwner['id']) ? (int) $referenceOwner['id'] : 0;
+        if ($referenceName !== '') {
+            $referenceLink = nvTimelineLinkLabel($referenceName, $referenceId);
+            $sourceNoteHtml = '<span class="nv-timeline-muted block mt-2">Recorded in ' . $referenceLink . '\'s family record.</span>';
+        }
+    }
+    if ($sourceNoteHtml !== '') {
+        $fullDescriptionHtml .= $sourceNoteHtml;
     }
     $timelineEvents[] = [
         'id' => 'nv-marriage-' . ($marriageGroup['items'][0]['item_identifier'] ?? uniqid('', true)),
@@ -1066,7 +1222,8 @@ foreach ($itemGroupsByName['Marriage'] ?? [] as $marriageGroup) {
         'location_text' => $location,
         'subject_avatar' => $marriageAvatar,
         'subject_avatar_alt' => $spouseName,
-        'full_description_html' => $locationHtml ? 'Celebrated in ' . $locationHtml : 'Marriage recorded with ' . $spouseLink,
+        'full_description_html' => $fullDescriptionHtml,
+        'media_gallery' => $mediaGallery,
     ];
 }
 // Debug: timeline instrumentation (remove once ordering issue is solved)
@@ -1120,6 +1277,100 @@ foreach ($children ?? [] as $child) {
         'subject_avatar_alt' => $childName,
         'full_description_html' => $childDescriptionHtml,
     ];
+}
+$lifeStartDate = isset($birthInfo['date']) && $birthInfo['date'] instanceof DateTimeImmutable ? $birthInfo['date'] : null;
+$lifeEndDate = isset($deathInfo['date']) && $deathInfo['date'] instanceof DateTimeImmutable ? $deathInfo['date'] : null;
+if ($assumedDeath) {
+    $lifeEndDate = null;
+}
+foreach ($siblings ?? [] as $sibling) {
+    if (!is_array($sibling)) {
+        continue;
+    }
+    $siblingId = isset($sibling['id']) ? (int) $sibling['id'] : 0;
+    if ($siblingId > 0 && $siblingId === $individualId) {
+        continue;
+    }
+    $siblingName = nvTimelineFormatName($sibling);
+    $siblingLink = nvTimelineBuildPersonLink($sibling, $siblingName);
+    $siblingAvatar = '';
+    if (!empty($sibling['keyimagepath'])) {
+        $siblingAvatar = (string) $sibling['keyimagepath'];
+    }
+    if ($siblingAvatar === '' && $siblingId > 0) {
+        $siblingAvatar = nvTimelineResolveIndividualAvatar($siblingId);
+    }
+    if ($siblingAvatar === '') {
+        $siblingAvatar = $personAvatar;
+    }
+    $siblingRelationshipHtml = 'Sibling of ' . nvTimelineBuildPersonLink($person, $personName);
+    $siblingRelationshipText = 'Sibling of ' . $personName;
+    $siblingBirth = nvTimelineCreateDateFromParts(
+        $sibling['birth_year'] ?? null,
+        $sibling['birth_month'] ?? null,
+        $sibling['birth_date'] ?? null
+    );
+    if ($siblingBirth) {
+        $siblingBirthDate = $siblingBirth['date'] ?? null;
+        $birthWithinLifespan = true;
+        if ($lifeStartDate && $siblingBirthDate instanceof DateTimeImmutable && $siblingBirthDate < $lifeStartDate) {
+            $birthWithinLifespan = false;
+        }
+        if ($birthWithinLifespan && $lifeEndDate && $siblingBirthDate instanceof DateTimeImmutable && $siblingBirthDate > $lifeEndDate) {
+            $birthWithinLifespan = false;
+        }
+        if ($birthWithinLifespan) {
+            $timelineEvents[] = [
+                'id' => 'nv-sibling-birth-' . ($siblingId ?: uniqid('', true)),
+                'category' => 'family',
+                'scope' => 'sibling',
+                'icon' => 'fa-solid fa-children',
+                'title' => $siblingName . ' was born',
+                'title_html' => $siblingLink . ' was born',
+                'description' => $siblingRelationshipText,
+                'description_html' => $siblingRelationshipHtml,
+                'date' => $siblingBirth['date'],
+                'display_date' => $siblingBirth['label'],
+                'assumed' => false,
+                'subject_avatar' => $siblingAvatar,
+                'subject_avatar_alt' => $siblingName,
+                'full_description_html' => $siblingRelationshipHtml,
+            ];
+        }
+    }
+    $siblingDeath = nvTimelineCreateDateFromParts(
+        $sibling['death_year'] ?? null,
+        $sibling['death_month'] ?? null,
+        $sibling['death_date'] ?? null
+    );
+    if ($siblingDeath) {
+        $siblingDeathDate = $siblingDeath['date'] ?? null;
+        $deathWithinLifespan = true;
+        if ($lifeStartDate && $siblingDeathDate instanceof DateTimeImmutable && $siblingDeathDate < $lifeStartDate) {
+            $deathWithinLifespan = false;
+        }
+        if ($deathWithinLifespan && $lifeEndDate && $siblingDeathDate instanceof DateTimeImmutable && $siblingDeathDate > $lifeEndDate) {
+            $deathWithinLifespan = false;
+        }
+        if ($deathWithinLifespan) {
+            $timelineEvents[] = [
+                'id' => 'nv-sibling-death-' . ($siblingId ?: uniqid('', true)),
+                'category' => 'family',
+                'scope' => 'sibling',
+                'icon' => 'fa-solid fa-cross',
+                'title' => $siblingName . ' passed away',
+                'title_html' => $siblingLink . ' passed away',
+                'description' => $siblingRelationshipText,
+                'description_html' => $siblingRelationshipHtml,
+                'date' => $siblingDeath['date'],
+                'display_date' => $siblingDeath['label'],
+                'assumed' => false,
+                'subject_avatar' => $siblingAvatar,
+                'subject_avatar_alt' => $siblingName,
+                'full_description_html' => $siblingRelationshipHtml,
+            ];
+        }
+    }
 }
 foreach ($parents ?? [] as $parent) {
     $parentDeath = nvTimelineCreateDateFromParts(
@@ -1296,6 +1547,109 @@ foreach ($items ?? [] as $group) {
 }
 $locationEventsEnabled = !isset($_GET['include_location_events']) || $_GET['include_location_events'] !== '0';
 $locationEventsVisibleByDefault = $locationEventsEnabled;
+$mediaRows = Database::getInstance()->fetchAll(
+    "SELECT
+        fl.id AS link_id,
+        fl.file_id,
+        fl.item_id,
+        fl.link_date,
+        fl.link_date_precision,
+        fl.link_date_is_approximate,
+        f.file_type,
+        f.file_path,
+        f.file_format,
+        f.file_description,
+        f.media_date,
+        f.media_date_precision,
+        f.media_date_is_approximate
+    FROM file_links fl
+    INNER JOIN files f ON f.id = fl.file_id
+    WHERE fl.individual_id = ?
+    ",
+    [$individualId]
+);
+foreach ($mediaRows as $mediaRow) {
+    $dateValue = $mediaRow['link_date'] ?? $mediaRow['media_date'] ?? null;
+    if (!$dateValue) {
+        continue;
+    }
+    try {
+        $dateObject = new DateTimeImmutable($dateValue);
+    } catch (Exception $e) {
+        continue;
+    }
+    $precision = $mediaRow['link_date_precision'] ?? $mediaRow['media_date_precision'] ?? 'day';
+    switch ($precision) {
+        case 'year':
+            $displayLabel = $dateObject->format('Y');
+            break;
+        case 'month':
+            $displayLabel = $dateObject->format('M Y');
+            break;
+        default:
+            $displayLabel = $dateObject->format('j M Y');
+            break;
+    }
+    $approximate = (int) ($mediaRow['link_date_is_approximate'] ?? $mediaRow['media_date_is_approximate'] ?? 0) === 1;
+    $isImage = strtolower((string) ($mediaRow['file_type'] ?? '')) === 'image';
+    $filePath = (string) ($mediaRow['file_path'] ?? '');
+    if ($filePath === '') {
+        continue;
+    }
+    $safePath = htmlspecialchars($filePath, ENT_QUOTES, 'UTF-8');
+    $baseDescription = trim((string) ($mediaRow['file_description'] ?? ''));
+    $linkIconClass = $isImage ? 'fa-arrow-up-right-from-square' : 'fa-download';
+    $linkLabel = $isImage ? 'Open photo' : 'Download file';
+    $linkHtml = '<a class="nv-timeline-link inline-flex items-center gap-1" href="' . $safePath . '" target="_blank" rel="noopener"><i class="fa-solid ' . $linkIconClass . '"></i> ' . $linkLabel . '</a>';
+    $mediaGallery = [];
+    $eventScope = 'media';
+    $title = 'Document added';
+    $subjectAvatar = isset($personAvatar) ? $personAvatar : '';
+    $subjectAvatarAlt = 'Document for ' . $personName;
+    $descriptionText = $baseDescription !== '' ? $baseDescription : 'Document uploaded';
+    $descriptionHtml = htmlspecialchars($descriptionText, ENT_QUOTES, 'UTF-8') . ' ' . $linkHtml;
+    $detailsHtml = $descriptionHtml;
+    $fullDescriptionHtml = $descriptionHtml;
+
+    if ($isImage) {
+        $eventScope = 'photo';
+        $title = 'Photo';
+        $subjectAvatar = '';
+        $subjectAvatarAlt = $baseDescription !== '' ? $baseDescription : 'Photo of ' . $personName;
+        $descriptionText = $baseDescription !== '' ? $baseDescription : 'View this photo';
+        $descriptionHtmlBody = htmlspecialchars($descriptionText, ENT_QUOTES, 'UTF-8');
+        $descriptionHtml = ($descriptionHtmlBody !== '' ? $descriptionHtmlBody . ' ' : '') . $linkHtml;
+        $fullDescriptionHtml = $descriptionHtml;
+        $modalCaptionHtml = $baseDescription !== '' ? '<figcaption class="nv-timeline-info-photo-caption">' . htmlspecialchars($baseDescription, ENT_QUOTES, 'UTF-8') . '</figcaption>' : '';
+        $detailsHtml = '<figure class="nv-timeline-info-photo"><img src="' . $safePath . '" alt="' . htmlspecialchars($subjectAvatarAlt, ENT_QUOTES, 'UTF-8') . '">' . $modalCaptionHtml . '</figure>';
+        $mediaGallery[] = [
+            'src' => $filePath,
+            'alt' => $subjectAvatarAlt,
+        ];
+    } else {
+        $title = $baseDescription !== '' ? 'Document added – ' . $baseDescription : $title;
+    }
+
+    $timelineEvents[] = [
+        'id' => 'nv-media-' . $mediaRow['link_id'],
+        'category' => 'facts',
+        'scope' => $eventScope,
+        'icon' => $isImage ? 'fa-solid fa-image' : 'fa-solid fa-file-lines',
+        'title' => $title,
+        'title_html' => htmlspecialchars($title, ENT_QUOTES, 'UTF-8'),
+        'description' => $descriptionText,
+        'description_html' => $descriptionHtml,
+        'date' => $dateObject,
+        'display_date' => $displayLabel,
+        'assumed' => $approximate,
+        'details_html' => $detailsHtml,
+        'full_description_html' => $fullDescriptionHtml,
+        'subject_avatar' => $subjectAvatar,
+        'subject_avatar_alt' => $subjectAvatarAlt,
+        'media_gallery' => $mediaGallery,
+        'is_photo_event' => $isImage,
+    ];
+}
 $lifespanStart = isset($birthInfo['date']) && $birthInfo['date'] instanceof DateTimeImmutable ? $birthInfo['date'] : null;
 $lifespanEnd = isset($deathInfo['date']) && $deathInfo['date'] instanceof DateTimeImmutable ? $deathInfo['date'] : null;
 $locationHistory = nvTimelineBuildLocationHistory(
@@ -1693,6 +2047,21 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         .nv-timeline-info-card {
             padding: 1rem 1.2rem;
         }
+        .nv-timeline-info-photo {
+            margin: 0;
+        }
+        .nv-timeline-info-photo img {
+            width: 100%;
+            height: auto;
+            border-radius: 0.9rem;
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+            display: block;
+        }
+        .nv-timeline-info-photo-caption {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #475569;
+        }
         .nv-timeline-info-title {
             font-size: 1.05rem;
             margin-bottom: 0.75rem;
@@ -1760,7 +2129,7 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             box-shadow: 0 16px 28px rgba(15, 23, 42, 0.09);
             border-left: 4px solid var(--nv-timeline-accent);
             width: min(32rem, 100%);
-            max-height: min(20vh, 280px);
+            max-height: min(24vh, 340px);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -1799,6 +2168,15 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .nv-timeline-text--photo {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .nv-timeline-event[data-scope="photo"] .nv-timeline-body {
+            align-items: stretch;
         }
         .nv-timeline-event[data-category="location"] .nv-timeline-text > p {
             font-size: 0.82rem;
@@ -1941,7 +2319,7 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
         }
         .nv-timeline-event .nv-timeline-card {
             width: 100%;
-            max-height: min(20vh, 320px);
+            max-height: min(24vh, 340px);
         }
         .nv-timeline-event[data-category="location"] .nv-timeline-card {
             max-height: min(24vh, 340px);
@@ -1964,6 +2342,23 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
             }
             .nv-timeline-media {
                 display: none;
+            }
+            .nv-timeline-event[data-scope="photo"] .nv-timeline-body {
+                flex-direction: column;
+            }
+            .nv-timeline-event[data-scope="photo"] .nv-timeline-media {
+                display: block;
+                width: min(60%, 320px);
+                margin: 0 auto 0.75rem;
+            }
+            .nv-timeline-event[data-scope="photo"] .nv-timeline-media-thumb {
+                width: 100%;
+                aspect-ratio: 2 / 3;
+                min-height: 210px;
+                height: auto;
+            }
+            .nv-timeline-event[data-scope="photo"] .nv-timeline-text {
+                width: 100%;
             }
         }
         .nv-timeline-muted {
@@ -2106,6 +2501,10 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                                 Child
                                             <?php elseif ($scope === 'parent'): ?>
                                                 Parent
+                                            <?php elseif ($scope === 'sibling'): ?>
+                                                Sibling
+                                            <?php elseif ($scope === 'photo'): ?>
+                                                Photo
                                             <?php elseif ($scope === 'discussion_location'): ?>
                                                 Historical Event
                                             <?php else: ?>
@@ -2129,17 +2528,36 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div class="nv-timeline-body mt-4 flex gap-4 items-start">
-                                        <?php if (!empty($event['media_gallery']) && is_array($event['media_gallery'])): ?>
-                                            <div class="nv-timeline-media">
-                                                <?php foreach (array_slice($event['media_gallery'], 0, 3) as $media): ?>
-                                                    <div class="nv-timeline-media-thumb">
-                                                        <img src="<?= htmlspecialchars($media['src'], ENT_QUOTES) ?>" alt="<?= htmlspecialchars($media['alt'] ?? $event['title'] ?? 'Event image', ENT_QUOTES) ?>">
+                                    <?php
+                                        $hasMediaGallery = !empty($event['media_gallery']) && is_array($event['media_gallery']);
+                                        $isPhotoEvent = !empty($event['is_photo_event']);
+                                        $bodyClass = 'nv-timeline-body mt-4 flex gap-4 ' . ($isPhotoEvent ? 'items-stretch' : 'items-start');
+                                    ?>
+                                    <div class="<?= $bodyClass ?>">
+                                        <?php if ($hasMediaGallery): ?>
+                                            <?php
+                                                $mediaClass = 'nv-timeline-media' . ($isPhotoEvent ? ' nv-timeline-media--photo' : '');
+                                                $galleryLimit = $isPhotoEvent ? 1 : 3;
+                                            ?>
+                                            <div class="<?= $mediaClass ?>">
+                                                <?php
+                                                    $mediaTargetId = $infoId ?: $fullDescriptionId;
+                                                    $mediaTargetAttr = $mediaTargetId ? ' data-info-target="' . htmlspecialchars($mediaTargetId, ENT_QUOTES) . '"' : '';
+                                                ?>
+                                                <?php foreach (array_slice($event['media_gallery'], 0, $galleryLimit) as $media): ?>
+                                                    <div class="nv-timeline-media-thumb<?= $isPhotoEvent ? ' nv-timeline-media-thumb--photo' : '' ?>">
+                                                        <?php if ($mediaTargetId): ?>
+                                                            <button type="button" class="nv-timeline-media-trigger"<?= $mediaTargetAttr ?>>
+                                                                <img src="<?= htmlspecialchars($media['src'], ENT_QUOTES) ?>" alt="<?= htmlspecialchars($media['alt'] ?? $event['title'] ?? 'Event image', ENT_QUOTES) ?>">
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <img src="<?= htmlspecialchars($media['src'], ENT_QUOTES) ?>" alt="<?= htmlspecialchars($media['alt'] ?? $event['title'] ?? 'Event image', ENT_QUOTES) ?>">
+                                                        <?php endif; ?>
                                                     </div>
                                                 <?php endforeach; ?>
                                             </div>
                                         <?php endif; ?>
-                                        <div class="nv-timeline-text flex-1 min-w-0">
+                                        <div class="nv-timeline-text flex-1 min-w-0<?= $isPhotoEvent ? ' nv-timeline-text--photo' : '' ?>">
                                             <div class="flex items-center gap-3 flex-wrap">
                                                 <?php if (!empty($event['subject_avatar'])): ?>
                                                     <span class="nv-timeline-subject-avatar-wrapper">
@@ -2273,7 +2691,12 @@ if (!defined('NV_TIMELINE_STYLES_LOADED')) {
                 infoModal.setAttribute('aria-hidden', 'true');
                 infoBody.innerHTML = '';
             };
-            root.querySelectorAll('.nv-timeline-info-btn').forEach((button) => {
+            const infoTriggerSelectors = [
+                '.nv-timeline-info-btn',
+                '.nv-timeline-more-btn[data-info-target]',
+                '.nv-timeline-media-trigger[data-info-target]'
+            ].join(',');
+            root.querySelectorAll(infoTriggerSelectors).forEach((button) => {
                 button.addEventListener('click', () => {
                     const targetId = button.getAttribute('data-info-target');
                     if (targetId) {

@@ -1,6 +1,98 @@
 <?php
 class Utils {
 
+    /**
+     * Normalise a flexible date input (year, optional month/day) into a canonical DATE string
+     * and an accompanying precision indicator ('year', 'month', 'day').
+     *
+     * @param string|null $year
+     * @param string|null $month
+     * @param string|null $day
+     * @return array{0:?string,1:?string}
+     */
+    public static function normalizeFlexibleDate(?string $year, ?string $month = null, ?string $day = null): array
+    {
+        $year = trim((string) ($year ?? ''));
+        if ($year === '' || !ctype_digit($year) || (int) $year <= 0) {
+            return [null, null];
+        }
+        $yearInt = (int) $year;
+        $monthInt = null;
+        $dayInt = null;
+        $precision = 'year';
+
+        if ($month !== null) {
+            $month = trim((string) $month);
+            if ($month !== '' && ctype_digit($month)) {
+                $monthInt = max(1, min(12, (int) $month));
+                $precision = 'month';
+            }
+        }
+
+        if ($day !== null && $monthInt !== null) {
+            $day = trim((string) $day);
+            if ($day !== '' && ctype_digit($day)) {
+                $dayInt = max(1, min(31, (int) $day));
+                $precision = 'day';
+            }
+        }
+
+        $monthForDate = $monthInt ?? 7;
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $monthForDate, $yearInt);
+
+        if ($dayInt === null) {
+            $dayInt = $monthInt !== null
+                ? (int) ceil($daysInMonth / 2)
+                : 1;
+        } else {
+            $dayInt = min($dayInt, $daysInMonth);
+        }
+
+        return [
+            sprintf('%04d-%02d-%02d', $yearInt, $monthForDate, $dayInt),
+            $precision,
+        ];
+    }
+
+    /**
+     * Prepare a flexible date payload (typically from form or JSON input) into
+     * canonical DATE string, precision, and approximate flag.
+     *
+     * @param array<string,mixed>|null $input
+     * @return array{0:?string,1:?string,2:int}
+     */
+    public static function prepareFlexibleDateFromArray(?array $input): array
+    {
+        if (!is_array($input)) {
+            $input = [];
+        }
+
+        $year = $input['year'] ?? ($input['y'] ?? null);
+        $month = $input['month'] ?? ($input['m'] ?? null);
+        $day = $input['day'] ?? ($input['d'] ?? null);
+
+        [$date, $precision] = self::normalizeFlexibleDate(
+            $year !== null ? (string) $year : null,
+            $month !== null ? (string) $month : null,
+            $day !== null ? (string) $day : null
+        );
+
+        $approx = 0;
+        foreach (['approx', 'approximate', 'is_approximate'] as $key) {
+            if (!empty($input[$key])) {
+                $approx = 1;
+                break;
+            }
+        }
+
+        if ($date === null) {
+            $approx = 0;
+            $precision = null;
+        }
+
+        return [$date, $precision, $approx];
+    }
+
     
     /**
      * Builds a hierarchical tree structure of individuals and their relationships.
@@ -1737,7 +1829,15 @@ class Utils {
         
         // Fetch files using the updated query
         $query = "
-            SELECT files.*, file_links.item_id, users.first_name, users.last_name, 
+            SELECT 
+                files.*,
+                file_links.id AS link_id,
+                file_links.item_id,
+                file_links.link_date,
+                file_links.link_date_precision,
+                file_links.link_date_is_approximate,
+                users.first_name,
+                users.last_name, 
             SUBSTRING(
                 SUBSTRING_INDEX(files.file_path, '/', -1),
                 LOCATE('_', SUBSTRING_INDEX(files.file_path, '/', -1)) + 1
