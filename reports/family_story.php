@@ -440,6 +440,10 @@ function populateSimpleIndexPage(SimplePDF $pdf, int $pageNumber, array $data, s
             }
         }
         $pdf->Cell($pageWidth, 6, $displayPage, 1, 'R');
+        if ($page !== null && method_exists($pdf, 'AddPageLink')) {
+            $linkX = ($indent > 0) ? $pdf->GetLeftMargin() + $indent : $pdf->GetLeftMargin();
+            $pdf->AddPageLink($linkX, $currentY, $effectiveWidth + $pageWidth, 6, $page);
+        }
     };
 
     if (!empty($data['subject'])) {
@@ -1155,11 +1159,13 @@ function buildTimelineNarrative(array $bundle): array
 
     foreach ($bundle['stories'] ?? [] as $story) {
         $date = parseTimelineDate($story['event_date'] ?? $story['created_at'] ?? null);
+        $rawContent = (string) ($story['content'] ?? '');
         $entry = [
             'sort' => $date['sort'] ?? null,
             'label' => $date['label'] ?? 'Undated story',
             'title' => $story['title'] ?? 'Story',
-            'body' => normaliseStoryContent((string) ($story['content'] ?? '')),
+            'body' => normaliseStoryContent($rawContent),
+            'body_raw' => $rawContent,
             'type' => !empty($story['is_historical_event']) ? 'historical' : 'story',
             'image' => null,
             'author' => trim((string) (($story['user_name'] ?? '') !== '' ? $story['user_name'] : (($story['first_name'] ?? '') . ' ' . ($story['last_name'] ?? '')))),
@@ -1257,15 +1263,61 @@ function partitionTimelineEvents(array $timeline): array
     return [$dated, $postLife, $timeline['undated'] ?? []];
 }
 
-function timelineHasRenderableContent(array $timeline): bool
+function mergeTimelinePhotoEvents(array $events): array
 {
-    [$dated, $postLife, $undated] = partitionTimelineEvents($timeline);
-    return !empty($dated) || !empty($postLife) || !empty($undated);
+    $result = [];
+    $count = count($events);
+    for ($i = 0; $i < $count; $i++) {
+        $event = $events[$i];
+        if (strcasecmp((string) ($event['type'] ?? ''), 'photo') !== 0) {
+            $result[] = $event;
+            continue;
+        }
+        $group = [$event];
+        $j = $i + 1;
+        while ($j < $count && strcasecmp((string) ($events[$j]['type'] ?? ''), 'photo') === 0 && ($events[$j]['sort'] ?? null) === ($event['sort'] ?? null)) {
+            $group[] = $events[$j];
+            $j++;
+        }
+        if (count($group) >= 2) {
+            $images = [];
+            foreach ($group as $photoEvent) {
+                if (!empty($photoEvent['image']) && is_file((string) $photoEvent['image'])) {
+                    $images[] = [
+                        'image' => $photoEvent['image'],
+                        'caption' => normalisePdfText(trim((string) ($photoEvent['caption'] ?? ''))),
+                    ];
+                }
+            }
+            if (!empty($images)) {
+                $result[] = [
+                    'sort' => $event['sort'],
+                    'label' => $event['label'],
+                    'title' => 'Photos',
+                    'body' => '',
+                    'type' => 'photo_grid',
+                    'images' => $images,
+                ];
+            } else {
+                foreach ($group as $photoEvent) {
+                    $result[] = $photoEvent;
+                }
+            }
+        } else {
+            $result[] = $event;
+        }
+        $i = $j - 1;
+    }
+
+    return $result;
 }
 
 function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?int
 {
     [$datedEvents, $postLifeEvents, $undatedEvents] = partitionTimelineEvents($timeline);
+    $datedEvents = mergeTimelinePhotoEvents($datedEvents);
+    $postLifeEvents = mergeTimelinePhotoEvents($postLifeEvents);
+
     if (empty($datedEvents) && empty($postLifeEvents) && empty($undatedEvents)) {
         return null;
     }
@@ -1277,18 +1329,30 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
     $pdf->Cell(0, 10, 'Timeline of ' . $name, 0, 1, 'L');
     $pdf->Ln(12);
 
-    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
-    $storyWidth = $usableWidth * 0.8;
-    $contentHeight = $pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin();
-    $maxImageWidth = min($pdf->GetPageWidth() * 0.2, $usableWidth);
-    $maxImageHeight = min($pdf->GetPageHeight() * 0.15, $contentHeight);
+    $layout = getTimelineLayoutMetrics($pdf);
+    $usableWidth = $layout['usableWidth'];
+    $storyWidth = $layout['storyWidth'];
+    $maxImageWidth = $layout['maxImageWidth'];
+    $maxImageHeight = $layout['maxImageHeight'];
     $hasDated = !empty($datedEvents);
 
     $lastDateLabel = null;
-    $historicalTextColor = [130, 170, 230];
+    $historicalTextColor = [70, 120, 200];
+
     foreach ($datedEvents as $event) {
         $label = trim((string) ($event['label'] ?? ''));
-        if ($label !== '' && strcasecmp($label, (string) $lastDateLabel) !== 0) {
+        $needsDateLabel = $label !== '' && strcasecmp($label, (string) $lastDateLabel) !== 0;
+        $estimatedHeight = estimateTimelineEventHeight($pdf, $event, $storyWidth, $usableWidth, $maxImageWidth, $maxImageHeight, $needsDateLabel);
+        if (ensureTimelineSpace($pdf, $estimatedHeight)) {
+            $lastDateLabel = null;
+            $needsDateLabel = $label !== '';
+            $layout = getTimelineLayoutMetrics($pdf);
+            $usableWidth = $layout['usableWidth'];
+            $storyWidth = $layout['storyWidth'];
+            $maxImageWidth = $layout['maxImageWidth'];
+            $maxImageHeight = $layout['maxImageHeight'];
+        }
+        if ($needsDateLabel) {
             $indentX = max(2.0, $pdf->GetLeftMargin() - 4.0);
             $pdf->SetFont('Helvetica', 'B', 11);
             $pdf->SetTextColor(20, 45, 140);
@@ -1297,35 +1361,50 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
             $pdf->SetTextColor(0, 0, 0);
             $lastDateLabel = $label;
         }
+
         $icon = timelineIconForEvent($event);
         $titleText = trim((string) ($event['title'] ?? ''));
         $author = trim((string) ($event['author'] ?? ''));
         if ($author !== '' && strcasecmp((string) ($event['type'] ?? ''), 'historical') !== 0) {
             $titleText .= ' [written by ' . $author . ']';
         }
-        if (strcasecmp((string) ($event['type'] ?? ''), 'historical') === 0) {
-            renderTimelineHeadingLine($pdf, $usableWidth, 'Historical Event', $icon, 6.0, 11.0, $historicalTextColor);
+        $isHistorical = strcasecmp((string) ($event['type'] ?? ''), 'historical') === 0;
+        if ($isHistorical) {
+            $historicalHeading = 'Historical Event';
             if ($titleText !== '') {
-                renderTimelineHeadingLine($pdf, $usableWidth, $titleText, '', 5.0, 10.0, $historicalTextColor);
+                $historicalHeading .= ': ' . $titleText;
             }
+            renderTimelineHeadingLine($pdf, $usableWidth, $historicalHeading, $icon, 6.0, 11.0, $historicalTextColor);
         } else {
             renderTimelineHeadingLine($pdf, $usableWidth, $titleText, $icon, 6.0);
         }
+        if ($isHistorical) {
+            renderHistoricalSummary($pdf, $event, $storyWidth, $usableWidth, $maxImageWidth, $maxImageHeight);
+            continue;
+        }
+
+        if (strcasecmp((string) ($event['type'] ?? ''), 'photo_grid') === 0) {
+            renderTimelinePhotoGridBlock($pdf, $event['images'] ?? [], $usableWidth);
+            continue;
+        }
+
+        $handledImageInline = false;
         if (!empty($event['image'])) {
-            $caption = trim((string) ($event['caption'] ?? ''));
-            renderTimelinePhoto($pdf, $event['image'], $maxImageWidth, $maxImageHeight, $caption);
+            $handledImageInline = renderTimelineInlineImageBlock($pdf, $event, $maxImageWidth, $maxImageHeight, $usableWidth);
         }
-        if ($event['type'] !== 'historical' && $event['body'] !== '') {
-            if ($event['type'] === 'story') {
-                $pdf->SetFont('Courier', '', 8.0);
-                $lineHeight = 3.8;
-            } else {
-                $pdf->SetFont('Helvetica', '', 9.5);
-                $lineHeight = 4.2;
+        if (!$handledImageInline) {
+            if ($event['type'] !== 'historical' && $event['body'] !== '') {
+                if ($event['type'] === 'story') {
+                    $pdf->SetFont('Courier', '', 9.0);
+                    $lineHeight = 4.5;
+                } else {
+                    $pdf->SetFont('Helvetica', '', 9.5);
+                    $lineHeight = 4.2;
+                }
+                $pdf->MultiCell($storyWidth, $lineHeight, $event['body'], 'L');
             }
-            $pdf->MultiCell($storyWidth, $lineHeight, $event['body'], 'L');
+            $pdf->Ln(2);
         }
-        $pdf->Ln(2);
     }
 
     $otherEvents = array_merge($postLifeEvents, $undatedEvents);
@@ -1344,36 +1423,65 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
         $pdf->SetFont('Helvetica', 'B', 13);
         $pdf->Cell(0, 8, 'Other information on ' . normalisePdfText($name), 0, 1, 'L');
         $pdf->Ln(8);
+
         foreach ($otherEvents as $event) {
+            $estimatedHeight = estimateTimelineEventHeight($pdf, $event, $storyWidth, $usableWidth, $maxImageWidth, $maxImageHeight, false);
+            if (ensureTimelineSpace($pdf, $estimatedHeight)) {
+                $layout = getTimelineLayoutMetrics($pdf);
+                $usableWidth = $layout['usableWidth'];
+                $storyWidth = $layout['storyWidth'];
+                $maxImageWidth = $layout['maxImageWidth'];
+                $maxImageHeight = $layout['maxImageHeight'];
+            }
+
             $icon = timelineIconForEvent($event);
             $titleText = trim((string) ($event['title'] ?? 'Item'));
             $author = trim((string) ($event['author'] ?? ''));
-            if ($author !== '' && strcasecmp((string) ($event['type'] ?? ''), 'historical') !== 0) {
+            $isHistorical = strcasecmp((string) ($event['type'] ?? ''), 'historical') === 0;
+            if ($author !== '' && !$isHistorical) {
                 $titleText .= ' [written by ' . $author . ']';
             }
-            if (strcasecmp((string) ($event['type'] ?? ''), 'historical') === 0) {
-                renderTimelineHeadingLine($pdf, $usableWidth, 'Historical Event', $icon, 5.5, 11.0, $historicalTextColor);
+            if ($isHistorical) {
+                $historicalHeading = 'Historical Event';
                 if ($titleText !== '') {
-                    renderTimelineHeadingLine($pdf, $usableWidth, $titleText, '', 5.0, 10.0, $historicalTextColor);
+                    $historicalHeading .= ': ' . $titleText;
                 }
+                renderTimelineHeadingLine($pdf, $usableWidth, $historicalHeading, $icon, 5.5, 11.0, $historicalTextColor);
             } else {
                 renderTimelineHeadingLine($pdf, $usableWidth, $titleText, $icon, 5.5);
             }
+
+            if (strcasecmp((string) ($event['type'] ?? ''), 'photo_grid') === 0) {
+                renderTimelinePhotoGridBlock($pdf, $event['images'] ?? [], $usableWidth);
+                continue;
+            }
+            if ($isHistorical) {
+                renderHistoricalSummary($pdf, $event, $storyWidth, $usableWidth, $maxImageWidth, $maxImageHeight);
+                continue;
+            }
+
+            $handledImageInline = false;
             if (!empty($event['image'])) {
-                $caption = trim((string) ($event['caption'] ?? ''));
-                renderTimelinePhoto($pdf, $event['image'], $maxImageWidth, $maxImageHeight, $caption);
+                $handledImageInline = renderTimelineInlineImageBlock($pdf, $event, $maxImageWidth, $maxImageHeight, $usableWidth);
             }
-            if ($event['body'] !== '') {
-                if ($event['type'] === 'story') {
-                    $pdf->SetFont('Courier', '', 8.0);
-                    $lineHeight = 3.8;
-                } else {
-                    $pdf->SetFont('Helvetica', '', 10);
-                    $lineHeight = 4.5;
+            if (!$handledImageInline) {
+                if ($event['body'] !== '') {
+                    if ($event['type'] === 'story') {
+                        $pdf->SetFont('Courier', '', 9.0);
+                        $lineHeight = 4.5;
+                    } else {
+                        $pdf->SetFont('Helvetica', '', 10);
+                        $lineHeight = 4.5;
+                    }
+                    $pdf->MultiCell($storyWidth, $lineHeight, $event['body'], 'L');
                 }
-                $pdf->MultiCell($storyWidth, $lineHeight, $event['body'], 'L');
+                $caption = trim((string) ($event['caption'] ?? ''));
+                if ($caption !== '' && $event['body'] === '') {
+                    $pdf->SetFont('Helvetica', '', 8.0);
+                    $pdf->MultiCell($storyWidth, 3.8, $caption, 'L');
+                }
+                $pdf->Ln(1.5);
             }
-            $pdf->Ln(1.5);
         }
     }
 
@@ -1485,23 +1593,6 @@ function normaliseTimelineDateString(?string $value): ?string
     return date('Y-m-d', $timestamp);
 }
 
-function renderTimelinePhoto(SimplePDF $pdf, string $imagePath, float $maxWidth, float $maxHeight, string $caption = ''): void
-{
-    if ($imagePath === '' || !is_file($imagePath)) {
-        return;
-    }
-    [$width, $height] = computeImageBoxWithMaxes($imagePath, $maxWidth, $maxHeight);
-    $startX = $pdf->GetLeftMargin();
-    $startY = $pdf->GetY() + 2;
-    $pdf->Image($imagePath, $startX, $startY, $width, $height);
-    $pdf->Ln($height + 2);
-    if ($caption !== '') {
-        $pdf->SetFont('Helvetica', '', 7.5);
-        $pdf->MultiCell($width, 3.8, $caption, 'L');
-        $pdf->Ln(2);
-    }
-}
-
 function renderTimelineHeadingLine(
     SimplePDF $pdf,
     float $usableWidth,
@@ -1542,6 +1633,277 @@ function renderTimelineHeadingLine(
     if ($resetColor) {
         $pdf->SetTextColor(0, 0, 0);
     }
+}
+
+function renderTimelineInlineImageBlock(
+    SimplePDF $pdf,
+    array $event,
+    float $maxImageWidth,
+    float $maxImageHeight,
+    float $usableWidth
+): bool {
+    $imagePath = $event['image'] ?? '';
+    if ($imagePath === '' || !is_file($imagePath)) {
+        return false;
+    }
+
+    [$width, $height] = computeImageBoxWithMaxes($imagePath, $maxImageWidth, $maxImageHeight);
+    $startX = $pdf->GetLeftMargin();
+    $startY = $pdf->GetY() + 2;
+    $gap = 5.0;
+    $pdf->Image($imagePath, $startX, $startY, $width, $height);
+
+    $textX = $startX + $width + $gap;
+    $textWidth = max(10.0, $usableWidth - ($width + $gap));
+    $currentY = $startY;
+
+    $body = normalisePdfText(trim((string) ($event['body'] ?? '')));
+    $caption = normalisePdfText(trim((string) ($event['caption'] ?? '')));
+
+    if ($body !== '') {
+        if ($event['type'] === 'story') {
+            $pdf->SetFont('Courier', '', 9.0);
+            $lineHeight = 4.5;
+        } else {
+            $pdf->SetFont('Helvetica', '', 9.5);
+            $lineHeight = 4.2;
+        }
+        $pdf->SetXY($textX, $currentY);
+        $pdf->MultiCell($textWidth, $lineHeight, $body, 'L');
+        $currentY = $pdf->GetY() + 1.5;
+    }
+
+    if ($caption !== '') {
+        $pdf->SetFont('Courier', '', 7.5);
+        $pdf->SetXY($startX, $startY + $height + 1.5);
+        $pdf->MultiCell($width, 3.8, $caption, 'L');
+        $captionBottom = $pdf->GetY();
+        pdfSetY($pdf, max($captionBottom, $currentY));
+    } else {
+        pdfSetY($pdf, max($startY + $height, $currentY) + 2);
+    }
+
+    return true;
+}
+
+function renderTimelinePhotoGridBlock(SimplePDF $pdf, array $images, float $usableWidth): void
+{
+    $images = array_values(array_filter($images, static function ($image) {
+        $path = $image['image'] ?? '';
+        return $path !== '' && is_file($path);
+    }));
+    if (empty($images)) {
+        return;
+    }
+
+    $columns = 2;
+    $gap = 4.0;
+    $colWidth = max(10.0, ($usableWidth - $gap) / $columns);
+    $maxHeight = ($pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.2;
+    $x = $pdf->GetLeftMargin();
+    $y = $pdf->GetY() + 2;
+    $rowHeight = 0.0;
+
+    foreach ($images as $index => $image) {
+        if ($index % $columns === 0) {
+            if ($index > 0) {
+                $y += $rowHeight + 6.0;
+                $rowHeight = 0.0;
+            }
+            $x = $pdf->GetLeftMargin();
+        }
+        [$imgWidth, $imgHeight] = computeImageBoxWithMaxes($image['image'], $colWidth, $maxHeight);
+        $pdf->Image($image['image'], $x, $y, $imgWidth, $imgHeight);
+        $cellBottom = $y + $imgHeight;
+        $caption = normalisePdfText(trim((string) ($image['caption'] ?? '')));
+        if ($caption !== '') {
+            $pdf->SetFont('Courier', '', 7.5);
+            $pdf->SetXY($x, $cellBottom + 1.5);
+            $pdf->MultiCell($colWidth, 3.8, $caption, 'L');
+            $cellBottom = $pdf->GetY();
+        }
+        $rowHeight = max($rowHeight, $cellBottom - $y);
+        $x += $colWidth + $gap;
+    }
+
+    pdfSetY($pdf, $y + $rowHeight + 2);
+}
+
+function getTimelineLayoutMetrics(SimplePDF $pdf): array
+{
+    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+    $storyWidth = $usableWidth * 0.8;
+    $contentHeight = $pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin();
+    $maxImageWidth = min($pdf->GetPageWidth() * 0.2, $usableWidth);
+    $maxImageHeight = min($pdf->GetPageHeight() * 0.15, $contentHeight);
+
+    return [
+        'usableWidth' => $usableWidth,
+        'storyWidth' => $storyWidth,
+        'maxImageWidth' => $maxImageWidth,
+        'maxImageHeight' => $maxImageHeight,
+    ];
+}
+
+function ensureTimelineSpace(SimplePDF $pdf, float $requiredHeight): bool
+{
+    $available = $pdf->GetPageHeight() - $pdf->GetBottomMargin() - $pdf->GetY();
+    if ($requiredHeight > $available) {
+        $pdf->AddPage();
+        return true;
+    }
+    return false;
+}
+
+function estimateTimelineEventHeight(
+    SimplePDF $pdf,
+    array $event,
+    float $storyWidth,
+    float $usableWidth,
+    float $maxImageWidth,
+    float $maxImageHeight,
+    bool $includesDateLabel
+): float {
+    $height = 0.0;
+    if ($includesDateLabel) {
+        $height += 6.5;
+    }
+    $type = strtolower((string) ($event['type'] ?? ''));
+    if ($type === 'historical') {
+        $height += 11.0;
+    } else {
+        $height += 6.0;
+    }
+
+    if ($type === 'photo_grid') {
+        return $height + estimatePhotoGridHeight($pdf, $event['images'] ?? [], $usableWidth) + 2.0;
+    }
+
+    $body = normalisePdfText(trim((string) ($event['body'] ?? '')));
+    $caption = normalisePdfText(trim((string) ($event['caption'] ?? '')));
+    $imagePath = $event['image'] ?? '';
+
+    if ($imagePath !== '' && is_file($imagePath)) {
+        [$imgWidth, $imgHeight] = computeImageBoxWithMaxes($imagePath, $maxImageWidth, $maxImageHeight);
+        $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $imgWidth, 3.8, $caption) + 2.0 : 0.0;
+        $imageBlockHeight = $imgHeight + $captionHeight + 2.0;
+
+        $textHeight = 0.0;
+        if ($body !== '') {
+            $lineHeight = $type === 'story' ? 4.5 : 4.2;
+            $textWidth = max(10.0, $usableWidth - ($imgWidth + 5.0));
+            $textHeight = estimateMultiCellHeight($pdf, $textWidth, $lineHeight, $body);
+        }
+        $height += max($imageBlockHeight, $textHeight) + 2.0;
+    } else {
+        if ($body !== '') {
+            $lineHeight = $type === 'story' ? 4.5 : 4.2;
+            $height += estimateMultiCellHeight($pdf, $storyWidth, $lineHeight, $body) + 2.0;
+        }
+        if ($caption !== '' && $body === '') {
+            $height += estimateMultiCellHeight($pdf, $storyWidth, 3.8, $caption) + 2.0;
+        }
+    }
+
+    return $height;
+}
+
+function estimatePhotoGridHeight(SimplePDF $pdf, array $images, float $usableWidth): float
+{
+    $images = array_values(array_filter($images, static function ($image) {
+        $path = $image['image'] ?? '';
+        return $path !== '' && is_file($path);
+    }));
+    if (empty($images)) {
+        return 0.0;
+    }
+    $columns = 2;
+    $gap = 4.0;
+    $colWidth = max(10.0, ($usableWidth - $gap) / $columns);
+    $maxHeight = ($pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.2;
+
+    $rowHeights = [];
+    foreach ($images as $index => $image) {
+        [$imgWidth, $imgHeight] = computeImageBoxWithMaxes($image['image'], $colWidth, $maxHeight);
+        $caption = normalisePdfText(trim((string) ($image['caption'] ?? '')));
+        $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $colWidth, 3.8, $caption) + 2.0 : 0.0;
+        $cellHeight = $imgHeight + $captionHeight + 2.0;
+        $rowIndex = (int) floor($index / $columns);
+        if (!isset($rowHeights[$rowIndex]) || $cellHeight > $rowHeights[$rowIndex]) {
+            $rowHeights[$rowIndex] = $cellHeight;
+        }
+    }
+
+    if (empty($rowHeights)) {
+        return 0.0;
+    }
+    return array_sum($rowHeights) + max(0, count($rowHeights) - 1) * 6.0;
+}
+
+function renderHistoricalSummary(
+    SimplePDF $pdf,
+    array $event,
+    float $storyWidth,
+    float $usableWidth,
+    float $maxImageWidth,
+    float $maxImageHeight
+): void {
+    $summary = extractHistoricalSummaryText($event);
+    if (!empty($event['image'])) {
+        $historicalEvent = $event;
+        $historicalEvent['body'] = $summary;
+        renderTimelineInlineImageBlock($pdf, $historicalEvent, $maxImageWidth, $maxImageHeight, $usableWidth);
+        return;
+    }
+    if ($summary === '') {
+        return;
+    }
+    $pdf->SetFont('Courier', '', 9.0);
+    $pdf->MultiCell($storyWidth, 4.5, $summary, 'L');
+    $pdf->Ln(1.5);
+}
+
+function extractHistoricalSummaryText(array $event): string
+{
+    $rawHtml = trim((string) ($event['body_raw'] ?? ''));
+    if ($rawHtml !== '') {
+        $summary = extractFirstParagraphFromHtml($rawHtml);
+        if ($summary !== '') {
+            return normalisePdfText($summary);
+        }
+    }
+
+    $plain = trim((string) ($event['body'] ?? ''));
+    if ($plain === '') {
+        return '';
+    }
+    return normalisePdfText(extractFirstParagraphFromPlain($plain));
+}
+
+function extractFirstParagraphFromHtml(string $html): string
+{
+    if (stripos($html, '</p>') !== false) {
+        $parts = preg_split('/<\/p>/i', $html);
+        $first = trim($parts[0] ?? $html);
+        if ($first !== '') {
+            return trim(strip_tags($first));
+        }
+    }
+    if (preg_match('/(<br\s*\/?>\s*){2,}/i', $html, $match, PREG_OFFSET_CAPTURE)) {
+        $snippet = substr($html, 0, $match[0][1]);
+        return trim(strip_tags($snippet));
+    }
+    return '';
+}
+
+function extractFirstParagraphFromPlain(string $text): string
+{
+    $normalized = str_replace(["\r\n", "\r"], "\n", $text);
+    if (preg_match("/\n\s*\n/", $normalized, $match, PREG_OFFSET_CAPTURE)) {
+        $paragraph = substr($normalized, 0, $match[0][1]);
+        return trim($paragraph);
+    }
+    return trim($normalized);
 }
 
 function determineFrameColor(?array $accentColor): array
@@ -2007,23 +2369,6 @@ function pdfSetX(SimplePDF $pdf, float $x): void
 {
     $y = is_callable([$pdf, 'GetY']) ? $pdf->GetY() : 0.0;
     $pdf->SetXY($x, $y);
-}
-
-function pdfDrawBorder(SimplePDF $pdf, float $x, float $y, float $width, float $height, float $thickness = 0.5): void
-{
-    if ($width <= 0 || $height <= 0) {
-        return;
-    }
-
-    $thickness = max(0.1, $thickness);
-    $right = $x + $width;
-    $bottom = $y + $height;
-
-    // Draw the four edges using thin filled rectangles to emulate a stroked border.
-    $pdf->FilledRect($x, $y, $width, $thickness, [0, 0, 0]); // Top edge
-    $pdf->FilledRect($x, $bottom - $thickness, $width, $thickness, [0, 0, 0]); // Bottom edge
-    $pdf->FilledRect($x, $y, $thickness, $height, [0, 0, 0]); // Left edge
-    $pdf->FilledRect($right - $thickness, $y, $thickness, $height, [0, 0, 0]); // Right edge
 }
 
 function addGenerationSummaryPage(SimplePDF $pdf, int $generation, array $people, string $type, array &$parentCache, array $options = []): ?int
@@ -2504,26 +2849,6 @@ function formatDateValue(string $value): string
     return $value;
 }
 
-function summariseStories(array $stories): array
-{
-    $output = [];
-    foreach ($stories as $story) {
-        $title = trim((string) ($story['title'] ?? 'Story'));
-        $content = normaliseStoryContent((string) ($story['content'] ?? ''));
-        if ($title === '' && $content === '') {
-            continue;
-        }
-        if ($title === '') {
-            $title = 'Story';
-        }
-        $output[] = [
-            'title' => $title,
-            'content' => $content,
-        ];
-    }
-    return $output;
-}
-
 function normaliseStoryContent(string $html): string
 {
     if (trim($html) === '') {
@@ -2600,6 +2925,9 @@ function filterPhotos(array $photos, ?string $keyImagePath = null): array
     $keyNormalised = $keyImagePath !== null ? normaliseMediaPath($keyImagePath) : null;
 
     foreach ($photos as $photo) {
+        if (!empty($photo['item_id'])) {
+            continue;
+        }
         $path = trim((string) ($photo['file_path'] ?? ''));
         if ($path === '') {
             continue;
@@ -2621,79 +2949,6 @@ function filterPhotos(array $photos, ?string $keyImagePath = null): array
 }
 
 
-function renderPhotoGrid(SimplePDF $pdf, array $photos, ?string $keyImagePath = null): void
-{
-    $filtered = filterPhotos($photos, $keyImagePath);
-
-    if (empty($filtered)) {
-        return;
-    }
-
-    $perRow = 2;
-    $targetWidth = 70.0;
-    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
-    if ($usableWidth < ($targetWidth * $perRow)) {
-        $perRow = 1;
-        $targetWidth = min($targetWidth, $usableWidth);
-    }
-    $spacing = $perRow > 1 ? ($usableWidth - ($targetWidth * $perRow)) / ($perRow - 1) : 0.0;
-
-    $x = $pdf->GetLeftMargin();
-    $y = $pdf->GetY();
-    $rowHeight = 0.0;
-    $baseFont = 7;
-    $lineHeight = 4.0;
-    $pageBottom = $pdf->GetPageHeight() - $pdf->GetBottomMargin();
-
-    $rendered = 0;
-    foreach ($filtered as $photo) {
-        $imagePath = preparePdfImagePath($photo['file_path'] ?? null);
-        if ($imagePath === null) {
-            continue;
-        }
-
-        if ($rendered > 0 && $rendered % $perRow === 0) {
-            $y += $rowHeight + 12;
-            $x = $pdf->GetLeftMargin();
-            $rowHeight = 0.0;
-        }
-
-        // Constrain image to target width and at most 1/5 of content height
-        $maxContentHeight = ($pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.2;
-        [$width, $height] = computeImageBoxWithMaxes($imagePath, $targetWidth, max(10.0, $maxContentHeight));
-        $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
-        $pdf->SetFont('Helvetica', '', $baseFont);
-        $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $width, $lineHeight, $caption) + 4.0 : 0.0;
-        $neededHeight = $height + $captionHeight;
-
-        if ($y + max($rowHeight, $neededHeight) > $pageBottom) {
-            $pdf->AddPage();
-            $x = $pdf->GetLeftMargin();
-            $y = $pdf->GetY();
-            $rowHeight = 0.0;
-        }
-
-        $pdf->Image($imagePath, $x, $y, $width, $height);
-        $rowHeight = max($rowHeight, $height + ($captionHeight > 0 ? $captionHeight : 0));
-
-        $caption = summariseText((string) ($photo['file_description'] ?? ''), 120);
-        if ($caption !== '') {
-            $pdf->SetFont('Helvetica', '', $baseFont);
-            $pdf->SetXY($x, $y + $height + 1);
-            // Ensure wrapped caption lines stay aligned with the photo edge
-            $pdf->MultiCell($width, $lineHeight, $caption, 'L', 0.0);
-            $captionBottom = $pdf->GetY();
-            $rowHeight = max($rowHeight, $captionBottom - $y);
-            pdfSetY($pdf, $y);
-        }
-
-        $x += $width + $spacing;
-        $rendered++;
-    }
-
-    pdfSetY($pdf, $y);
-}
-
 function estimateMultiCellHeight(SimplePDF $pdf, float $width, float $lineHeight, string $text): float
 {
     $text = trim($text);
@@ -2706,7 +2961,6 @@ function estimateMultiCellHeight(SimplePDF $pdf, float $width, float $lineHeight
         $width = $usableWidth;
     }
 
-    // Mirror SimplePDF::wrapLine() heuristics to approximate wrapping.
     $charWidth = max(0.1, $lineHeight * (0.5 / 1.35));
     $maxChars = max(1, (int) floor($width / $charWidth));
 
@@ -2728,41 +2982,6 @@ function estimateMultiCellHeight(SimplePDF $pdf, float $width, float $lineHeight
     }
 
     return max(1, $lineCount) * $lineHeight;
-}
-
-function wrapTextForWidth(SimplePDF $pdf, float $width, float $lineHeight, string $text): array
-{
-    $text = trim($text);
-    if ($text === '') {
-        return [];
-    }
-
-    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
-    if ($width <= 0.0 || $width > $usableWidth) {
-        $width = $usableWidth;
-    }
-    // Mirror SimplePDF::wrapLine() heuristics
-    $charWidth = max(0.1, $lineHeight * (0.5 / 1.35));
-    $maxChars = max(1, (int) floor($width / $charWidth));
-
-    $out = [];
-    $lines = preg_split("/(\r\n|\r|\n)/", $text);
-    if ($lines === false || empty($lines)) {
-        $lines = [$text];
-    }
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if ($line === '') {
-            $out[] = '';
-            continue;
-        }
-        $wrapped = wordwrap($line, $maxChars, "\n", true);
-        $chunks = $wrapped === '' ? [''] : explode("\n", $wrapped);
-        foreach ($chunks as $chunk) {
-            $out[] = $chunk;
-        }
-    }
-    return $out;
 }
 
 function computeImageBox(string $path, float $targetWidth): array

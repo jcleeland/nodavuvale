@@ -637,6 +637,23 @@ class SimplePDF
         ];
     }
 
+    public function AddPageLink(float $x, float $y, float $w, float $h, int $pageNumber): void
+    {
+        if ($this->currentPage === 0) {
+            $this->AddPage();
+        }
+        if ($w <= 0 || $h <= 0 || $pageNumber < 1) {
+            return;
+        }
+        $this->pages[$this->currentPage]['annots'][] = [
+            'x' => $x,
+            'y' => $y,
+            'w' => $w,
+            'h' => $h,
+            'dest_page' => (int) $pageNumber,
+        ];
+    }
+
     private function wrapLine(string $line, float $width): array
     {
         $line = trim($line);
@@ -969,6 +986,18 @@ class SimplePDF
 
         $objects[2] = '<< /Type /Pages /Count ' . count($kids) . ' /Kids [' . implode(' ', $kids) . '] >>';
 
+        $tokenMap = [];
+        foreach ($this->pages as $index => $page) {
+            if (!empty($page['pageObj'])) {
+                $tokenMap['__PAGEOBJ_' . $index . '__'] = $page['pageObj'] . ' 0 R';
+            }
+        }
+        if (!empty($tokenMap)) {
+            foreach ($objects as $num => $obj) {
+                $objects[$num] = str_replace(array_keys($tokenMap), array_values($tokenMap), $obj);
+            }
+        }
+
         ksort($objects);
         $pdf = "%PDF-1.4\n";
         $offsets = [];
@@ -1059,12 +1088,18 @@ class SimplePDF
         $w = (float) ($annot['w'] ?? 0.0);
         $h = (float) ($annot['h'] ?? 0.0);
         $uri = (string) ($annot['uri'] ?? '');
+        $destPage = isset($annot['dest_page']) ? (int) $annot['dest_page'] : null;
         $x1 = $x * self::K;
         $y1 = ($this->pageHeight - $y - $h) * self::K;
         $x2 = ($x + $w) * self::K;
         $y2 = ($this->pageHeight - $y) * self::K;
+        $rect = sprintf('%.2F %.2F %.2F %.2F', $x1, $y1, $x2, $y2);
+        if ($destPage !== null) {
+            $token = '__PAGEOBJ_' . max(0, $destPage - 1) . '__';
+            return '<< /Type /Annot /Subtype /Link /Rect [' . $rect . '] /Border [0 0 0] /Dest [' . $token . ' /Fit] >>';
+        }
         $escaped = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $uri);
-        return '<< /Type /Annot /Subtype /Link /Rect [' . sprintf('%.2F %.2F %.2F %.2F', $x1, $y1, $x2, $y2) . '] /Border [0 0 0] /A << /S /URI /URI (' . $escaped . ') >> >>';
+        return '<< /Type /Annot /Subtype /Link /Rect [' . $rect . '] /Border [0 0 0] /A << /S /URI /URI (' . $escaped . ') >> >>';
     }
     private function writeText(string $text, float $x, float $y): void
     {

@@ -106,8 +106,8 @@ if($auth->getUserRole() == 'admin') {
                         <i class="fas fa-chevron-down text-xs"></i>
                     </button>
                     <div class="absolute right-0 mt-2 w-56 bg-deep-green text-left rounded-md shadow-lg hidden js-report-menu">
-                        <a href="reports/family_story.php?type=descendants&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 rounded-t-md js-report-link" data-report-type="descendants" data-report-label="Descendants Book">Descendants Book</a>
-                        <a href="reports/family_story.php?type=ancestors&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 js-report-link" data-report-type="ancestors" data-report-label="Ancestry Book">Ancestry Book</a>
+                        <a href="reports/family_story.php?type=descendants&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 rounded-t-md js-report-link" data-report-type="descendants" data-report-label="Descendants Book" target="_blank" rel="noopener">Descendants Book</a>
+                        <a href="reports/family_story.php?type=ancestors&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 js-report-link" data-report-type="ancestors" data-report-label="Ancestry Book" target="_blank" rel="noopener">Ancestry Book</a>
                         <a href="reports/graphical_tree.php?individual_id=<?= $individualIdQuery ?>&amp;generations=All" class="block px-4 py-2 text-white hover:bg-burnt-orange-800 rounded-b-md" target="_blank" rel="noopener">Descendant Chart</a>
                     </div>
                 </div>
@@ -148,8 +148,8 @@ if($auth->getUserRole() == 'admin') {
                         <i class="fas fa-chevron-down text-xs"></i>
                     </button>
                     <div class="hidden js-mobile-report-menu">
-                        <a href="reports/family_story.php?type=descendants&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800 js-report-link" data-report-type="descendants" data-report-label="Descendants Book">Descendants Book</a>
-                        <a href="reports/family_story.php?type=ancestors&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800 js-report-link" data-report-type="ancestors" data-report-label="Ancestry Book">Ancestry Book</a>
+                        <a href="reports/family_story.php?type=descendants&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800 js-report-link" data-report-type="descendants" data-report-label="Descendants Book" target="_blank" rel="noopener">Descendants Book</a>
+                        <a href="reports/family_story.php?type=ancestors&amp;individual_id=<?= $individualIdQuery ?>" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800 js-report-link" data-report-type="ancestors" data-report-label="Ancestry Book" target="_blank" rel="noopener">Ancestry Book</a>
                         <a href="reports/graphical_tree.php?individual_id=<?= $individualIdQuery ?>&amp;generations=All" class="block px-4 py-2 text-white text-left hover:bg-burnt-orange-800" target="_blank" rel="noopener">Descendant Chart</a>
                     </div>
                 </div>
@@ -492,16 +492,21 @@ if($auth->getUserRole() == 'admin') {
                                 closeNavMenu();
                             }
 
+                            var finalUrl = null;
                             try {
                                 var targetUrl = new URL(link.getAttribute('href'), window.location.href);
                                 targetUrl.searchParams.set('generations', generations);
                                 if (reportType) {
                                     targetUrl.searchParams.set('type', reportType);
                                 }
-                                window.location.href = targetUrl.toString();
+                                finalUrl = targetUrl.toString();
                             } catch (error) {
                                 var separator = link.href.indexOf('?') === -1 ? '?' : '&';
-                                window.location.href = link.href + separator + 'generations=' + encodeURIComponent(generations);
+                                finalUrl = link.href + separator + 'generations=' + encodeURIComponent(generations);
+                            }
+
+                            if (finalUrl) {
+                                window.location.href = finalUrl;
                             }
                         });
                     });
