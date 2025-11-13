@@ -40,6 +40,8 @@ class SimplePDF
     private bool $textColorDirty = true;
 
     private array $fillColor = [0.0, 0.0, 0.0];
+    private array $lineDrawColor = [0.0, 0.0, 0.0];
+    private bool $lineDrawColorDirty = true;
     private float $lineWidth = 0.2;
 
     private array $images = [];
@@ -308,6 +310,16 @@ class SimplePDF
             max(0.0, min(1.0, $g / 255)),
             max(0.0, min(1.0, $b / 255)),
         ];
+    }
+
+    public function SetDrawColor(int $r, int $g, int $b): void
+    {
+        $this->lineDrawColor = [
+            max(0.0, min(1.0, $r / 255)),
+            max(0.0, min(1.0, $g / 255)),
+            max(0.0, min(1.0, $b / 255)),
+        ];
+        $this->lineDrawColorDirty = true;
     }
 
     private function updateLineHeight(): void
@@ -586,6 +598,15 @@ class SimplePDF
         if ($this->currentPage === 0) {
             $this->AddPage();
         }
+        if ($this->lineDrawColorDirty) {
+            $this->pages[$this->currentPage]['content'] .= sprintf(
+                "%.3F %.3F %.3F RG\n",
+                $this->lineDrawColor[0],
+                $this->lineDrawColor[1],
+                $this->lineDrawColor[2]
+            );
+            $this->lineDrawColorDirty = false;
+        }
         if ($this->textColorDirty) {
             [$r, $g, $b] = $this->textColor;
             $this->pages[$this->currentPage]['content'] .= sprintf(
@@ -650,7 +671,7 @@ class SimplePDF
             'y' => $y,
             'w' => $w,
             'h' => $h,
-            'dest_page' => (int) $pageNumber,
+            'dest_page' => max(1, (int) $pageNumber),
         ];
     }
 
@@ -1095,7 +1116,7 @@ class SimplePDF
         $y2 = ($this->pageHeight - $y) * self::K;
         $rect = sprintf('%.2F %.2F %.2F %.2F', $x1, $y1, $x2, $y2);
         if ($destPage !== null) {
-            $token = '__PAGEOBJ_' . max(0, $destPage - 1) . '__';
+            $token = '__PAGEOBJ_' . max(1, $destPage) . '__';
             return '<< /Type /Annot /Subtype /Link /Rect [' . $rect . '] /Border [0 0 0] /Dest [' . $token . ' /Fit] >>';
         }
         $escaped = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $uri);

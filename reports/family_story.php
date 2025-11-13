@@ -347,25 +347,58 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
     $fullName = formatPersonName($person);
     $displayName = $fullName !== '' ? $fullName : 'Unnamed Individual';
     $pdf->AddPage();
+
+    $pageWidth = $pdf->GetPageWidth();
+    $pageHeight = $pdf->GetPageHeight();
+    $borderInset = 10.0;
+    $pdf->SetLineWidth(1.5);
+    $borderColor = [15, 45, 90];
+    $pdf->SetDrawColor($borderColor[0], $borderColor[1], $borderColor[2]);
+    $pdf->Line($borderInset, $borderInset, $pageWidth - $borderInset, $borderInset);
+    $pdf->Line($borderInset, $borderInset, $borderInset, $pageHeight - $borderInset);
+    $pdf->Line($pageWidth - $borderInset, $borderInset, $pageWidth - $borderInset, $pageHeight - $borderInset);
+    $pdf->Line($borderInset, $pageHeight - $borderInset, $pageWidth - $borderInset, $pageHeight - $borderInset);
+    $pdf->SetDrawColor(0, 0, 0);
+
     $pdf->SetTextColor(0, 0, 0);
     $descriptorLabel = $type === 'descendants' ? 'Descendants of' : 'Ancestors of';
     $titleText = $descriptorLabel . "\n" . $displayName;
+
+    $titleBlockWidth = $pageWidth - $pdf->GetLeftMargin() - $pdf->GetRightMargin() + 10;
+    $titleBlockX = $pdf->GetLeftMargin() - 5;
+    $titleBlockY = $pdf->GetTopMargin();
+    $titleBlockHeight = 60;
+    $pdf->FilledRect($titleBlockX, $titleBlockY, $titleBlockWidth, $titleBlockHeight, [20, 45, 90]);
+    $pdf->SetXY($titleBlockX, $titleBlockY + 6);
+    $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('Helvetica', 'B', 26);
-    $pdf->MultiCell(0, 14, $titleText, 'C');
-    $pdf->Ln(10);
+    $pdf->MultiCell($titleBlockWidth, 12, $titleText, 'C');
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('Helvetica', '', 14);
+    $pdf->MultiCell($titleBlockWidth, 8, 'A ' . $bookLabel . ' narrative compiled by ' . $siteName, 'C');
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->Ln(4);
 
     $imagePath = preparePdfImagePath($bundle['key_image'] ?? null);
     if ($imagePath !== null) {
-        $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
-        $maxKeyWidth = max(10.0, $usableWidth * 0.2);
-        [$imageWidth, $imageHeight] = computeImageBox($imagePath, min(110.0, $maxKeyWidth));
+        $usableWidth = $pageWidth - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+        $maxKeyHeight = max(40.0, ($pageHeight - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.33);
+        $maxKeyWidth = max(50.0, $usableWidth * 0.45);
+        [$imageWidth, $imageHeight] = computeImageBoxWithMaxes($imagePath, $maxKeyWidth, $maxKeyHeight);
         $framePadding = 4.0;
         $frameWidth = $imageWidth + ($framePadding * 2);
         $imageX = $pdf->GetLeftMargin() + max(0.0, ($usableWidth - $frameWidth) / 2.0);
-        $currentY = $pdf->GetY();
-        $frameColor = [45, 45, 45];
+        $contentStartY = $titleBlockY + $titleBlockHeight + 12;
+        $availableHeight = $pageHeight - $pdf->GetTopMargin() - $pdf->GetBottomMargin();
+        $centerTarget = $pdf->GetTopMargin() + $availableHeight * 0.45;
+        $currentY = max($contentStartY, $centerTarget - ($imageHeight / 2) - $framePadding);
+        $maxY = $pageHeight - $pdf->GetBottomMargin() - $imageHeight - ($framePadding * 2) - 40;
+        $currentY = min($currentY, $maxY);
+        $frameColor = [20, 45, 90];
         drawFramedImage($pdf, $imagePath, $imageWidth, $imageHeight, $imageX, $currentY, $frameColor, $framePadding);
-        pdfSetY($pdf, $currentY + $imageHeight + ($framePadding * 2) + 18);
+        $afterImageY = $currentY + $imageHeight + ($framePadding * 2) + 18;
+        $afterImageY = min($afterImageY, $pageHeight - $pdf->GetBottomMargin() - 40);
+        pdfSetY($pdf, $afterImageY);
     } else {
         $pdf->Ln(20);
     }
@@ -379,7 +412,26 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
         $siteName
     );
     $pdf->SetFont('Helvetica', '', 13);
-    $pdf->MultiCell(0, 8, $subtitle, 'C');
+    $pdf->SetTextColor(40, 40, 40);
+    $paragraphWidth = max(60.0, ($pageWidth - $pdf->GetLeftMargin() - $pdf->GetRightMargin()) * (2 / 3));
+    $startX = $pdf->GetLeftMargin() + (($pageWidth - $pdf->GetLeftMargin() - $pdf->GetRightMargin()) - $paragraphWidth) / 2;
+    pdfSetX($pdf, $startX);
+    $pdf->MultiCell($paragraphWidth, 7, $subtitle, 'C');
+    $pdf->SetTextColor(0, 0, 0);
+
+    $pdf->SetY($pageHeight - $pdf->GetBottomMargin() - 10);
+    $pdf->SetFont('Helvetica', '', 10);
+    $pdf->SetTextColor(60, 60, 60);
+    $iconPath = preparePdfImagePath('/images/default_avatar.webp');
+    if ($iconPath !== null) {
+        $iconSize = 8.0;
+        $iconX = $pdf->GetLeftMargin();
+        $iconY = $pdf->GetY();
+        $pdf->Image($iconPath, $iconX, $iconY, $iconSize, $iconSize);
+        $pdf->SetXY($iconX + $iconSize + 2, $iconY);
+    }
+    $pdf->Cell(0, 5.5, 'Printed ' . date('j F Y') . ' • ' . $siteName, 0, 1, 'L');
+    $pdf->SetTextColor(0, 0, 0);
 }
 
 function createSimpleIndexPage(SimplePDF $pdf, string $bookLabel, string $type): int
