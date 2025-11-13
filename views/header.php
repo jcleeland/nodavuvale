@@ -40,7 +40,7 @@ if ($isIndividualPage) {
     <script src="js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
     
     <!-- Link to main js file -->
-    <script src="js/index.js?v=3"></script>
+    <script src="js/index.js?v=4"></script>
 
     <!-- Link to dTree JavaScript -->
     <script src="vendor/lodash/lodash.js"></script>
@@ -458,7 +458,7 @@ if($auth->getUserRole() == 'admin') {
 
                 var reportLinks = Array.prototype.slice.call(document.querySelectorAll('.js-report-link'));
 
-                if (reportLinks.length) {
+                if (reportLinks.length && typeof showCustomPrompt === 'function') {
                     reportLinks.forEach(function (link) {
                         link.addEventListener('click', function (event) {
                             var reportType = link.getAttribute('data-report-type');
@@ -468,46 +468,72 @@ if($auth->getUserRole() == 'admin') {
                             event.preventDefault();
                             event.stopPropagation();
 
-                            var label = link.getAttribute('data-report-label') || 'report';
-                            var generations = window.prompt('How many generations should be included in the ' + label + '? Enter a number or type \"All\".', 'All');
-                            if (generations === null) {
-                                closeAllReportMenus(null);
-                                return;
-                            }
-                            generations = generations.trim();
-                            if (generations === '') {
-                                generations = 'All';
-                            }
-                            if (generations.toLowerCase() !== 'all') {
-                                if (!/^[0-9]+$/.test(generations) || parseInt(generations, 10) < 1) {
-                                    window.alert('Please enter \"All\" or a positive whole number.');
-                                    return;
-                                }
-                            } else {
-                                generations = 'All';
-                            }
-
                             closeAllReportMenus(null);
                             if (typeof closeNavMenu === 'function') {
                                 closeNavMenu();
                             }
 
-                            var finalUrl = null;
-                            try {
-                                var targetUrl = new URL(link.getAttribute('href'), window.location.href);
-                                targetUrl.searchParams.set('generations', generations);
-                                if (reportType) {
-                                    targetUrl.searchParams.set('type', reportType);
-                                }
-                                finalUrl = targetUrl.toString();
-                            } catch (error) {
-                                var separator = link.href.indexOf('?') === -1 ? '?' : '&';
-                                finalUrl = link.href + separator + 'generations=' + encodeURIComponent(generations);
-                            }
+                            var label = link.getAttribute('data-report-label') || 'report';
+                            var sizeConfig = {
+                                options: [
+                                    { label: 'Standard (full narrative)', value: 'standard' },
+                                    { label: 'Abbreviated (headings only)', value: 'abbreviated' }
+                                ],
+                                defaultValue: 'standard'
+                            };
 
-                            if (finalUrl) {
-                                window.location.href = finalUrl;
-                            }
+                            showCustomPrompt(
+                                label + ' Options',
+                                'Choose how many generations to include and which book size to generate.',
+                                ['text_Generations', 'select_Book Size'],
+                                ['All', sizeConfig],
+                                function (inputValues) {
+                                    if (inputValues === null) {
+                                        return;
+                                    }
+
+                                    var generations = (inputValues[0] || '').trim();
+                                    if (generations === '') {
+                                        generations = 'All';
+                                    }
+                                    if (generations.toLowerCase() !== 'all') {
+                                        if (!/^[0-9]+$/.test(generations) || parseInt(generations, 10) < 1) {
+                                            window.alert('Please enter \"All\" or a positive whole number.');
+                                            return;
+                                        }
+                                    } else {
+                                        generations = 'All';
+                                    }
+
+                                    var bookSize = (inputValues[1] || '').trim().toLowerCase();
+                                    if (bookSize !== 'abbreviated') {
+                                        bookSize = 'standard';
+                                    }
+
+                                    var finalUrl = null;
+                                    try {
+                                        var targetUrl = new URL(link.getAttribute('href'), window.location.href);
+                                        targetUrl.searchParams.set('generations', generations);
+                                        targetUrl.searchParams.set('book_size', bookSize);
+                                        if (reportType) {
+                                            targetUrl.searchParams.set('type', reportType);
+                                        }
+                                        finalUrl = targetUrl.toString();
+                                    } catch (error) {
+                                        var separator = link.href.indexOf('?') === -1 ? '?' : '&';
+                                        finalUrl = link.href + separator +
+                                            'generations=' + encodeURIComponent(generations) +
+                                            '&book_size=' + encodeURIComponent(bookSize);
+                                        if (reportType) {
+                                            finalUrl += '&type=' + encodeURIComponent(reportType);
+                                        }
+                                    }
+
+                                    if (finalUrl) {
+                                        window.location.href = finalUrl;
+                                    }
+                                }
+                            );
                         });
                     });
                 }

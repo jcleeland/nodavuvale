@@ -7,6 +7,82 @@ require_once __DIR__ . '/../system/nodavuvale_web.php';
 require_once __DIR__ . '/../system/nodavuvale_utils.php';
 require_once __DIR__ . '/../vendor/simplepdf/SimplePDF.php';
 
+if (!class_exists('FamilyBookPDF')) {
+    class FamilyBookPDF extends SimplePDF
+    {
+        private float $fontScale = 1.0;
+        private float $imageScale = 1.0;
+
+        public function setFontScale(float $scale): void
+        {
+            $this->fontScale = max(0.6, min(1.2, $scale));
+        }
+
+        public function getFontScale(): float
+        {
+            return $this->fontScale;
+        }
+
+        public function setImageScale(float $scale): void
+        {
+            $this->imageScale = max(0.5, min(1.2, $scale));
+        }
+
+        public function getImageScale(): float
+        {
+            return $this->imageScale;
+        }
+
+        public function SetFont(string $family, string $style = '', float $size = 12.0): void
+        {
+            $scaledSize = $size > 0 ? $size * $this->fontScale : $size;
+            parent::SetFont($family, $style, $scaledSize);
+        }
+    }
+}
+
+function buildBookRenderProfile(string $bookSize): array
+{
+    $normalized = in_array($bookSize, ['abbreviated', 'standard'], true) ? $bookSize : 'standard';
+    if ($normalized === 'abbreviated') {
+        return [
+            'size' => 'abbreviated',
+            'font_scale' => 0.9,
+            'image_scale' => 0.75,
+            'include_story_bodies' => false,
+        ];
+    }
+
+    return [
+        'size' => 'standard',
+        'font_scale' => 1.0,
+        'image_scale' => 1.0,
+        'include_story_bodies' => true,
+    ];
+}
+
+function bookImageScale(): float
+{
+    global $bookRenderProfile;
+    $scale = isset($bookRenderProfile['image_scale']) ? (float) $bookRenderProfile['image_scale'] : 1.0;
+    if ($scale <= 0) {
+        return 1.0;
+    }
+    return $scale;
+}
+
+function bookShowsNarrativeBodies(): bool
+{
+    global $bookRenderProfile;
+    return !empty($bookRenderProfile['include_story_bodies']);
+}
+
+function isAbbreviatedBook(): bool
+{
+    global $bookRenderProfile;
+    return isset($bookRenderProfile['size']) && $bookRenderProfile['size'] === 'abbreviated';
+}
+
 Web::startSession();
 
 $db = Database::getInstance();
@@ -43,6 +119,10 @@ if (strcasecmp($generationsRaw, 'All') !== 0) {
     $maxGenerations = (int) $generationsRaw;
 }
 
+$bookSizeRaw = isset($_GET['book_size']) ? strtolower(trim((string) $_GET['book_size'])) : 'standard';
+$bookSize = in_array($bookSizeRaw, ['standard', 'abbreviated'], true) ? $bookSizeRaw : 'standard';
+$bookRenderProfile = buildBookRenderProfile($bookSize);
+
 $individual = Utils::getIndividual($individualId);
 if (!$individual) {
     http_response_code(404);
@@ -61,7 +141,10 @@ $generationData = $type === 'descendants'
 $rootBundleCache = [];
 $rootBundle = fetchIndividualBundle($individualId, $rootBundleCache);
 
-$pdf = new SimplePDF();
+$pdf = new FamilyBookPDF();
+$pdf->SetPageSize(210.0, 297.0); // Explicitly enforce A4 dimensions (mm)
+$pdf->setFontScale($bookRenderProfile['font_scale']);
+$pdf->setImageScale($bookRenderProfile['image_scale']);
 $pdf->SetMargins(20, 20, 20);
 $pdf->SetBottomMargin(25);
 $pdf->SetAutoPageBreak(true);
@@ -101,6 +184,7 @@ $rootChapter = renderIndividualPage($pdf, $rootBundle, 'Overview', null, '', [
 $rootPageNumber = $rootChapter['page'] ?? null;
 if ($rootPageNumber !== null) {
     $indexEntries[(int) $individualId] = [
+        'person_id' => (int) $individualId,
         'name' => $rootName !== '' ? $rootName : 'Subject',
         'page' => $rootPageNumber,
         'color' => null,
@@ -112,6 +196,7 @@ if ($rootPageNumber !== null) {
         'page' => $rootPageNumber,
     ];
 }
+
 if ($includeSpousePages && !empty($rootChapter['spouses'])) {
     foreach ($rootChapter['spouses'] as $spouseChapter) {
         $spouseId = (int) ($spouseChapter['id'] ?? 0);
@@ -124,6 +209,7 @@ if ($includeSpousePages && !empty($rootChapter['spouses'])) {
         }
         $spouseName = trim((string) ($spouseChapter['name'] ?? 'Spouse'));
         $indexEntries[$spouseId] = [
+            'person_id' => $spouseId,
             'name' => $spouseName !== '' ? $spouseName : 'Spouse',
             'page' => $spousePage,
             'color' => null,
@@ -138,7 +224,8 @@ $parentCache = [];
 if ($type === 'descendants') {
     $lines = buildDescendantLines($generationData, $lineMetadata);
     $linesOverviewPage = null;
-    if (!empty($generationData[1])) {
+
+    /*if (!empty($generationData[1])) {
         $linesOverviewPage = addDescendantLinesOverviewPage($pdf, $generationData[1], $lineMetadata, $rootName);
         if ($linesOverviewPage !== null) {
             $simpleIndex['lines_overview'] = [
@@ -146,7 +233,8 @@ if ($type === 'descendants') {
                 'page' => $linesOverviewPage,
             ];
         }
-    }
+    }*/
+
     // Build a quick map of direct parents for descendants to help ordering and chains.
     $directParentMap = buildDirectParentMap($generationData);
     $lineColorMap = buildDescendantColorMap($lineMetadata, $directParentMap);
@@ -167,7 +255,7 @@ if ($type === 'descendants') {
             // Order members by parent, then date of birth
             $members = sortMembersByParentThenBirth($members, $directParentMap);
 
-            $summaryPage = addLineGenerationSummaryPage($pdf, $generation, $members, $line, $parentCache, $rootName);
+            /* $summaryPage = addLineGenerationSummaryPage($pdf, $generation, $members, $line, $parentCache, $rootName);
             if ($summaryPage !== null) {
                 if ($lineSimpleIndex['page'] === null) {
                     $lineSimpleIndex['page'] = $summaryPage;
@@ -176,13 +264,15 @@ if ($type === 'descendants') {
                     'label' => 'Generation ' . $generation,
                     'page' => $summaryPage,
                 ];
-            }
+            }*/
+            $lineSimpleIndex['page'] = $summaryPage;
             foreach ($members as $person) {
                 $bundle = fetchIndividualBundle((int) $person['id'], $rootBundleCache);
                 $relationship = formatRelationshipWithRoot($person['relationship'] ?? '', $rootName, 'descendants');
                 if ($relationship === '') {
                     $relationship = 'Descendant of ' . $rootName;
                 }
+                
                 // From 3rd generation onwards, include ancestor chain beneath the line heading
                 $lineLabelForPerson = $lineLabel;
                 if ((int) $generation >= 3) {
@@ -191,6 +281,7 @@ if ($type === 'descendants') {
                         $lineLabelForPerson .= "\n" . $chain;
                     }
                 }
+
                 $chapter = renderIndividualPage(
                     $pdf,
                     $bundle,
@@ -209,6 +300,7 @@ if ($type === 'descendants') {
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
                     $personId = (int) $bundle['person']['id'];
                     $indexEntries[$personId] = [
+                        'person_id' => $personId,
                         'name' => $fullName,
                         'page' => $pageNumber,
                         'color' => $accentColor,
@@ -228,6 +320,7 @@ if ($type === 'descendants') {
                         }
                         $spouseName = trim((string) ($spouseChapter['name'] ?? 'Spouse'));
                         $indexEntries[$spouseId] = [
+                            'person_id' => $spouseId,
                             'name' => $spouseName !== '' ? $spouseName : 'Spouse',
                             'page' => $spousePage,
                             'color' => $accentColor,
@@ -241,6 +334,7 @@ if ($type === 'descendants') {
         $simpleIndex['lines'][] = $lineSimpleIndex;
     }
 } else {
+    /* Ancestors */
     if (!empty($generationData)) {
         ksort($generationData);
         foreach ($generationData as $generation => $people) {
@@ -281,6 +375,7 @@ if ($type === 'descendants') {
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
                     $personId = (int) $bundle['person']['id'];
                     $indexEntries[$personId] = [
+                        'person_id' => $personId,
                         'name' => $fullName,
                         'page' => $pageNumber,
                         'color' => null,
@@ -376,6 +471,11 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
     $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('Helvetica', '', 14);
     $pdf->MultiCell($titleBlockWidth, 8, 'A ' . $bookLabel . ' narrative compiled by ' . $siteName, 'C');
+    if (isAbbreviatedBook()) {
+        pdfSetX($pdf, $titleBlockX);
+        $pdf->SetFont('Helvetica', 'I', 11);
+        $pdf->MultiCell($titleBlockWidth, 6, 'Abbreviated Edition', 'C');
+    }
     $pdf->SetTextColor(0, 0, 0);
     $pdf->Ln(4);
 
@@ -385,6 +485,11 @@ function createCoverPage(SimplePDF $pdf, array $bundle, string $bookLabel, strin
         $maxKeyHeight = max(40.0, ($pageHeight - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.33);
         $maxKeyWidth = max(50.0, $usableWidth * 0.45);
         [$imageWidth, $imageHeight] = computeImageBoxWithMaxes($imagePath, $maxKeyWidth, $maxKeyHeight);
+        $imageScale = bookImageScale();
+        if ($imageScale !== 1.0) {
+            $imageWidth *= $imageScale;
+            $imageHeight *= $imageScale;
+        }
         $framePadding = 4.0;
         $frameWidth = $imageWidth + ($framePadding * 2);
         $imageX = $pdf->GetLeftMargin() + max(0.0, ($usableWidth - $frameWidth) / 2.0);
@@ -587,39 +692,64 @@ function createAppendingPage(SimplePDF $pdf, array $entries, string $bookLabel, 
     $numberWidth = 18.0;
     $nameWidth = max(0.0, $usableWidth - $numberWidth);
     $lineHeight = 4.5;
+    $nameFontSize = 10;
+    $numberFontSize = 9;
+    $detailFontSize = max(6.0, $nameFontSize - 3.0);
 
-    foreach ($sorted as $entry) {
+    $totalEntries = count($sorted);
+    foreach ($sorted as $entryIndex => $entry) {
         $name = trim((string) ($entry['name'] ?? 'Unknown'));
         $pageLabel = isset($entry['page']) ? (string) $entry['page'] : '';
         $color = $entry['color'] ?? null;
-        if (is_array($color) && count($color) === 3) {
-            $pdf->SetTextColor((int) $color[0], (int) $color[1], (int) $color[2]);
-        } else {
-            $pdf->SetTextColor(0, 0, 0);
-        }
-        $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->Cell($nameWidth, $lineHeight, $name, 0, 'L');
-        $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetFont('Helvetica', '', 9);
-        $pdf->Cell($numberWidth, $lineHeight, $pageLabel, 1, 'R');
+        $destPage = isset($entry['page']) ? (int) $entry['page'] : 0;
 
         $lineName = trim((string) ($entry['line'] ?? ''));
+        $detailParts = [];
         if ($lineName !== '' && $type === 'descendants') {
-            if (is_array($color) && count($color) === 3) {
+            $detailParts[] = 'Line: ' . $lineName;
+        }
+
+        $hasDetails = !empty($detailParts);
+        $detailWidth = $hasDetails ? min(80.0, $nameWidth * 0.6) : 0.0;
+        if ($hasDetails && $nameWidth - $detailWidth < 40.0) {
+            $detailWidth = max(20.0, $nameWidth - 40.0);
+        }
+        $detailWidth = min($detailWidth, $nameWidth);
+        $nameColumnWidth = max(0.0, $nameWidth - $detailWidth);
+        if (!$hasDetails) {
+            $nameColumnWidth = $nameWidth;
+            $detailWidth = 0.0;
+        }
+
+        $rowY = $pdf->GetY();
+        $pdf->SetXY($pdf->GetLeftMargin(), $rowY);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('Helvetica', 'B', $nameFontSize);
+        $pdf->Cell($nameColumnWidth, $lineHeight, $name, 0, 0, 'L');
+        if ($nameColumnWidth > 0 && $destPage > 0 && method_exists($pdf, 'AddPageLink')) {
+            $pdf->AddPageLink($pdf->GetLeftMargin(), $rowY, $nameColumnWidth, $lineHeight, $destPage);
+        }
+
+        if ($detailWidth > 0 && $hasDetails) {
+            $detailX = $pdf->GetLeftMargin() + $nameColumnWidth;
+            $pdf->SetXY($detailX, $rowY);
+            if ($lineName !== '' && $type === 'descendants' && is_array($color) && count($color) === 3) {
                 $pdf->SetTextColor((int) $color[0], (int) $color[1], (int) $color[2]);
+            } else {
+                $pdf->SetTextColor(60, 60, 60);
             }
-            $pdf->SetFont('Helvetica', '', 9);
-            $pdf->MultiCell(0, $lineHeight, 'Line: ' . $lineName);
-            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetFont('Helvetica', '', $detailFontSize);
+            $pdf->Cell($detailWidth, $lineHeight, implode('    ', $detailParts), 0, 0, 'L');
         }
 
-        $relationship = trim((string) ($entry['relationship'] ?? ''));
-        if ($relationship !== '') {
-            $pdf->SetFont('Helvetica', '', 9);
-            $pdf->MultiCell(0, $lineHeight, $relationship);
-        }
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('Helvetica', '', $numberFontSize);
+        $pdf->SetXY($pdf->GetLeftMargin() + $nameWidth, $rowY);
+        $pdf->Cell($numberWidth, $lineHeight, $pageLabel, 1, 'R');
 
-        $pdf->Ln(1.5);
+        if ($entryIndex < $totalEntries - 1) {
+            $pdf->Ln(1.5);
+        }
     }
 
     return $pageNumber;
@@ -705,25 +835,35 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
     $fullName = $fullName !== '' ? $fullName : 'Unnamed Individual';
     $lifespan = formatLifeSpanLine($person);
 
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetFont('Helvetica', 'B', 22);
-    $pdf->MultiCell(0, 10, $fullName, 'L');
+    $usedBanner = false;
+    if (is_array($accentColor) && count($accentColor) === 3) {
+        $bannerParts = [];
 
-    if ($contextLabel !== '' && strcasecmp($contextLabel, 'Overview') !== 0) {
-        $pdf->SetFont('Helvetica', 'I', 12);
-        $pdf->MultiCell(0, 6, $contextLabel, 'L');
-    }
-    if ($lineLabel !== '') {
-        $pdf->SetFont('Helvetica', '', 10);
-        if (is_array($accentColor) && count($accentColor) === 3) {
-            $pdf->SetTextColor((int) $accentColor[0], (int) $accentColor[1], (int) $accentColor[2]);
+        if (trim((string) $contextLabel) !== '') {
+            $bannerParts[] = trim((string) $contextLabel);
         }
-        $pdf->MultiCell(0, 5.5, $lineLabel, 'L');
+
+        if (trim((string) $lineLabel) !== '') {
+            $bannerParts[] = trim((string) $lineLabel);
+        }
+
+        $bannerLineLabel = implode(' | ', $bannerParts);
+
+
+        drawIndividualBanner($pdf, $fullName, $bannerLineLabel, $accentColor);
+        $usedBanner = true;
+    }
+
+    if (!$usedBanner) {
         $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('Helvetica', 'B', 22);
+        pdfSetX($pdf, $pdf->GetLeftMargin());
+        $pdf->MultiCell(0, 10, $fullName, 'L');
     }
 
     if ($lifespan !== '') {
         $pdf->SetFont('Helvetica', '', 12);
+        pdfSetX($pdf, $pdf->GetLeftMargin());
         $pdf->MultiCell(0, 6, $lifespan, 'L');
     }
 
@@ -740,6 +880,11 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
         );
         $maxWidth = max(40.0, $usableWidth * 0.75);
         [$imgW, $imgH] = computeImageBoxWithMaxes($photoPath, $maxWidth, $maxHeight);
+        $imageScale = bookImageScale();
+        if ($imageScale !== 1.0) {
+            $imgW *= $imageScale;
+            $imgH *= $imageScale;
+        }
         $framePadding = 3.5;
         $frameWidth = $imgW + ($framePadding * 2);
         $startX = $pdf->GetLeftMargin() + max(0, ($usableWidth - $frameWidth) / 2);
@@ -920,6 +1065,11 @@ function renderParentCard(SimplePDF $pdf, ?array $parent, float $columnWidth): f
     $maxWidth = 16.0;
     $imagePath = $parent ? resolveProfileImagePath($parent['keyimagepath'] ?? null) : resolveProfileImagePath(null);
     [$imageWidth, $imageHeight] = computeImageBoxWithMaxes($imagePath, $maxWidth, $maxHeight);
+    $imageScale = bookImageScale();
+    if ($imageScale !== 1.0) {
+        $imageWidth *= $imageScale;
+        $imageHeight *= $imageScale;
+    }
     $pdf->Image($imagePath, $startX, $startY, $imageWidth, $imageHeight);
 
     $textX = $startX + $imageWidth + 4.0;
@@ -1009,10 +1159,20 @@ function renderSpouseCard(
     $imagePath = resolveProfileImagePath($spouse['keyimagepath'] ?? null);
     if ($imagePath !== null) {
         [$imageWidth, $imageHeight] = computeImageBoxWithMaxes($imagePath, $maxWidth, $maxHeight);
+        $imageScale = bookImageScale();
+        if ($imageScale !== 1.0) {
+            $imageWidth *= $imageScale;
+            $imageHeight *= $imageScale;
+        }
         $pdf->Image($imagePath, $left, $startY, $imageWidth, $imageHeight);
     } else {
         $imageWidth = $maxWidth;
         $imageHeight = $maxHeight;
+        $imageScale = bookImageScale();
+        if ($imageScale !== 1.0) {
+            $imageWidth *= $imageScale;
+            $imageHeight *= $imageScale;
+        }
         $pdf->FilledRect($left, $startY, $imageWidth, $imageHeight, [220, 220, 220]);
     }
 
@@ -1390,6 +1550,7 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
 
     $lastDateLabel = null;
     $historicalTextColor = [70, 120, 200];
+    $includeBodies = bookShowsNarrativeBodies();
 
     foreach ($datedEvents as $event) {
         $label = trim((string) ($event['label'] ?? ''));
@@ -1437,15 +1598,30 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
 
         if (strcasecmp((string) ($event['type'] ?? ''), 'photo_grid') === 0) {
             renderTimelinePhotoGridBlock($pdf, $event['images'] ?? [], $usableWidth);
+            if (!$includeBodies) {
+                $pdf->Ln(1);
+            }
             continue;
         }
 
         $handledImageInline = false;
         if (!empty($event['image'])) {
-            $handledImageInline = renderTimelineInlineImageBlock($pdf, $event, $maxImageWidth, $maxImageHeight, $usableWidth);
+            $handledImageInline = renderTimelineInlineImageBlock(
+                $pdf,
+                $event,
+                $maxImageWidth,
+                $maxImageHeight,
+                $usableWidth,
+                $includeBodies
+            );
         }
+
+        $hasNarrativeBody = $includeBodies
+            && strcasecmp((string) ($event['type'] ?? ''), 'historical') !== 0
+            && trim((string) ($event['body'] ?? '')) !== '';
+
         if (!$handledImageInline) {
-            if ($event['type'] !== 'historical' && $event['body'] !== '') {
+            if ($hasNarrativeBody) {
                 if ($event['type'] === 'story') {
                     $pdf->SetFont('Courier', '', 9.0);
                     $lineHeight = 4.5;
@@ -1455,7 +1631,7 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
                 }
                 $pdf->MultiCell($storyWidth, $lineHeight, $event['body'], 'L');
             }
-            $pdf->Ln(2);
+            $pdf->Ln($includeBodies ? 2 : 1);
         }
     }
 
@@ -1505,6 +1681,9 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
 
             if (strcasecmp((string) ($event['type'] ?? ''), 'photo_grid') === 0) {
                 renderTimelinePhotoGridBlock($pdf, $event['images'] ?? [], $usableWidth);
+                if (!$includeBodies) {
+                    $pdf->Ln(0.8);
+                }
                 continue;
             }
             if ($isHistorical) {
@@ -1514,10 +1693,18 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
 
             $handledImageInline = false;
             if (!empty($event['image'])) {
-                $handledImageInline = renderTimelineInlineImageBlock($pdf, $event, $maxImageWidth, $maxImageHeight, $usableWidth);
+                $handledImageInline = renderTimelineInlineImageBlock(
+                    $pdf,
+                    $event,
+                    $maxImageWidth,
+                    $maxImageHeight,
+                    $usableWidth,
+                    $includeBodies
+                );
             }
+            $hasNarrativeBody = $includeBodies && trim((string) ($event['body'] ?? '')) !== '';
             if (!$handledImageInline) {
-                if ($event['body'] !== '') {
+                if ($hasNarrativeBody) {
                     if ($event['type'] === 'story') {
                         $pdf->SetFont('Courier', '', 9.0);
                         $lineHeight = 4.5;
@@ -1526,13 +1713,14 @@ function renderTimelineChapter(SimplePDF $pdf, string $name, array $timeline): ?
                         $lineHeight = 4.5;
                     }
                     $pdf->MultiCell($storyWidth, $lineHeight, $event['body'], 'L');
+                } elseif ($includeBodies) {
+                    $caption = trim((string) ($event['caption'] ?? ''));
+                    if ($caption !== '') {
+                        $pdf->SetFont('Helvetica', '', 8.0);
+                        $pdf->MultiCell($storyWidth, 3.8, $caption, 'L');
+                    }
                 }
-                $caption = trim((string) ($event['caption'] ?? ''));
-                if ($caption !== '' && $event['body'] === '') {
-                    $pdf->SetFont('Helvetica', '', 8.0);
-                    $pdf->MultiCell($storyWidth, 3.8, $caption, 'L');
-                }
-                $pdf->Ln(1.5);
+                $pdf->Ln($includeBodies ? 1.5 : 0.8);
             }
         }
     }
@@ -1586,6 +1774,7 @@ function formatTimelineDisplayLabel(int $timestamp, bool $hasMonth = true, bool 
     }
     return date('Y, M d', $timestamp);
 }
+
 function formatIsoDateFromParts($year, $month, $day): ?string
 {
     if (empty($year)) {
@@ -1692,7 +1881,8 @@ function renderTimelineInlineImageBlock(
     array $event,
     float $maxImageWidth,
     float $maxImageHeight,
-    float $usableWidth
+    float $usableWidth,
+    bool $includeBodies = true
 ): bool {
     $imagePath = $event['image'] ?? '';
     if ($imagePath === '' || !is_file($imagePath)) {
@@ -1700,10 +1890,20 @@ function renderTimelineInlineImageBlock(
     }
 
     [$width, $height] = computeImageBoxWithMaxes($imagePath, $maxImageWidth, $maxImageHeight);
+    $imageScale = bookImageScale();
+    if ($imageScale !== 1.0) {
+        $width *= $imageScale;
+        $height *= $imageScale;
+    }
     $startX = $pdf->GetLeftMargin();
     $startY = $pdf->GetY() + 2;
     $gap = 5.0;
     $pdf->Image($imagePath, $startX, $startY, $width, $height);
+
+    if (!$includeBodies) {
+        pdfSetY($pdf, $startY + $height + 2);
+        return true;
+    }
 
     $textX = $startX + $width + $gap;
     $textWidth = max(10.0, $usableWidth - ($width + $gap));
@@ -1756,6 +1956,8 @@ function renderTimelinePhotoGridBlock(SimplePDF $pdf, array $images, float $usab
     $y = $pdf->GetY() + 2;
     $rowHeight = 0.0;
 
+    $includeBodies = bookShowsNarrativeBodies();
+
     foreach ($images as $index => $image) {
         if ($index % $columns === 0) {
             if ($index > 0) {
@@ -1765,10 +1967,15 @@ function renderTimelinePhotoGridBlock(SimplePDF $pdf, array $images, float $usab
             $x = $pdf->GetLeftMargin();
         }
         [$imgWidth, $imgHeight] = computeImageBoxWithMaxes($image['image'], $colWidth, $maxHeight);
+        $imageScale = bookImageScale();
+        if ($imageScale !== 1.0) {
+            $imgWidth *= $imageScale;
+            $imgHeight *= $imageScale;
+        }
         $pdf->Image($image['image'], $x, $y, $imgWidth, $imgHeight);
         $cellBottom = $y + $imgHeight;
         $caption = normalisePdfText(trim((string) ($image['caption'] ?? '')));
-        if ($caption !== '') {
+        if ($includeBodies && $caption !== '') {
             $pdf->SetFont('Courier', '', 7.5);
             $pdf->SetXY($x, $cellBottom + 1.5);
             $pdf->MultiCell($colWidth, 3.8, $caption, 'L');
@@ -1779,6 +1986,36 @@ function renderTimelinePhotoGridBlock(SimplePDF $pdf, array $images, float $usab
     }
 
     pdfSetY($pdf, $y + $rowHeight + 2);
+}
+
+function drawIndividualBanner(SimplePDF $pdf, string $name, string $lineLabel, array $color): void
+{
+    $bannerColor = determineFrameColor($color);
+    $startX = $pdf->GetLeftMargin();
+    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+    $bannerHeight = 18.0;
+    $bannerY = $pdf->GetY();
+    $pdf->FilledRect($startX, $bannerY, $usableWidth, $bannerHeight, $bannerColor);
+
+    $paddingX = 4.0;
+    $paddingY = 3.0;
+    $textHeight = 6.0;
+    $cleanName = normalisePdfText(trim($name));
+    $cleanLine = normalisePdfText(trim($lineLabel));
+
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('Helvetica', 'B', 18);
+    $pdf->SetXY($startX + $paddingX, $bannerY + $paddingY);
+    $pdf->Cell(max(0.0, $usableWidth - ($paddingX * 2)), $textHeight, $cleanName, 0, 0, 'L');
+
+    if ($cleanLine !== '') {
+        $pdf->SetFont('Helvetica', 'I', 12);
+        $pdf->SetXY($startX + $paddingX, $bannerY + $paddingY + $textHeight + 1.5);
+        $pdf->Cell(max(0.0, $usableWidth - ($paddingX * 2)), $textHeight, $cleanLine, 0, 0, 'L');
+    }
+
+    $pdf->SetTextColor(0, 0, 0);
+    pdfSetY($pdf, $bannerY + $bannerHeight + 4.0);
 }
 
 function getTimelineLayoutMetrics(SimplePDF $pdf): array
@@ -1827,6 +2064,9 @@ function estimateTimelineEventHeight(
         $height += 6.0;
     }
 
+    $includeBodies = bookShowsNarrativeBodies();
+    $imageScale = bookImageScale();
+
     if ($type === 'photo_grid') {
         return $height + estimatePhotoGridHeight($pdf, $event['images'] ?? [], $usableWidth) + 2.0;
     }
@@ -1837,6 +2077,13 @@ function estimateTimelineEventHeight(
 
     if ($imagePath !== '' && is_file($imagePath)) {
         [$imgWidth, $imgHeight] = computeImageBoxWithMaxes($imagePath, $maxImageWidth, $maxImageHeight);
+        if ($imageScale !== 1.0) {
+            $imgWidth *= $imageScale;
+            $imgHeight *= $imageScale;
+        }
+        if (!$includeBodies) {
+            return $height + $imgHeight + 2.0;
+        }
         $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $imgWidth, 3.8, $caption) + 2.0 : 0.0;
         $imageBlockHeight = $imgHeight + $captionHeight + 2.0;
 
@@ -1848,6 +2095,9 @@ function estimateTimelineEventHeight(
         }
         $height += max($imageBlockHeight, $textHeight) + 2.0;
     } else {
+        if (!$includeBodies) {
+            return $height + 2.5;
+        }
         if ($body !== '') {
             $lineHeight = $type === 'story' ? 4.5 : 4.2;
             $height += estimateMultiCellHeight($pdf, $storyWidth, $lineHeight, $body) + 2.0;
@@ -1874,11 +2124,19 @@ function estimatePhotoGridHeight(SimplePDF $pdf, array $images, float $usableWid
     $colWidth = max(10.0, ($usableWidth - $gap) / $columns);
     $maxHeight = ($pdf->GetPageHeight() - $pdf->GetTopMargin() - $pdf->GetBottomMargin()) * 0.2;
 
+    $includeBodies = bookShowsNarrativeBodies();
+    $imageScale = bookImageScale();
     $rowHeights = [];
     foreach ($images as $index => $image) {
         [$imgWidth, $imgHeight] = computeImageBoxWithMaxes($image['image'], $colWidth, $maxHeight);
+        if ($imageScale !== 1.0) {
+            $imgWidth *= $imageScale;
+            $imgHeight *= $imageScale;
+        }
         $caption = normalisePdfText(trim((string) ($image['caption'] ?? '')));
-        $captionHeight = $caption !== '' ? estimateMultiCellHeight($pdf, $colWidth, 3.8, $caption) + 2.0 : 0.0;
+        $captionHeight = ($includeBodies && $caption !== '')
+            ? estimateMultiCellHeight($pdf, $colWidth, 3.8, $caption) + 2.0
+            : 0.0;
         $cellHeight = $imgHeight + $captionHeight + 2.0;
         $rowIndex = (int) floor($index / $columns);
         if (!isset($rowHeights[$rowIndex]) || $cellHeight > $rowHeights[$rowIndex]) {
@@ -1900,11 +2158,19 @@ function renderHistoricalSummary(
     float $maxImageWidth,
     float $maxImageHeight
 ): void {
+    $includeBodies = bookShowsNarrativeBodies();
+    if (!$includeBodies) {
+        if (!empty($event['image'])) {
+            renderTimelineInlineImageBlock($pdf, $event, $maxImageWidth, $maxImageHeight, $usableWidth, false);
+        }
+        $pdf->Ln(0.8);
+        return;
+    }
     $summary = extractHistoricalSummaryText($event);
     if (!empty($event['image'])) {
         $historicalEvent = $event;
         $historicalEvent['body'] = $summary;
-        renderTimelineInlineImageBlock($pdf, $historicalEvent, $maxImageWidth, $maxImageHeight, $usableWidth);
+        renderTimelineInlineImageBlock($pdf, $historicalEvent, $maxImageWidth, $maxImageHeight, $usableWidth, true);
         return;
     }
     if ($summary === '') {
@@ -3137,7 +3403,8 @@ function buildFileName(array $person, string $bookLabel): string
         $name = 'individual';
     }
     $safe = preg_replace('/[^A-Za-z0-9_\-]+/', '_', str_replace(' ', '_', $name));
-    return trim((string) $safe, '_') . '_' . $bookLabel . '_Book.pdf';
+    $editionSuffix = isAbbreviatedBook() ? '_Abbreviated' : '';
+    return trim((string) $safe, '_') . '_' . $bookLabel . $editionSuffix . '_Book.pdf';
 }
 
 /**

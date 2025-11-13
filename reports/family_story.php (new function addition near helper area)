@@ -1,0 +1,33 @@
+function drawIndividualBanner(SimplePDF $pdf, string $name, string $lineLabel, array $color): void
+{
+    $bannerColor = determineFrameColor($color);
+    $startX = $pdf->GetLeftMargin();
+    $usableWidth = $pdf->GetPageWidth() - $pdf->GetLeftMargin() - $pdf->GetRightMargin();
+    $bannerHeight = 18.0;
+    $bannerY = $pdf->GetY();
+
+    $pdf->FilledRect($startX, $bannerY, $usableWidth, $bannerHeight, $bannerColor);
+
+    $paddingX = 4.0;
+    $paddingY = 3.0;
+    $textHeight = 6.0;
+    $lineLabel = normalisePdfText(trim($lineLabel));
+    $name = normalisePdfText(trim($name));
+
+    $leftWidth = $lineLabel !== '' ? max(20.0, $usableWidth * 0.6) : $usableWidth;
+    $rightWidth = max(0.0, $usableWidth - $leftWidth);
+
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('Helvetica', 'B', 18);
+    $pdf->SetXY($startX + $paddingX, $bannerY + $paddingY);
+    $pdf->Cell(max(0.0, $leftWidth - $paddingX), $textHeight, $name, 0, 0, 'L');
+
+    if ($lineLabel !== '' && $rightWidth > 0) {
+        $pdf->SetFont('Helvetica', '', 12);
+        $pdf->SetXY($startX + $leftWidth, $bannerY + $paddingY);
+        $pdf->Cell(max(10.0, $rightWidth - $paddingX), $textHeight, $lineLabel, 0, 0, 'R');
+    }
+
+    $pdf->SetTextColor(0, 0, 0);
+    pdfSetY($pdf, $bannerY + $bannerHeight + 4.0);
+}

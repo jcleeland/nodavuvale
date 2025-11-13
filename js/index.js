@@ -420,22 +420,49 @@ function showCustomPrompt(title, message, inputs, values, callback) {
                 var inputElement = document.createElement('select');
                 inputElement.id = 'customPromptInput' + index;
                 inputElement.className = 'w-full p-2 border rounded mb-2';
-                inputElement.value = values[index] || '';
-                customPromptInputs.appendChild(inputElement);
-                //The options should be an array in the values array
-                if(typeof values[index] !== 'undefined' && values[index] !== null) {
-                    var startoption = document.createElement('option');
-                    startoption.value='';
-                    startoption.text='Select Option..';
 
-                    inputElement.appendChild(startoption);
-                    values[index].forEach(function(option) {
-                        var optionElement = document.createElement('option');
+                var selectConfig = values[index];
+                var optionItems = [];
+                var defaultValue = '';
+
+                if (Array.isArray(selectConfig)) {
+                    optionItems = selectConfig;
+                } else if (selectConfig && typeof selectConfig === 'object') {
+                    if (Array.isArray(selectConfig.options)) {
+                        optionItems = selectConfig.options;
+                    }
+                    if (typeof selectConfig.defaultValue !== 'undefined' && selectConfig.defaultValue !== null) {
+                        defaultValue = String(selectConfig.defaultValue);
+                    } else if (typeof selectConfig.value !== 'undefined' && selectConfig.value !== null) {
+                        defaultValue = String(selectConfig.value);
+                    }
+                } else if (typeof selectConfig === 'string' || typeof selectConfig === 'number') {
+                    defaultValue = String(selectConfig);
+                }
+
+                var placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.text = 'Select Option..';
+                inputElement.appendChild(placeholderOption);
+
+                optionItems.forEach(function(option) {
+                    var optionElement = document.createElement('option');
+                    if (option && typeof option === 'object') {
+                        var optionValue = typeof option.value !== 'undefined' ? option.value : (option.label || '');
+                        optionElement.value = optionValue;
+                        optionElement.text = option.label || optionValue;
+                    } else {
                         optionElement.value = option;
                         optionElement.text = option;
-                        inputElement.appendChild(optionElement);
-                    });
+                    }
+                    inputElement.appendChild(optionElement);
+                });
+
+                if (defaultValue !== '') {
+                    inputElement.value = defaultValue;
                 }
+
+                customPromptInputs.appendChild(inputElement);
                 return;
             case 'url':
                 var inputElement = document.createElement('input');

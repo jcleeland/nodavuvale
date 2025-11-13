@@ -675,6 +675,24 @@ class SimplePDF
         ];
     }
 
+    public function AddUrlLink(float $x, float $y, float $w, float $h, string $url): void
+    {
+        if ($this->currentPage === 0) {
+            $this->AddPage();
+        }
+        $url = trim($url);
+        if ($w <= 0 || $h <= 0 || $url === '') {
+            return;
+        }
+        $this->pages[$this->currentPage]['annots'][] = [
+            'x' => $x,
+            'y' => $y,
+            'w' => $w,
+            'h' => $h,
+            'uri' => $url,
+        ];
+    }
+
     private function wrapLine(string $line, float $width): array
     {
         $line = trim($line);
