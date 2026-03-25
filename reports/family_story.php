@@ -254,18 +254,7 @@ if ($type === 'descendants') {
             }
             // Order members by parent, then date of birth
             $members = sortMembersByParentThenBirth($members, $directParentMap);
-
-            /* $summaryPage = addLineGenerationSummaryPage($pdf, $generation, $members, $line, $parentCache, $rootName);
-            if ($summaryPage !== null) {
-                if ($lineSimpleIndex['page'] === null) {
-                    $lineSimpleIndex['page'] = $summaryPage;
-                }
-                $lineSimpleIndex['generations'][] = [
-                    'label' => 'Generation ' . $generation,
-                    'page' => $summaryPage,
-                ];
-            }*/
-            $lineSimpleIndex['page'] = $summaryPage;
+            $generationPage = null;
             foreach ($members as $person) {
                 $bundle = fetchIndividualBundle((int) $person['id'], $rootBundleCache);
                 $relationship = formatRelationshipWithRoot($person['relationship'] ?? '', $rootName, 'descendants');
@@ -298,6 +287,16 @@ if ($type === 'descendants') {
                 $pageNumber = $chapter['page'] ?? null;
                 $fullName = formatPersonName($bundle['person']);
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
+                    if ($lineSimpleIndex['page'] === null) {
+                        $lineSimpleIndex['page'] = $pageNumber;
+                    }
+                    if ($generationPage === null) {
+                        $generationPage = $pageNumber;
+                        $lineSimpleIndex['generations'][] = [
+                            'label' => 'Generation ' . $generation,
+                            'page' => $pageNumber,
+                        ];
+                    }
                     $personId = (int) $bundle['person']['id'];
                     $indexEntries[$personId] = [
                         'person_id' => $personId,
@@ -342,15 +341,7 @@ if ($type === 'descendants') {
                 continue;
             }
             usort($people, [Utils::class, 'compareIndividualsByBirthThenName']);
-            $summaryPage = addGenerationSummaryPage($pdf, $generation, $people, $type, $parentCache, [
-                'rootName' => $rootName,
-            ]);
-            if ($summaryPage !== null) {
-                $simpleIndex['generations'][] = [
-                    'label' => 'Generation ' . $generation,
-                    'page' => $summaryPage,
-                ];
-            }
+            $generationPage = null;
             foreach ($people as $person) {
                 $bundle = fetchIndividualBundle((int) $person['id'], $rootBundleCache);
                 $relationship = formatRelationshipWithRoot($person['relationship'] ?? '', $rootName, 'ancestors');
@@ -373,6 +364,13 @@ if ($type === 'descendants') {
                 $pageNumber = $chapter['page'] ?? null;
                 $fullName = formatPersonName($bundle['person']);
                 if ($pageNumber !== null && !empty($bundle['person']['id'])) {
+                    if ($generationPage === null) {
+                        $generationPage = $pageNumber;
+                        $simpleIndex['generations'][] = [
+                            'label' => 'Generation ' . $generation,
+                            'page' => $pageNumber,
+                        ];
+                    }
                     $personId = (int) $bundle['person']['id'];
                     $indexEntries[$personId] = [
                         'person_id' => $personId,
@@ -929,7 +927,10 @@ function renderIndividualPage(SimplePDF $pdf, array $bundle, string $contextLabe
     );
 
     $timeline = buildTimelineNarrative($bundle);
-    $timelinePage = renderTimelineChapter($pdf, $fullName, $timeline);
+    $timelinePage = null;
+    if (timelineHasPersonalEvents($timeline)) {
+        $timelinePage = renderTimelineChapter($pdf, $fullName, $timeline);
+    }
 
     $spouseChapters = [];
     if (empty($options['suppress_spouse_pages'])) {
@@ -1457,6 +1458,23 @@ function buildTimelineNarrative(array $bundle): array
         'undated' => $undated,
         'life_cutoff' => $lifeCutoffSort,
     ];
+}
+
+function timelineHasPersonalEvents(array $timeline): bool
+{
+    $buckets = [
+        $timeline['dated'] ?? [],
+        $timeline['undated'] ?? [],
+    ];
+    foreach ($buckets as $events) {
+        foreach ($events as $event) {
+            $type = strtolower(trim((string) ($event['type'] ?? '')));
+            if ($type === '' || $type !== 'historical') {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 function partitionTimelineEvents(array $timeline): array
