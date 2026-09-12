@@ -71,12 +71,18 @@ if(isset($data['item_id'])) {
                     FROM items 
                     JOIN item_links ON items.item_id = item_links.item_id 
                     LEFT JOIN file_links ON items.item_id = file_links.item_id
+                        AND file_links.individual_id = item_links.individual_id
                     LEFT JOIN files ON file_links.file_id = files.id
                     WHERE item_links.individual_id = ?";
+        $params = [$individual_id];
+        if (isset($data['event_type']) && trim((string) $data['event_type']) !== '') {
+            $sql .= " AND items.detail_type = ?";
+            $params[] = trim((string) $data['event_type']);
+        }
         $response['sql']=$sql;
-        $response['data']=array($individual_id);
+        $response['data']=$params;
         try {
-            $items = $db->fetchAll($sql, array($individual_id));
+            $items = $db->fetchAll($sql, $params);
             $response['status']='success';
             $response['message']='Items retrieved successfully';
             $response['items']=$items;

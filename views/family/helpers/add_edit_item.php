@@ -40,6 +40,8 @@ $individualLookupData = array_map(function ($indi) {
     ];
 }, $lookupIndividuals);
 
+$eventFormError = null;
+
 
 // Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item'])) {
@@ -48,33 +50,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
 
 
     // Check if the action is to add or update an item
-    if ($_POST['action'] == 'add_item') {
+    if (($_POST['action'] ?? '') == 'add_item') {
         // Add the item
         // First, get the list of possible fields for this item type
-        $item_type = $_POST['item_type'];
-        $fields = $item_types[$item_type];
-        $values = [];
-        foreach ($fields as $field) {
-            if($item_styles[$field] !== "file") {
-                $values[$field] = $_POST[$field];
+        $item_type = $_POST['item_type'] ?? '';
+
+        if (!isset($item_types[$item_type])) {
+            $eventFormError = 'The selected event type could not be found. Please reload this page and try again. No event was created.';
+        }
+
+        // A marriage must have a current, valid spouse selection before any rows are written.
+        // The page's autocomplete list can become stale if another individual was just created.
+        $duplicate_individual_id = null;
+        if ($eventFormError === null && $item_type === 'Marriage') {
+            $spouseId = filter_var($_POST['Spouse'] ?? null, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+            $spouse = $spouseId ? $db->fetchOne('SELECT id FROM individuals WHERE id = ?', [$spouseId]) : false;
+
+            if (!$spouse) {
+                $eventFormError = 'The selected spouse could not be found. The list of individuals may be out of date. Please reload this page, then search for and select the spouse again. No marriage record was created.';
+            } elseif ((int) $spouseId === (int) $individual_id) {
+                $eventFormError = 'A marriage must link two different individuals. Please select the spouse again. No marriage record was created.';
             } else {
-                $values[$field] = "";
+                $duplicate_individual_id = (int) $spouseId;
             }
         }
-        //echo "<pre><b>".$item_type."</b><br />VALUES:"; print_r($values); echo "</pre>";
-        //Generate an item_identifer to use for this group of items
-        $item_identifier = null;
-        if(count($values) > 1) {
-            $item_identifier = Utils::getNextItemIdentifier($individual_id, $item_type);
-        }
 
-        // Identify if this information should be added to another individual
-        $duplicate_individual_id = null;
-        if(isset($_POST['Spouse']) && !empty($_POST['Spouse'])) {
-            $duplicate_individual_id = $_POST['Spouse'];
-        }
+        if ($eventFormError === null) {
+            $fields = $item_types[$item_type];
+            $values = [];
+            foreach ($fields as $field) {
+                if($item_styles[$field] !== "file") {
+                    $values[$field] = $_POST[$field] ?? '';
+                } else {
+                    $values[$field] = "";
+                }
+            }
+            //echo "<pre><b>".$item_type."</b><br />VALUES:"; print_r($values); echo "</pre>";
+            //Generate an item_identifer to use for this group of items
+            $item_identifier = null;
+            if(count($values) > 1) {
+                $item_identifier = Utils::getNextItemIdentifier($individual_id, $item_type);
+            }
 
-        foreach($values as $key=>$value) {
+            // Identify if this information should be added to another individual.
+            // Marriage spouses have already been validated above.
+            if ($item_type !== 'Marriage' && isset($_POST['Spouse']) && !empty($_POST['Spouse'])) {
+                $duplicate_individual_id = (int) $_POST['Spouse'];
+            }
+
+            foreach($values as $key=>$value) {
             //For each of the values, add a new item to the "items" table, including the fields "detail_type" which will be the $key, "detail_value" which will be the $value
             // and "item_identifier" which will be the $item_identifier. Also add the user_id in the "user_id" field
             // retrieve the item_id, and add it to an array, which will be used to add the item_id to the item_links table, and also to the item_group table
@@ -147,25 +173,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_individual_item']
                         }
                     }                
                 }
-                //Finally, insert an entry into the item_groups table, linking the item_identifier with the group name
-                // - this is only necessary if there is more than one item in the group
-                if(count($values) > 1) {
-                    $group_name = $item_type;
-                    $group_sql = "INSERT INTO item_groups (item_group_name, item_identifier) VALUES (?, ?)";
-                    $db->insert($group_sql, [$group_name, $item_identifier]);
-                }
             }
+            }
+
+            // Link grouped items to their event type once, after all item rows have been created.
+            if(count($values) > 1) {
+                $group_sql = "INSERT INTO item_groups (item_group_name, item_identifier) VALUES (?, ?)";
+                $db->insert($group_sql, [$item_type, $item_identifier]);
+            }
+
+            // Reload the page to show the new item and stop the form resubmission
+            ?>
+            <script>
+                window.location.href = window.location.href;
+            </script>
+            <?php
         }
 
-
-        // Reload the page to show the new item and stop the form resubmission
-        ?>
-        <script>
-            window.location.href = window.location.href;
-        </script>
-        <?php
-
-    } elseif ($_POST['action'] == 'update_item') {
+    } elseif (($_POST['action'] ?? '') == 'update_item') {
         // Update the item
     }    
 } 
@@ -187,7 +212,17 @@ if (isset($_GET['item_id'])) {
             </div>
             <div class="modal-body">
                 <div class='event-content'>
-                    <form method="POST" enctype="multipart/form-data">
+                    <?php if ($eventFormError !== null): ?>
+                        <div class="mb-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800" role="alert">
+                            <?= htmlspecialchars($eventFormError, ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                alert(<?= json_encode($eventFormError, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>);
+                            });
+                        </script>
+                    <?php endif; ?>
+                    <form id="individual-event-form" method="POST" enctype="multipart/form-data" onsubmit="return validateIndividualEventForm(this);">
                         <input type="hidden" name="action" id="event-action" value="add_item">
                         <input type="hidden" name="individual_id" value="<?= $individual_id ?>" id="event-individual_id">
                         <input type="hidden" name="user_id" value="<?= $user_id ?>"> <!-- Assuming user is logged in -->
@@ -316,7 +351,7 @@ if (isset($_GET['item_id'])) {
                                         </script>
                                         <?php
                                     }
-                                    $fieldinputs[$field] = "<div class='$class'><label for='{$field}_name'>$field</label><input type='text' placeholder='Find another individual..' id='{$field}_name' name='{$field}_name' class='w-full border rounded-lg p-2 mb-2' data-field='{$field}' autocomplete='off' oninput='nvShowIndividualSuggestions(this)'><div id='{$field}_suggestions' class='autocomplete-suggestions' data-owner='nv-add-item' style='display:none;'></div></div>";
+                                    $fieldinputs[$field] = "<div class='$class'><label for='{$field}_name'>$field</label><input type='text' placeholder='Find another individual..' id='{$field}_name' name='{$field}_name' class='w-full border rounded-lg p-2 mb-2' data-field='{$field}' autocomplete='off' oninput='nvShowIndividualSuggestions(this)'><input type='hidden' id='{$field}_id' name='{$field}' value=''><div id='{$field}_suggestions' class='autocomplete-suggestions' data-owner='nv-add-item' style='display:none;'></div></div>";
                                 elseif($style == "date") :
                                     $fieldinputs[$field] = "<div class='$class'><label for='$field'>$field</label><input type='text' name='$field' placeholder='YYYY-MM-DD' pattern='\\d{4}(-\\d{2})?(-\\d{2})?' class='w-full border rounded-lg p-2 mb-2'></div>";
                                 elseif($style == "text") :

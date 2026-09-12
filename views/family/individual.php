@@ -811,6 +811,11 @@ $descendancyHasData = !empty($descendancy);
             <div class="document-list grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-6 bg-white shadow-lg rounded-lg relative">
                 <?php 
                 foreach ($items as $key=>$itemgroup):
+                    // Some event groups contain only empty placeholder rows.
+                    // There is no event card to render until the group has at least one item.
+                    if (empty($itemgroup['items']) || !is_array($itemgroup['items'])) {
+                        continue;
+                    }
                     //$firstItem=reset($itemgroup);
                     //echo "<pre>"; print_r($itemgroup); echo "</pre>";
                     if($itemgroup['item_group_name'] == "Private") {

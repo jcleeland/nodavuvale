@@ -289,7 +289,8 @@ class Database {
             'tables_to_create' => [],
             'columns_to_create' => [],
             'redundant_tables' => [],
-            'redundant_columns' => []
+            'redundant_columns' => [],
+            'column_type_mismatches' => []
         ];
 
         // 1. Identify tables to create and missing columns in existing tables
@@ -305,6 +306,11 @@ class Database {
                         // Column is missing, generate SQL to add the column
                         $addColumnSQL = $this->generateAddColumnSQL($table, $colName, $colType);
                         $differences['columns_to_create'][$table][$colName] = $addColumnSQL;
+                    } elseif ($this->normaliseSchemaColumnType($currentSchema[$table][$colName]) !== $this->normaliseSchemaColumnType($colType)) {
+                        $differences['column_type_mismatches'][$table][$colName] = [
+                            'current' => $currentSchema[$table][$colName],
+                            'official' => $this->normaliseSchemaColumnType($colType),
+                        ];
                     }
                 }
             }
@@ -329,6 +335,44 @@ class Database {
         }
 
         return $differences;
+    }
+
+    /**
+     * Extract the SQL type at the beginning of a column definition. The schema
+     * dump includes nullability/default clauses while SHOW COLUMNS returns only
+     * the type, so comparison must stop at whitespace outside parentheses.
+     */
+    private function normaliseSchemaColumnType($definition) {
+        $definition = strtolower(trim((string) $definition));
+        $depth = 0;
+        $quote = null;
+        $type = '';
+
+        for ($i = 0, $length = strlen($definition); $i < $length; $i++) {
+            $character = $definition[$i];
+            if ($quote !== null) {
+                $type .= $character;
+                if ($character === $quote && ($i === 0 || $definition[$i - 1] !== '\\')) {
+                    $quote = null;
+                }
+                continue;
+            }
+            if ($character === "'" || $character === '"') {
+                $quote = $character;
+                $type .= $character;
+                continue;
+            }
+            if ($character === '(') {
+                $depth++;
+            } elseif ($character === ')') {
+                $depth = max(0, $depth - 1);
+            } elseif (ctype_space($character) && $depth === 0) {
+                break;
+            }
+            $type .= $character;
+        }
+
+        return preg_replace('/\s+/', '', $type);
     }
 
     // Function to generate the SQL for creating a table

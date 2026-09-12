@@ -464,7 +464,7 @@ function triggerDocumentUpload(individualId) {
 
 function triggerEditItemDescription(id) {
     console.log('Triggering edit item description for: ' + id);
-    var currentDescription=document.getElementById(id).textContent;
+    var currentDescription=document.getElementById(id).textContent.trim();
 
     var item_id=id.split('_')[1];
     //Check and see if there's a div called "hiddenStory_"+id
@@ -472,7 +472,7 @@ function triggerEditItemDescription(id) {
     console.log('Checking for hidden story div');
     if(hiddenStoryDiv) {
         console.log('Found hidden story div');
-        var currentDescription = hiddenStoryDiv.textContent;
+        var currentDescription = hiddenStoryDiv.textContent.trim();
 
         //Use the showCustomPrompt function to allow the user to edit the story
         showCustomPrompt('Edit Story', 'Edit the story here:', ['textarea_Story'], [currentDescription], async function(inputValues) {
@@ -775,76 +775,96 @@ async function uploadKeyImage(individualId) {
     var fileInput = document.getElementById('keyPhotoUpload');
     var file = fileInput.files[0];  // Get the selected file
 
-    let fileLinkId = null; // This will store the file_link_id of the original key image
+    if (!file) {
+        return;
+    }
+
+    let existingKeyImage = null;
 
     try {
         const response = await getAjax('get_item', {individual_id: individualId, event_type: 'Key Image'});
         console.log(response);
-        if (response.status === 'success' && response.items.length > 0) {
-            var itemId = response.items[0].item_id;
-            var fileId = response.items[0].file_id;
-            fileLinkId = response.items[0].file_link_id;
+        if (response.status !== 'success') {
+            throw new Error(response.message || 'Unable to check for an existing key image.');
+        }
 
-            console.log('Theres already a key image for this individual - its item_id is: ' + itemId + ' and its fileId is: ' + fileId + ' and its file_link_id is: ' + fileLinkId);
-            const updateResponse = await getAjax('update_file_links', {file_link_id: fileLinkId, updates: {item_id: 'null'}});
-            if (updateResponse.status === 'success') {
-                console.log('Original file has been freed up to be a photo for the individual');
-            } else {
-                console.log('Error: ' + updateResponse.message);
-                return;
-            }
+        const items = Array.isArray(response.items) ? response.items : [];
+        existingKeyImage = items.find(function(item) {
+            return item.detail_type === 'Key Image' && item.file_link_id;
+        }) || items.find(function(item) {
+            return item.detail_type === 'Key Image';
+        }) || null;
+
+        if (existingKeyImage) {
+            console.log('There is already a key image for this individual - its item_id is: ' + existingKeyImage.item_id + ' and its fileId is: ' + existingKeyImage.file_id + ' and its file_link_id is: ' + existingKeyImage.file_link_id);
         }
     } catch (error) {
         alert('An error occurred while checking for an existing key image: ' + error.message);
+        fileInput.value = '';
         return;
     }
 
-    if (file) {
-        var formData = new FormData();
-        formData.append('file', file);
-        formData.append('method', 'add_file_item');
+    var formData = new FormData();
+    formData.append('file', file);
+    formData.append('method', 'add_file_item');
 
-        var events = fileLinkId ? [] : [{ event_type: 'Key Image', event_detail: 'Key image for individual' }];
-        var event_group_name = null;
-
-        promptMediaDetails(
-            'Key Image Details',
-            'Optionally provide a timeline date for this key image.',
-            { description: 'Image for individual', approx: false },
-            function (result) {
-                if (result === null) {
-                    fileInput.value = '';
-                    return;
-                }
-                var payload = {
-                    individual_id: individualId,
-                    events: events,
-                    event_group_name: event_group_name,
-                    file_description: result.description || 'Image for individual'
-                };
-                if (result.date) {
-                    payload.media_date = result.date;
-                    payload.link_date = result.date;
-                }
-
-                formData.append('data', JSON.stringify(payload));
-
-                getAjax('add_file_item', formData)
-                    .then(response => {
-                        console.log(response);
-                        console.log(response.status);
-                        if (response.filepath) {
-                            console.log('Add picture to page');
-                            document.getElementById('keyImage').src = response.filepath;
-                        }
-                    })
-                    .catch(error => {
-                        alert('An error occurred while uploading the image: ' + error.message);
-                    });
-            }
-        );
+    var keyImageEvent = { event_type: 'Key Image', event_detail: 'Key image for individual' };
+    if (existingKeyImage) {
+        keyImageEvent.item_id = existingKeyImage.item_id;
     }
-    fileInput.value = '';
+    var events = [keyImageEvent];
+    var event_group_name = null;
+
+    promptMediaDetails(
+        'Key Image Details',
+        'Optionally provide a timeline date for this key image.',
+        { description: 'Image for individual', approx: false },
+        async function (result) {
+            if (result === null) {
+                fileInput.value = '';
+                return;
+            }
+            var payload = {
+                individual_id: individualId,
+                events: events,
+                event_group_name: event_group_name,
+                file_description: result.description || 'Image for individual'
+            };
+            if (result.date) {
+                payload.media_date = result.date;
+                payload.link_date = result.date;
+            }
+
+            formData.append('data', JSON.stringify(payload));
+
+            try {
+                const response = await getAjax('add_file_item', formData);
+                console.log(response);
+                if (response.status !== 'success') {
+                    throw new Error(response.message || 'Unable to upload the key image.');
+                }
+
+                if (existingKeyImage && existingKeyImage.file_link_id) {
+                    const updateResponse = await getAjax('update_file_links', {
+                        file_link_id: existingKeyImage.file_link_id,
+                        updates: {item_id: 'null'}
+                    });
+                    if (updateResponse.status !== 'success') {
+                        throw new Error(updateResponse.message || 'Unable to release the previous key image.');
+                    }
+                    console.log('Original file has been freed up to be a photo for the individual');
+                }
+
+                if (response.filepath) {
+                    document.getElementById('keyImage').src = response.filepath;
+                }
+            } catch (error) {
+                alert('An error occurred while uploading the image: ' + error.message);
+            } finally {
+                fileInput.value = '';
+            }
+        }
+    );
 }
 
 function doAction(action, individualId, actionId, event) {
@@ -1096,6 +1116,37 @@ function updateEventContents(eventType) {
             field.style.display = 'none';
         }
     });
+}
+
+function validateIndividualEventForm(form) {
+    var eventType = form.querySelector('[name="item_type"]');
+    if (!eventType || eventType.value !== 'Marriage') {
+        return true;
+    }
+
+    var spouseIdInput = form.querySelector('[name="Spouse"]');
+    var spouseNameInput = form.querySelector('[name="Spouse_name"]');
+    var individualIdInput = form.querySelector('[name="individual_id"]');
+    var spouseId = spouseIdInput ? spouseIdInput.value.trim() : '';
+    var individualId = individualIdInput ? individualIdInput.value.trim() : '';
+
+    if (!spouseId || !/^\d+$/.test(spouseId)) {
+        alert('The selected spouse could not be found. The list of individuals may be out of date. Please reload this page, then search for and select the spouse again. No marriage record was created.');
+        if (spouseNameInput) {
+            spouseNameInput.focus();
+        }
+        return false;
+    }
+
+    if (individualId && spouseId === individualId) {
+        alert('A marriage must link two different individuals. Please select the spouse again. No marriage record was created.');
+        if (spouseNameInput) {
+            spouseNameInput.focus();
+        }
+        return false;
+    }
+
+    return true;
 }
 
 function openModal(action, individualId, individualGender) {

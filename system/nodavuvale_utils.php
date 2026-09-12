@@ -714,12 +714,7 @@ class Utils {
                     continue;
                 }
 
-                $neighborLabel = 'related';
-                if ($relType === 'spouse' || $relType === 'partner') {
-                    $neighborLabel = 'spouse';
-                } elseif ($relType === 'child') {
-                    $neighborLabel = ($direction === 'inbound') ? 'parent' : 'child';
-                }
+                $neighborLabel = self::getRelationshipTraversalDirection($relType, $direction === 'outbound');
 
                 $neighbors[] = array(
                     'neighbor_id' => $neighborId,
@@ -810,6 +805,25 @@ class Utils {
         }
 
         return array('found' => false, 'reason' => 'no_connection_within_depth', 'depth' => $maxDepth);
+    }
+
+    /**
+     * Describe the current individual's relationship to the other endpoint of
+     * a stored relationship row.
+     *
+     * A `child` row stores the parent in individual_id_1 and the child in
+     * individual_id_2. This direction is intentionally expressed from the
+     * current traversal node, not from the neighbouring node.
+     */
+    public static function getRelationshipTraversalDirection($relationshipType, $currentIsIndividualOne) {
+        $relationshipType = strtolower(trim((string) $relationshipType));
+        if ($relationshipType === 'spouse' || $relationshipType === 'partner') {
+            return 'spouse';
+        }
+        if ($relationshipType === 'child') {
+            return $currentIsIndividualOne ? 'parent' : 'child';
+        }
+        return 'related';
     }
 
     private static function summarizeRelationshipStep($direction, $relationshipType) {

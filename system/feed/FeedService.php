@@ -1675,7 +1675,11 @@ class FeedService
             if ($connectionText === '' && !empty($indirectConnection['explanation'])) {
                 $connectionText = trim((string) $indirectConnection['explanation']);
             }
-            if ($connectionText !== '') {
+            // The direct relationship-to-user calculation is the same one used
+            // on an individual's profile and is more specific than a path back
+            // to the currently selected tree root. Use the indirect explanation
+            // only when no direct kinship label is available.
+            if ($relationshipLine === '' && $connectionText !== '') {
                 $relationshipLine = $connectionText;
             }
         }

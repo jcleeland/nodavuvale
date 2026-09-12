@@ -108,6 +108,29 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
                     $response['log'][] = 'Processing event: '.json_encode($event);
                     $event_type = $event['event_type'];         //eg "Date"
                     $event_detail = $event['event_detail'];     //eg "2000-01-01"
+
+                    // Reuse a verified existing item when replacing its attached file.
+                    // This lets key-image replacement preserve the Key Image item while
+                    // the previous file is released only after the new upload succeeds.
+                    $existing_item_id = filter_var($event['item_id'] ?? null, FILTER_VALIDATE_INT, [
+                        'options' => ['min_range' => 1],
+                    ]);
+                    if ($existing_item_id) {
+                        $existingItem = $db->fetchOne(
+                            "SELECT items.item_id
+                                FROM items
+                                INNER JOIN item_links ON item_links.item_id = items.item_id
+                                WHERE items.item_id = ?
+                                  AND item_links.individual_id = ?
+                                  AND items.detail_type = ?",
+                            [$existing_item_id, $individual_id, $event_type]
+                        );
+                        if (!$existingItem) {
+                            throw new Exception('The existing item could not be verified for this individual.');
+                        }
+                        $filelink_item_ids[] = (int) $existing_item_id;
+                        continue;
+                    }
                     
                     if(isset($event['item_identifier']) && !empty($event['item_identifier'])) {
                         $response['log'][] = 'Item identifier detected so this is part of a group: '.$event['item_identifier'];
