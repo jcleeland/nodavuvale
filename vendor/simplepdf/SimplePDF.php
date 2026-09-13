@@ -1,4 +1,3 @@
-
 <?php
 /**
  * A minimal PDF generator supporting text, embedded TrueType fonts, and JPEG images.
