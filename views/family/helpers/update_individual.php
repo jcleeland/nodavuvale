@@ -3,7 +3,7 @@ $edit_individual_id = $_POST['individual_id'];
 $first_names = $_POST['first_names'];
 $aka_names = $_POST['aka_names'];
 $last_name = $_POST['last_name'];
-$birth_prefix = $_POST['birth_prefix'];
+$birth_prefix = !empty($_POST['birth_prefix']) ? $_POST['birth_prefix'] : null;
 
 // If the value is empty, set it to NULL, otherwise keep the value
 $birth_year = !empty($_POST['birth_year']) ? $_POST['birth_year'] : null;
