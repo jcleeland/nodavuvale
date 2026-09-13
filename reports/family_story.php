@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../system/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../system/nodavuvale_database.php';
