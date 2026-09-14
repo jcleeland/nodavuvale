@@ -211,6 +211,11 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
     <div class="container hero-content" id="homeHeroContent">
         <h2 class="text-4xl font-bold">Welcome to <i><?= $site_name ?></i></h2>
         <p class="mt-4 text-lg">Connecting our family and preserving our cultural heritage.</p>
+        <?php if ($publicAccess->enabled()): ?>
+            <a href="?to=public/ancestors" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
+                Our family
+            </a>
+        <?php endif; ?>
         <?php if (!$is_logged_in): ?>
             <!-- Button-styled anchor tag -->
             <a href="?to=about/aboutvirtualnataleira" class="mt-8 inline-block px-6 py-3 bg-warm-red text-white rounded-lg hover:bg-burnt-orange transition">
