@@ -66,12 +66,25 @@ $page = isset($_GET['to']) ? $_GET['to'] : 'home'; // Default to 'home' if no pa
 $original_page = $page;
 $section = isset($_GET['section']) ? $_GET['section'] : null;
 
+// Routes must remain inside views; never accept traversal or helper-file routes.
+if (!is_string($page) || !preg_match('~^[a-zA-Z0-9_]+(?:/[a-zA-Z0-9_]+)*/?$~D', $page)
+    || strpos($page, '/helpers/') !== false) {
+    http_response_code(404);
+    exit('Page not found.');
+}
+if ($section !== null && (!is_string($section) || !preg_match('/^[a-zA-Z0-9_]+$/D', $section))) {
+    http_response_code(404);
+    exit('Page not found.');
+}
+
 //if the $page is set, but ends in a "/" then add index to the end of it
 if (substr($page, -1) == "/") {
     $page .= "index";
 }
 // Construct the full path for the page to be included
 $pagePath = 'views/' . $page . '.php';
+require __DIR__ . '/system/public_routes.php';
+require __DIR__ . '/system/admin/public_access_actions.php';
 //echo "<pre>"; print_r($pagePath); echo "</pre>";
 
 // Extract the directory from the requested page (e.g., 'family' from 'views/family/tree.php')
@@ -88,7 +101,7 @@ $matches = array_filter($restricted_paths, function($path) use ($requested_direc
 });
 
 // If there are any matches, and the user is not logged in, redirect to login
-if (!empty($matches) && !$auth->isLoggedIn()) {
+if ((!empty($matches) || in_array($page, ['account', 'upload_file'], true)) && !$auth->isLoggedIn() && !$publicView) {
     $params = "?to=login";
     if($original_page) {
         $params .= "&redirect=" . urlencode($original_page);
@@ -118,7 +131,7 @@ if((isset($_POST['action']) && $_POST['action'] == 'register' && (isset($_GET['t
 
 $individuals=array();
 // If the user is logged in, fill the array with individuals
-if ($auth->isLoggedIn()) {
+if ($auth->isLoggedIn() && !$publicView) {
     $individuals = $db->fetchAll("SELECT individuals.*, 
                                     COALESCE(
                                         (SELECT files.file_path 

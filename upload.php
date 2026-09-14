@@ -1,7 +1,7 @@
-
 <?php
-include('system/config.php');
-require 'vendor/autoload.php';
+require_once __DIR__ . '/system/member_bootstrap.php';
+require_once 'system/config.php';
+require_once 'vendor/autoload.php';
 
 $classMap = [
     'Database' => __DIR__ . '/system/nodavuvale_database.php',

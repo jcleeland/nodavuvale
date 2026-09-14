@@ -116,6 +116,9 @@ if ($individual_id) {
     FROM individuals 
     WHERE individuals.id = ?";
     $individual = $db->fetchOne($sql, [$individual_id]);
+    if ($individual && $is_admin) {
+        include __DIR__ . '/../admin/individual_public_access.php';
+    }
 
     //See if the individual matches a user
     $user=Utils::getUserByIndividualId($individual_id);

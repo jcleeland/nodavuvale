@@ -2,7 +2,10 @@
 //If this is an individual page, get their name so it can be shown in the page title
 $pagetitlesuffix="";
 $individualIdForReports = isset($_GET['individual_id']) ? (int) $_GET['individual_id'] : null;
-if ($individualIdForReports) {
+if (!empty($publicView)) {
+    $pagetitlesuffix = $publicPerson ? str_replace('_', ' ', $publicPerson['first_names'] . ' ' . $publicPerson['last_name']) : '';
+    $individualIdForReports = null;
+} elseif ($individualIdForReports && $auth->isLoggedIn()) {
     $pagetitlesuffix = Utils::getIndividualName($individualIdForReports);
 }
 $individual_id = $individualIdForReports;
@@ -23,7 +26,7 @@ if ($isIndividualPage) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $site_name ?><?php if(!empty($pagetitlesuffix)) echo ": ".$pagetitlesuffix ?></title>
+    <title><?= htmlspecialchars($site_name, ENT_QUOTES, 'UTF-8') ?><?php if(!empty($pagetitlesuffix)) echo ": ".htmlspecialchars($pagetitlesuffix, ENT_QUOTES, 'UTF-8') ?></title>
     <!-- Tailwind CSS -->
     <link href="styles/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/font-awesome/css/all.min.css">
@@ -94,6 +97,8 @@ if($auth->getUserRole() == 'admin') {
             <!-- Navigation Options -->
             <nav class="hidden sm:flex flex-grow justify-end text-right space-x-6">
                 <a href='?to=origins/' class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Origins</a>
+                <?php if (!empty($migrationNotice) || !empty($migrationError)): ?><a href="?to=admin/migrations" class="text-white px-2 pb-1 underline">Database updates<?= !empty($migrationNotice) ? ' (' . (int) $migrationNotice . ')' : '' ?></a><?php endif; ?>
+                <?php if ($publicAccess->enabled()): ?><a href="?to=public/ancestors" class="text-white px-2 pb-1 rounded-md">Ancestors</a><?php endif; ?>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Tree</a>
                 <span class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
@@ -135,6 +140,8 @@ if($auth->getUserRole() == 'admin') {
             <!-- Mobile Navigation Menu -->
             <div id="nav-menu" class="hidden sm:hidden flex-grow absolute top-[calc(100%+0.5rem)] right-0 w-full bg-deep-green text-white z-40 text-center rounded-b-lg shadow-lg">
                 <a href='?to=origins/' class="block px-4 py-2 text-white">Origins</a>
+                <?php if (!empty($migrationNotice) || !empty($migrationError)): ?><a href="?to=admin/migrations" class="block px-4 py-2 text-white">Database updates<?= !empty($migrationNotice) ? ' (' . (int) $migrationNotice . ')' : '' ?></a><?php endif; ?>
+                <?php if ($publicAccess->enabled()): ?><a href="?to=public/ancestors" class="block px-4 py-2 text-white">Ancestors</a><?php endif; ?>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white">Tree</a>
                 <span class="block text-white hover:bg-burnt-orange-800 px-4 py-2" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>
@@ -177,6 +184,9 @@ if($auth->getUserRole() == 'admin') {
                         <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden" id="user-menu">
                             <a href="?to=account" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Account</a>
                             <?php if ($_SESSION['role'] === 'admin'): ?>
+                                <?php if (!empty($migrationNotice) || !empty($migrationError)): ?>
+                                <a href="?to=admin/migrations" class="block px-4 py-2 text-red-700">Database updates: <?= !empty($migrationError) ? 'check required' : (int) $migrationNotice . ' outstanding' ?></a>
+                                <?php endif; ?>
                                 <a href="?to=admin/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Administrator Options</a>
                             <?php endif; ?>
                             <a href="?action=logout" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>

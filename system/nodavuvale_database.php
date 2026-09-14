@@ -83,6 +83,11 @@ class Database {
     }    
 
     // Transaction handling methods
+    // Administrative services need exceptions and connection-scoped migration locks.
+    public function connection(): PDO {
+        return $this->pdo;
+    }
+
     public function beginTransaction() {
         return $this->pdo->beginTransaction();
     }

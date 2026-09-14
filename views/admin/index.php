@@ -26,6 +26,8 @@ if (!$is_logged_in || !$is_admin) {
 <!-- Admin Navigation for site settings, user management, family tree management and database management -->
 <section class="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <a href="?to=admin/migrations" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Database Migrations<?= !empty($migrationNotice) ? ' (' . (int) $migrationNotice . ' outstanding)' : '' ?></a>
+        <a href="?to=admin/public_access" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Public Ancestor Access</a>
         <a href="?to=admin/&section=site" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Site Settings</a>
         <a href="?to=admin/&section=users" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">User Management</a>
         <a href="?to=admin/&section=familytree" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Family Tree Management</a>
@@ -38,6 +40,10 @@ if (!$is_logged_in || !$is_admin) {
 // Check if a section has been requested
 if(!isset($admin_backload) ||!$admin_backload) {
     $section = isset($_GET['section']) ? $_GET['section'] : 'site';
+    if (!in_array($section, ['site', 'users', 'familytree', 'database', 'feedtest', 'migrations', 'public_access'], true)) {
+        echo 'Unknown administration section.';
+        return;
+    }
     require_once('views/admin/' . $section . '.php');
 } 
 //$section = isset($_GET['section']) ? $_GET['section'] : 'site';

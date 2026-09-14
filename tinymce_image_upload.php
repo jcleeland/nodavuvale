@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/system/member_bootstrap.php';
 // upload_image.php
 
 if ($_FILES['file']['name']) {

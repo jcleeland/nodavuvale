@@ -223,6 +223,7 @@ CREATE TABLE IF NOT EXISTS `individuals` (
   `death_date` int DEFAULT NULL,
   `gender` enum('male','female','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'other',
   `is_deceased` int DEFAULT '0',
+  `exclude_from_public` tinyint(1) NOT NULL DEFAULT '0',
   `created_by` int DEFAULT NULL,
   `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -373,6 +374,27 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 --
 -- Constraints for dumped tables
+-- Public-access schema is also managed by versioned migrations. New installs must
+-- run migrations in Administration to initialize settings and record the ledger.
+CREATE TABLE IF NOT EXISTS `public_access_settings` (
+  `id` tinyint NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `threshold_years` smallint NOT NULL DEFAULT '50',
+  `timezone` varchar(64) NOT NULL DEFAULT 'Australia/Sydney',
+  `updated_at` datetime DEFAULT NULL,
+  `updated_by` int DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `public_access_audit` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `individual_id` int DEFAULT NULL,
+  `administrator_id` int NOT NULL,
+  `action` varchar(32) NOT NULL,
+  `details` text NOT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 --
 
 --
