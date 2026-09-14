@@ -12,7 +12,8 @@ file_put_contents($site . '/uploads/tinymce/comment-private.png', $png);
 file_put_contents($site . '/uploads/tinymce/private.png', $png);
 file_put_contents($site . '/uploads/tinymce/not-an-image.png', 'private document disguised as an image');
 $insertArticle = $pdo->prepare('INSERT INTO discussions (user_id,title,content,created_at) VALUES (2,?,?,NOW())');
-$articleContent = '<h2>Shared history</h2><p>Public story text</p><img src="uploads/tinymce/public.png" alt="Family picture">'
+$inlineImageStyle = 'float: right; width: 240px; height: 160px; margin: 0 0 1em 1em; border: 2px solid #333; object-fit: cover;';
+$articleContent = '<h2>Shared history</h2><p>Public story text</p><img src="uploads/tinymce/public.png" alt="Family picture" style="' . $inlineImageStyle . '">'
     . '<img src="uploads/tinymce/not-an-image.png"><script>privateScript()</script>';
 $insertArticle->execute(['Published <story>', $articleContent]);
 $articleId = (int) $pdo->lastInsertId();
@@ -48,6 +49,7 @@ foreach (['Private comment sentinel','PrivateLiving','discussion-reactions','new
     integrationAssert(!str_contains($article['body'], $hidden), 'Public article omits member content or unsafe markup: ' . $hidden);
 }
 integrationAssert(str_contains($article['headers'], 'no-store'), 'Public article not cached');
+integrationAssert(str_contains($article['body'], 'style="' . $inlineImageStyle . '"'), 'Public HTTP view preserves inline image layout');
 $ajaxGuest = $http('/ajax.php', null, ['method'=>'get_discussion','data'=>json_encode(['discussion_id'=>$articleId])]);
 integrationAssert(!str_contains($ajaxGuest['body'], 'Public story text'), 'Public article does not expose member AJAX API');
 integrationAssert($http($articleUrl, null, ['comment'=>'Forged public comment'])['status'] === 405, 'Public article POST rejected');

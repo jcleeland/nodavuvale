@@ -76,8 +76,10 @@ attachments are not part of the public article.
 The logged-out homepage lists published articles in a full-width **Family stories**
 section beneath the existing visitor cards. It uses current titles and omits the
 section when no articles are public. The article uses the standard hero and card
-styling, and a restricted HTML renderer retains text formatting while removing
-scripts, forms, event handlers and embedded active content.
+styling, and a restricted HTML renderer retains complete inline `style` attributes
+(including image layout and spacing) while removing scripts, forms, event handlers
+and embedded active HTML. Authored CSS is preserved as approved, including CSS URLs;
+it is not restricted to a property allowlist. The privacy review includes that styling.
 
 Inline uploaded images and image attachments are served through
 `public_discussion_image.php`, which rechecks the current article and actual image

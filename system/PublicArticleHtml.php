@@ -73,22 +73,12 @@ final class PublicArticleHtml
                 $attributes .= $this->attribute($name, $node->getAttribute($name));
             }
         }
-        // Preserve common editor formatting without permitting CSS URLs or positioned overlays.
-        $safeStyles = [];
-        foreach (explode(';', $node->getAttribute('style')) as $declaration) {
-            $pair = explode(':', $declaration, 2);
-            if (count($pair) !== 2) { continue; }
-            [$property, $value] = array_map('trim', $pair);
-            $patterns = ['text-align'=>'/^(left|right|center|justify)$/i', 'font-weight'=>'/^(normal|bold|[1-9]00)$/i',
-                'font-style'=>'/^(normal|italic)$/i', 'text-decoration'=>'/^(none|underline|line-through)$/i',
-                'color'=>'/^(#[0-9a-f]{3,8}|[a-z]+|rgba?\([0-9.,% ]+\))$/i',
-                'background-color'=>'/^(#[0-9a-f]{3,8}|[a-z]+|rgba?\([0-9.,% ]+\))$/i',
-                'font-size'=>'/^[0-9.]+(?:px|pt|em|rem|%)$/i'];
-            if (isset($patterns[strtolower($property)]) && preg_match($patterns[strtolower($property)], $value)) {
-                $safeStyles[] = strtolower($property) . ':' . $value;
-            }
+        // Publication approves the article's presentation too. Preserve the entire
+        // declaration, including image layout, custom properties, functions and !important.
+        // Escape it as an HTML attribute; never concatenate authored CSS into markup raw.
+        if ($node->hasAttribute('style')) {
+            $attributes .= $this->attribute('style', $node->getAttribute('style'));
         }
-        if ($safeStyles) { $attributes .= $this->attribute('style', implode(';', $safeStyles)); }
         $children = '';
         foreach ($node->childNodes as $child) { $children .= $this->node($child, $images); }
         if (!in_array($tag, $allowed, true)) { return $children; }
