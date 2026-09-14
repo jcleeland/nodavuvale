@@ -129,6 +129,7 @@ if((isset($_POST['action']) && $_POST['action'] == 'register' && (isset($_GET['t
     exit;
 }
 
+require __DIR__ . '/system/discussion_publication.php';
 require __DIR__ . '/system/discussion_submission.php';
 
 $individuals=array();

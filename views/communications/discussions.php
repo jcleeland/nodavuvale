@@ -528,6 +528,29 @@ function getCommentsForDiscussion($discussion_id) {
                             </div>
                             
                             <!-- Title Section -->
+                            <?php if (!empty($discussion['is_public'])): ?>
+                                <p class="mt-4 text-sm text-ocean-blue"><a class="underline" href="index.php?to=public/discussion&amp;discussion_id=<?= (int) $discussion['id'] ?>">Public article</a> &middot; Changes to this article and its images are public.</p>
+                            <?php endif; ?>
+                            <?php if ($is_admin && $publicDiscussions->ready()): ?>
+                                <details class="my-4 p-4 bg-gray-100 rounded-lg">
+                                    <summary class="cursor-pointer font-semibold">Public visibility</summary>
+                                    <form method="POST" class="mt-4">
+                                        <input type="hidden" name="action" value="discussion_publication">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(RequestSecurity::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="discussion_id" value="<?= (int) $discussion['id'] ?>">
+                                        <?php if (!empty($discussion['is_public'])): ?>
+                                            <input type="hidden" name="published" value="0">
+                                            <p class="mb-4">This article and its images are available to anyone. Comments remain members-only.</p>
+                                            <button type="submit" class="px-4 py-2 bg-warm-red text-white rounded-lg hover:bg-burnt-orange">Make private</button>
+                                        <?php else: ?>
+                                            <input type="hidden" name="published" value="1">
+                                            <p class="p-4 bg-yellow-100 rounded-lg mb-4">Before publishing, review the entire article and its images for privacy implications, especially information about living or recently deceased people. Anyone will be able to read it and view its images. Future edits and added images will also be public automatically. Comments remain members-only.</p>
+                                            <label class="block mb-4"><input type="checkbox" name="privacy_review" value="1" required> I have reviewed the article and images and approve them for public viewing.</label>
+                                            <button type="submit" class="px-4 py-2 bg-warm-red text-white rounded-lg hover:bg-burnt-orange">Publish publicly</button>
+                                        <?php endif; ?>
+                                    </form>
+                                </details>
+                            <?php endif; ?>
                             <div id='discussion-title-<?= $discussion['id'] ?>' class='relative'>
                                 <h3 class="text-2xl font-bold">
                                     <?= htmlspecialchars($discussion['title']) ?>

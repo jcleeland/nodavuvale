@@ -1814,3 +1814,23 @@ section.content a {
 .nv-timeline-text h4 {
     margin-top: 0;
 }
+
+/* Public articles use the site's cards, colours and hero, with readable rich text. */
+.public-article-content { line-height: 1.75; overflow-wrap: anywhere; }
+.public-article-content > :first-child { margin-top: 0; }
+.public-article-content p, .public-article-content ul, .public-article-content ol,
+.public-article-content blockquote, .public-article-content figure { margin: 1em 0; }
+.public-article-content h1, .public-article-content h2, .public-article-content h3,
+.public-article-content h4, .public-article-content h5, .public-article-content h6 { font-weight: 700; margin: 1.4em 0 .6em; line-height: 1.3; }
+.public-article-content h1, .public-article-content h2 { font-size: 1.75rem; }
+.public-article-content h3 { font-size: 1.4rem; }
+.public-article-content ul { list-style: disc; padding-left: 1.5em; }
+.public-article-content ol { list-style: decimal; padding-left: 1.5em; }
+.public-article-content a { color: var(--ocean-blue); text-decoration: underline; }
+.public-article-content a:hover { color: var(--burnt-orange); }
+#public-article-heading { font-size: clamp(1.75rem, 5vw, 3rem); }
+.public-article-content blockquote { border-left: 4px solid #d1d5db; padding-left: 1.25em; }
+.public-article-content img, .public-article-image { max-width: 100%; height: auto; border-radius: .5rem; }
+.public-article-content table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 1.5em 0; }
+.public-article-content th, .public-article-content td { border: 1px solid #d1d5db; padding: .6em; }
+.public-article-content pre { white-space: pre-wrap; }

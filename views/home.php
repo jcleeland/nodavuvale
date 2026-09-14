@@ -197,7 +197,7 @@ if (!function_exists('nvFeedSanitizeHtml')) {
     }
 }
 // Check if the user is logged in
-$is_logged_in = isset($_SESSION['user_id']);
+$is_logged_in = $auth->isLoggedIn();
 // Load all updates unless a specific cutoff is requested
 $defaultChangeSince = '1900-01-01 00:00:00';
 $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
@@ -613,10 +613,20 @@ $viewnewsince = isset($_GET['changessince']) && $_GET['changessince'] !== ''
         </div>
     </section>
 
+    <?php $publicArticles = $publicDiscussions->listing(); ?>
+    <?php if ($publicArticles): ?>
+        <section class="container mx-auto pb-12 px-4 sm:px-6 lg:px-8" aria-labelledby="public-stories-heading">
+            <div class="p-6 bg-white shadow-lg rounded-lg">
+                <h2 id="public-stories-heading" class="text-2xl font-bold text-ocean-blue">Family stories</h2>
+                <p class="mt-2">Discover stories and articles our family has shared for everyone to read.</p>
+                <ul class="mt-6 divide-y divide-gray-200">
+                    <?php foreach ($publicArticles as $article): ?>
+                        <li class="py-4">
+                            <a class="text-lg font-semibold text-ocean-blue hover:text-burnt-orange" href="index.php?to=public/discussion&amp;discussion_id=<?= (int) $article['id'] ?>"><?= htmlspecialchars(PublicDiscussions::title($article), ENT_QUOTES, 'UTF-8') ?></a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </section>
+    <?php endif; ?>
 <?php endif; ?>
-
-
-
-
-
-

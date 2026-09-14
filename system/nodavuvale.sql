@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS `discussions` (
   `event_date_finish` datetime DEFAULT NULL,
   `event_location` varchar(255) COLLATE utf8mb3_unicode_ci DEFAULT NULL,
   `individual_id` int DEFAULT '0',
+  `is_public` tinyint(1) NOT NULL DEFAULT '0',
+  `public_published_at` datetime DEFAULT NULL,
+  `public_published_by` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;

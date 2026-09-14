@@ -66,12 +66,13 @@ try {
     integrationAssert($runner->status()[PublicAccess::MIGRATION]['status'] === 'pending', 'Detect pending without bootstrap');
     integrationAssert(!(new PublicAccess($pdo))->ready(), 'Old schema stays private');
     integrationAssert((int) $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='schema_migrations'")->fetchColumn() === 0, 'GET/status must not create ledger');
-    integrationAssert(count($runner->runPending(1)) === 2, 'Initial migrations apply');
+    integrationAssert(count($runner->runPending(1)) === 3, 'Initial migrations apply');
     integrationAssert($runner->runPending(1) === [], 'Repeated migration is a no-op');
     $contentColumn = $pdo->query("SHOW FULL COLUMNS FROM discussions LIKE 'content'")->fetch(PDO::FETCH_ASSOC);
     integrationAssert($contentColumn['Type'] === 'mediumtext' && $contentColumn['Collation'] === 'utf8mb4_bin'
         && $contentColumn['Null'] === 'NO' && $contentColumn['Comment'] === 'Formatted content', 'Capacity migration preserves column attributes');
     integrationAssert($pdo->query('SELECT content FROM discussions')->fetchColumn() === '<p>Existing post</p>', 'Capacity migration preserves existing posts');
+    integrationAssert((int) $pdo->query('SELECT is_public FROM discussions')->fetchColumn() === 0, 'Existing discussions stay private after migration');
     $pdo->exec('DELETE FROM discussions');
     integrationAssert((int) $pdo->query('SELECT COUNT(*) FROM individuals')->fetchColumn() === 43, 'Migration preserves records');
     $access = new PublicAccess($pdo);
@@ -197,7 +198,7 @@ PHP);
         $length = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
         $result = ['status'=>curl_getinfo($curl,CURLINFO_HTTP_CODE), 'headers'=>substr($raw,0,$length), 'body'=>substr($raw,$length)];
         curl_close($curl);
-        integrationAssert(!str_contains($result['body'], 'Warning:') && !str_contains($result['body'], 'Fatal error:'), 'No PHP errors in HTTP response: '.$path);
+        integrationAssert(!preg_match('/(?:Warning|Fatal error|Notice)(?:<\/b>)?:/', $result['body']), 'No PHP errors in HTTP response: '.$path);
         return $result;
     };
     for ($attempt = 0; $attempt < 50; ++$attempt) {
@@ -267,6 +268,7 @@ PHP);
     preg_match('/Set-Cookie: ([^;\r\n]+)/i', $login['headers'], $matches);
     integrationAssert($http('/uploads/private.txt',$matches[1])['status'] === 403, 'Unapproved member denied private media');
     require __DIR__ . '/discussion_submission_cases.php';
+    require __DIR__ . '/public_discussion_cases.php';
     echo "MariaDB migration, privacy, discussion submission, and HTTP integration tests passed.\n";
 } finally {
     if (is_resource($process)) { proc_terminate($process); proc_close($process); }

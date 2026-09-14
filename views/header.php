@@ -4,6 +4,7 @@ $pagetitlesuffix="";
 $individualIdForReports = isset($_GET['individual_id']) ? (int) $_GET['individual_id'] : null;
 if (!empty($publicView)) {
     $pagetitlesuffix = $publicPerson ? str_replace('_', ' ', $publicPerson['first_names'] . ' ' . $publicPerson['last_name']) : '';
+    if (!empty($publicArticle)) { $pagetitlesuffix = PublicDiscussions::title($publicArticle); }
     $individualIdForReports = null;
 } elseif ($individualIdForReports && $auth->isLoggedIn()) {
     $pagetitlesuffix = Utils::getIndividualName($individualIdForReports);
@@ -30,7 +31,7 @@ if ($isIndividualPage) {
     <!-- Tailwind CSS -->
     <link href="styles/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/font-awesome/css/all.min.css">
-    <link href="styles/styles.css?v=4" rel="stylesheet">
+    <link href="styles/styles.css?v=5" rel="stylesheet">
 
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="styles/dTree.css">
