@@ -125,9 +125,18 @@ final class PublicAccess
     {
         $result = ['people' => [], 'total' => 0, 'page' => max(1, $page), 'pages' => 0];
         if (!$this->ready || (!$preview && !$this->enabled())) { return $result; }
-        $query = $this->pdo->prepare('SELECT ' . self::FIELDS . ' FROM individuals
+        $query = $this->pdo->prepare('SELECT ' . self::FIELDS . " FROM individuals
             WHERE exclude_from_public = 0 AND death_year > 0 AND death_year <= ?
-            ORDER BY last_name, first_names, id');
+            ORDER BY
+                TRIM(REPLACE(COALESCE(last_name, ''), '_', ' ')) = '',
+                LOWER(TRIM(REPLACE(COALESCE(last_name, ''), '_', ' '))) COLLATE utf8mb4_bin,
+                CASE WHEN birth_year > 0 THEN birth_year ELSE death_year END,
+                CASE WHEN birth_year > 0 THEN COALESCE(NULLIF(birth_month, 0), 13)
+                    ELSE COALESCE(NULLIF(death_month, 0), 13) END,
+                CASE WHEN birth_year > 0 THEN COALESCE(NULLIF(birth_date, 0), 32)
+                    ELSE COALESCE(NULLIF(death_date, 0), 32) END,
+                death_year, COALESCE(NULLIF(death_month, 0), 13), COALESCE(NULLIF(death_date, 0), 32),
+                first_names, id");
         $query->execute([(int) $this->today->format('Y') - (int) $this->settings['threshold_years']]);
         $offset = ($result['page'] - 1) * 30;
         while ($person = $query->fetch(PDO::FETCH_ASSOC)) {

@@ -75,6 +75,19 @@ try {
     $listing = $access->directory('', 1);
     integrationAssert($listing['total'] === 40 && count($listing['people']) === 30, 'Filter before counts and pagination');
     integrationAssert(count($access->directory('', 2)['people']) === 10, 'Second page');
+    // Surname grouping and date ordering apply globally, before the 30-record page boundary.
+    $pdo->exec("UPDATE individuals SET birth_year=1750, birth_month=1, birth_date=2 WHERE id=1");
+    $pdo->exec("UPDATE individuals SET birth_year=1750, birth_month=1, birth_date=1 WHERE id IN (6,7)");
+    $pdo->exec("UPDATE individuals SET last_name='Adams' WHERE id=8");
+    $pdo->exec("UPDATE individuals SET last_name=' test ' WHERE id=20");
+    $pdo->exec("UPDATE individuals SET last_name='' WHERE id=54");
+    $ordered = array_merge($access->directory('', 1)['people'], $access->directory('', 2)['people']);
+    integrationAssert(array_slice(array_column($ordered, 'id'), 0, 5) === [8,6,7,1,5],
+        'Surname first, then birth date (including month/day), death fallback, and death tie-break');
+    integrationAssert((int) end($ordered)['id'] === 54, 'Missing surname sorts last');
+    integrationAssert(count(array_unique(array_column($ordered, 'id'))) === 40, 'Pagination neither duplicates nor omits records');
+    $pdo->exec("UPDATE individuals SET birth_year=NULL, birth_month=NULL, birth_date=NULL WHERE id IN (1,6,7)");
+    $pdo->exec("UPDATE individuals SET last_name='Test' WHERE id IN (8,20,54)");
     integrationAssert($access->directory('PrivateLiving', 1)['total'] === 0, 'Search cannot expose private records');
     $manager->exclude(1, true, 1);
     integrationAssert($access->person(1) === null && $access->directory('HistoricAncestor', 1)['total'] === 0, 'Exclusion effective immediately');
@@ -188,6 +201,7 @@ PHP);
     integrationAssert($private['status'] === 404 && $private['body'] === $absent['body'], 'Private and nonexistent indistinguishable');
     $response = $http('/index.php?to=public/ancestors&individual_id=2');
     integrationAssert(!str_contains($response['body'], 'PrivateLiving'), 'Private ID cannot leak through title');
+    integrationAssert(str_contains($response['body'], 'container hero-content') && str_contains($response['body'], 'research and general information'), 'Directory uses the site hero and research introduction');
     $response = $http('/index.php?to=public/individual&individual_id=8');
     integrationAssert(str_contains($response['body'], '&lt;script&gt;name&lt;/script&gt;'), 'Names escaped in page and title');
     integrationAssert($http('/index.php?to=family/individual&individual_id=1', null, ['action'=>'update_individual'])['status'] === 405, 'Guest profile POST rejected');
