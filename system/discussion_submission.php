@@ -34,6 +34,12 @@ try {
 } catch (Throwable $error) {
     $reference = bin2hex(random_bytes(4));
     error_log('Discussion creation [' . $reference . ']: ' . $error->getMessage());
+    if ($error instanceof PDOException && (int) ($error->errorInfo[1] ?? 0) === 1406
+        && str_contains($error->getMessage(), "'content'")) {
+        $discussionError = 'This discussion exceeds the current storage limit, including its formatting. Your text is still here. Shorten it or ask an administrator to check for pending database migrations (reference ' . $reference . ').';
+        http_response_code(422);
+        return;
+    }
     $discussionError = 'The discussion could not be saved. Your text is still here. Please try again or contact an administrator (reference ' . $reference . ').';
     http_response_code(500);
     return;

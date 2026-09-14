@@ -40,6 +40,14 @@ try {
     $pdo->exec("CREATE TABLE files (id INT, file_path TEXT)");
     $pdo->exec("CREATE TABLE file_links (file_id INT, item_id INT, individual_id INT)");
     $pdo->exec("CREATE TABLE items (item_id INT, detail_type VARCHAR(100))");
+    $pdo->exec("CREATE TABLE discussions (
+        id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(255),
+        content TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Formatted content',
+        is_sticky INT DEFAULT 0, is_news INT DEFAULT 0, is_event INT DEFAULT 0, is_historical_event INT DEFAULT 0,
+        event_date DATETIME NULL, event_date_finish DATETIME NULL, event_location VARCHAR(255) NULL,
+        individual_id INT DEFAULT NULL, created_at DATETIME NOT NULL
+    ) ENGINE=MyISAM");
+    $pdo->exec("INSERT INTO discussions (user_id,title,content,created_at) VALUES (1,'Preserved','<p>Existing post</p>',NOW())");
     $insert = $pdo->prepare("INSERT INTO individuals (id, first_names, last_name, death_year, death_prefix) VALUES (?, ?, 'Test', ?, '')");
     $insert->execute([1, 'HistoricAncestor', 1800]);
     $insert->execute([2, 'PrivateLiving', null]);
@@ -58,8 +66,13 @@ try {
     integrationAssert($runner->status()[PublicAccess::MIGRATION]['status'] === 'pending', 'Detect pending without bootstrap');
     integrationAssert(!(new PublicAccess($pdo))->ready(), 'Old schema stays private');
     integrationAssert((int) $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='schema_migrations'")->fetchColumn() === 0, 'GET/status must not create ledger');
-    integrationAssert(count($runner->runPending(1)) === 1, 'First migration applies');
+    integrationAssert(count($runner->runPending(1)) === 2, 'Initial migrations apply');
     integrationAssert($runner->runPending(1) === [], 'Repeated migration is a no-op');
+    $contentColumn = $pdo->query("SHOW FULL COLUMNS FROM discussions LIKE 'content'")->fetch(PDO::FETCH_ASSOC);
+    integrationAssert($contentColumn['Type'] === 'mediumtext' && $contentColumn['Collation'] === 'utf8mb4_bin'
+        && $contentColumn['Null'] === 'NO' && $contentColumn['Comment'] === 'Formatted content', 'Capacity migration preserves column attributes');
+    integrationAssert($pdo->query('SELECT content FROM discussions')->fetchColumn() === '<p>Existing post</p>', 'Capacity migration preserves existing posts');
+    $pdo->exec('DELETE FROM discussions');
     integrationAssert((int) $pdo->query('SELECT COUNT(*) FROM individuals')->fetchColumn() === 43, 'Migration preserves records');
     $access = new PublicAccess($pdo);
     integrationAssert($access->ready() && !$access->enabled() && $access->person(1) === null, 'New site starts disabled');

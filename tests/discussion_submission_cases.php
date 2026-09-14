@@ -4,12 +4,6 @@ if (!isset($pdo, $http, $adminCookie, $memberCookie)) {
     exit("Run tests/public_access_integration_test.php to exercise these cases.\n");
 }
 $pdo->exec('ALTER TABLE users ADD avatar VARCHAR(255) NULL, ADD show_presence INT DEFAULT 0');
-$pdo->exec("CREATE TABLE discussions (
-    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(255), content TEXT NOT NULL,
-    is_sticky INT DEFAULT 0, is_news INT DEFAULT 0, is_event INT DEFAULT 0, is_historical_event INT DEFAULT 0,
-    event_date DATETIME NULL, event_date_finish DATETIME NULL, event_location VARCHAR(255) NULL,
-    individual_id INT DEFAULT NULL, created_at DATETIME NOT NULL
-) ENGINE=MyISAM");
 $pdo->exec('CREATE TABLE discussion_files (id INT AUTO_INCREMENT PRIMARY KEY, discussion_id INT, user_id INT, file_path TEXT, file_type TEXT)');
 $pdo->exec('CREATE TABLE discussion_comments (id INT PRIMARY KEY, discussion_id INT, user_id INT, comment TEXT, created_at DATETIME)');
 $discussionPath = '/index.php?to=communications/discussions';
@@ -83,4 +77,32 @@ foreach ([$discussionPath, $standalonePath] as $path) {
 }
 $pdo->exec('DROP TRIGGER reject_discussion');
 integrationAssert((int) $pdo->query('SELECT COUNT(*) FROM discussions')->fetchColumn() === $countBefore, 'Rejected submissions insert no records');
+
+// Reproduce production's 1406 error on the old schema, then upgrade via the admin button.
+$pdo->exec('ALTER TABLE discussions MODIFY COLUMN content TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL');
+$pdo->exec("DELETE FROM schema_migrations WHERE version='20260914_002_discussion_content_capacity'");
+$longContent = '<p>' . str_repeat('Family history &amp; memories. ', 3000) . '</p>';
+integrationAssert(strlen($longContent) > 65535, 'Regression post exceeds the old TEXT limit');
+$longDraft = array_replace($draft, ['title'=>'Long formatted discussion', 'content'=>$longContent]);
+$response = $http($discussionPath, $adminCookie, $longDraft);
+integrationAssert($response['status'] === 422 && !str_contains($response['headers'], 'Location:')
+    && str_contains($response['body'], 'exceeds the current storage limit')
+    && str_contains($response['body'], 'pending database migrations'), 'Oversized content explains the cause and remedy');
+integrationAssert(str_contains($response['body'], htmlspecialchars($longContent, ENT_QUOTES, 'UTF-8') . '</textarea>'), 'Oversized draft is retained in full');
+integrationAssert((int) $pdo->query('SELECT COUNT(*) FROM discussions')->fetchColumn() === $countBefore, 'Oversized post is not truncated or inserted');
+$response = $http('/index.php?to=admin/migrations', $adminCookie);
+integrationAssert(str_contains($response['body'], 'Increase discussion content capacity') && str_contains($response['body'], 'Run migration(s)'), 'Capacity migration is offered to administrators');
+$response = $http('/index.php?to=admin/migrations', $adminCookie, ['action'=>'run_migrations', 'csrf_token'=>$discussionCsrf]);
+integrationAssert($response['status'] === 303, 'Admin button applies capacity migration');
+foreach ([$discussionPath, $standalonePath] as $path) {
+    $response = $http($path, $adminCookie, $longDraft);
+    integrationAssert($response['status'] === 303 && $response['body'] === '', 'Long formatted discussion saves after migration');
+    integrationAssert($pdo->query('SELECT content FROM discussions ORDER BY id DESC LIMIT 1')->fetchColumn() === $longContent, 'Long content round-trips without truncation');
+}
+$capacityMigration = require dirname(__DIR__) . '/system/migrations/20260914_002_discussion_content_capacity.php';
+($capacityMigration['up'])($pdo);
+integrationAssert($pdo->query("SHOW COLUMNS FROM discussions LIKE 'content'")->fetch(PDO::FETCH_ASSOC)['Type'] === 'mediumtext', 'Restarted capacity migration is a no-op');
+$pdo->exec('ALTER TABLE discussions MODIFY COLUMN content LONGTEXT NOT NULL');
+($capacityMigration['up'])($pdo);
+integrationAssert($pdo->query("SHOW COLUMNS FROM discussions LIKE 'content'")->fetch(PDO::FETCH_ASSOC)['Type'] === 'longtext', 'Larger manually configured capacity is never reduced');
 echo "Discussion submission regression cases passed.\n";
