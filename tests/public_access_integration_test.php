@@ -253,7 +253,8 @@ PHP);
     $login = $http('/__test_login?id=3');
     preg_match('/Set-Cookie: ([^;\r\n]+)/i', $login['headers'], $matches);
     integrationAssert($http('/uploads/private.txt',$matches[1])['status'] === 403, 'Unapproved member denied private media');
-    echo "MariaDB migration, privacy, and HTTP integration tests passed.\n";
+    require __DIR__ . '/discussion_submission_cases.php';
+    echo "MariaDB migration, privacy, discussion submission, and HTTP integration tests passed.\n";
 } finally {
     if (is_resource($process)) { proc_terminate($process); proc_close($process); }
     $pdo->exec("DROP DATABASE `$database`");

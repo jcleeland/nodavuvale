@@ -129,6 +129,8 @@ if((isset($_POST['action']) && $_POST['action'] == 'register' && (isset($_GET['t
     exit;
 }
 
+require __DIR__ . '/system/discussion_submission.php';
+
 $individuals=array();
 // If the user is logged in, fill the array with individuals
 if ($auth->isLoggedIn() && !$publicView) {

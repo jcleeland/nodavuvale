@@ -1,43 +1,3 @@
-<?php
-// Include your database class
-require_once 'system/nodavuvale_database.php';
-
-// Get database instance
-$db = Database::getInstance();
-
-// Initialize error and success messages
-$error_message = '';
-$success_message = '';
-
-// Check if the form was submitted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title']);
-    $content = trim($_POST['content']);
-    $is_news = isset($_POST['is_news']) ? 1 : 0;
-    $is_sticky = isset($_POST['is_sticky']) ? 1 : 0;
-
-    // Validate the form data
-    if (empty($title) || empty($content)) {
-        $error_message = 'Title and content are required.';
-    } else {
-        // Insert the new discussion/news into the database
-        $inserted = $db->insert(
-            "INSERT INTO discussions (user_id, title, content, is_sticky, is_news, created_at) VALUES (?, ?, ?, ?, NOW())",
-            [$title, $content, $is_sticky, $is_news]
-        );
-
-        if ($inserted) {
-            $success_message = 'Discussion or news item successfully created!';
-            // Optionally, redirect the user after success
-            header('Location: index.php?to=communications/discussions');
-            exit;
-        } else {
-            $error_message = 'Failed to create discussion or news item. Please try again.';
-        }
-    }
-}
-?>
-
 <!-- Hero Section -->
 <section class="hero text-white py-20">
     <div class="container hero-content">
@@ -50,37 +10,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <div class="bg-white shadow-lg rounded-lg p-6">
 
-        <!-- Display error or success messages -->
-        <?php if (!empty($error_message)): ?>
-            <div class="bg-red-100 text-red-700 p-4 rounded mb-6">
-                <?= htmlspecialchars($error_message); ?>
-            </div>
-        <?php elseif (!empty($success_message)): ?>
-            <div class="bg-green-100 text-green-700 p-4 rounded mb-6">
-                <?= htmlspecialchars($success_message); ?>
+        <?php if ($discussionError !== ''): ?>
+            <div role="alert" class="bg-red-100 text-red-700 p-4 rounded mb-6">
+                <?= htmlspecialchars($discussionError, ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
 
         <!-- Form -->
         <form method="POST" action="">
-            <input type='hidden' name='user_id' value='<?= $_SESSION['user_id'] ?>'>
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(RequestSecurity::token(), ENT_QUOTES, 'UTF-8') ?>">
 
             <!-- Title -->
             <div class="mb-4">
                 <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
-                <input type="text" name="title" id="title" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                <input type="text" name="title" id="title" class="mt-1 block w-full px-3 py-2 border rounded-md" maxlength="255" value="<?= htmlspecialchars($discussionDraft['title'], ENT_QUOTES, 'UTF-8') ?>" required>
             </div>
 
             <!-- Content -->
             <div class="mb-4">
                 <label for="content" class="block text-sm font-medium text-gray-700">Content</label>
-                <textarea name="content" id="content" rows="5" class="mt-1 block w-full px-3 py-2 border rounded-md" required></textarea>
+                <textarea name="content" id="content" rows="5" class="mt-1 block w-full px-3 py-2 border rounded-md" required><?= htmlspecialchars($discussionDraft['content'], ENT_QUOTES, 'UTF-8') ?></textarea>
             </div>
 
             <!-- Is News -->
             <div class="mb-4">
                 <label for="is_news" class="inline-flex items-center">
-                    <input type="checkbox" name="is_news" id="is_news" class="mr-2">
+                    <input type="checkbox" name="is_news" id="is_news" class="mr-2" <?= $discussionDraft['is_news'] ? 'checked' : '' ?>>
                     This is a News item
                 </label>
             </div>
@@ -88,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Sticky Option -->
             <div class="mb-4">
                 <label for="is_sticky" class="inline-flex items-center">
-                    <input type="checkbox" name="is_sticky" id="is_sticky" class="mr-2">
+                    <input type="checkbox" name="is_sticky" id="is_sticky" class="mr-2" <?= $discussionDraft['is_sticky'] ? 'checked' : '' ?>>
                     Make this a Sticky discussion
                 </label>
             </div>

@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
             input.click();
         },
         setup: function (editor) {
-            editor.on('change', function() {
+            editor.on('change input undo redo', function() {
                 tinymce.triggerSave();
             })
         }
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });        
 
     // Ensure TinyMCE content is synchronized before form submission
-    document.querySelector('#newDiscussionForm').addEventListener('submit', function() {
+    document.querySelector('#newDiscussionForm').addEventListener('submit', function(event) {
         console.log('Triggering tinyMCE update for new discussion');
         tinymce.triggerSave();
         if(!this.checkValidity()) {
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    document.querySelector('#editDiscussionForm').addEventListener('submit', function() {
+    document.querySelector('#editDiscussionForm').addEventListener('submit', function(event) {
         console.log('Triggering tinyMCE update for edited discussion');
         tinymce.triggerSave();
         if(!this.checkValidity()) {

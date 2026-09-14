@@ -154,67 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'], $_POST['di
     }
 }
 
-// Handle posting of new discussions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_discussion'], $_POST['user_id'])) {
-    $title = trim($_POST['title']);
-    $content = trim($_POST['content']);
-    $user_id = (int)$_POST['user_id'];
-    $is_sticky = isset($_POST['is_sticky']) ? 1 : 0;
-    $is_event = isset($_POST['is_event']) ? 1 : 0;
-    $is_historical_event = isset($_POST['is_historical_event']) ? 1 : 0;
-    $is_news = isset($_POST['is_news']) ? 1 : 0;
-    $event_date = isset($_POST['event_date']) ? trim((string) $_POST['event_date']) : null;
-    $event_date_finish = isset($_POST['event_date_finish']) ? trim((string) $_POST['event_date_finish']) : null;
-    $event_location = isset($_POST['event_location']) ? trim((string) $_POST['event_location']) : null;
-    if ($event_date === '') {
-        $event_date = null;
-    }
-    if ($event_date_finish === '') {
-        $event_date_finish = null;
-    }
-    if ($event_location === '') {
-        $event_location = null;
-    }
-    
-    // Validate discussion
-    if (!empty($content) && $user_id > 0) {
-        try {
-            // Start a transaction
-            $db->beginTransaction();
-            // Insert the new discussion into the database
-            $sql="INSERT INTO discussions (user_id, title, content, is_sticky, is_event, is_historical_event, is_news, event_date, event_date_finish, event_location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-            $discussion_id=$db->insert($sql, [$user_id, $title, $content, $is_sticky, $is_event, $is_historical_event, $is_news, $event_date, $event_date_finish, $event_location]);
-        
-            
-            $db->commit();
-            // Handle file upload
-            if (isset($_FILES['discussion_files'])) {
-                $web->handleDiscussionFileUpload($_FILES['discussion_files'], $discussion_id, $user_id);
-            }
-            // Redirect to avoid form resubmission issues
-            ?>
-            <script type="text/javascript">
-                window.location.href = "index.php?to=communications/discussions&discussion_id=<?= $discussion_id ?>";
-            </script>
-            <?php
-            exit;            
-        } catch (Exception $e) {
-            // Rollback the transaction
-            $db->rollBack();
-            // Log the error
-            error_log($e->getMessage());
-        }
-
-
-
-
-    } else {
-        // Handle the case where the discussion is not valid
-        if(empty($title))
-        echo "Please fill in all required fields. You must provide a title and content for the discussion.";
-        // Fill in the form with the posted data so it isn't lost.
-    }
-}
+// New discussion submissions are handled before output in system/discussion_submission.php.
 
 // Handle updating of a discussion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_discussion'], $_POST['user_id'], $_POST['discussion_id'])) {
@@ -295,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['add_discussion_files
 $discussions = $db->fetchAll("SELECT discussions.*, users.first_name, users.last_name, users.avatar
     FROM discussions 
     INNER JOIN users ON discussions.user_id=users.id 
-    WHERE discussions.individual_id < 1
+    WHERE COALESCE(discussions.individual_id, 0) < 1
     ORDER BY is_sticky DESC, created_at DESC");
 
 // Function to fetch comments for a discussion
@@ -324,8 +264,19 @@ function getCommentsForDiscussion($discussion_id) {
 
 <!-- New Discussion Section -->
 <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8 mb-0">
+    <?php if ($discussionError !== ''): ?>
+        <div role="alert" class="bg-red-100 text-red-700 p-4 rounded mb-6">
+            <?= htmlspecialchars($discussionError, ENT_QUOTES, 'UTF-8') ?>
+            <?php if (!empty($_FILES['discussion_files']['name'][0])): ?>
+                Please select your attachments again before submitting.
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+    <?php if ($discussionNotice !== ''): ?>
+        <div role="status" class="bg-green-100 text-green-700 p-4 rounded mb-6"><?= htmlspecialchars($discussionNotice, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6 relative">
-        <button type="button" id="hidediscussionform" class="new-discussion-form hidden font-bold text-xl text-white bg-gray-200 hover:bg-gray-400 py-0 px-2 rounded-full absolute right-1 top-1" title="Close new discussion">
+        <button type="button" id="hidediscussionform" class="new-discussion-form <?= $discussionError === '' ? 'hidden' : '' ?> font-bold text-xl text-white bg-gray-200 hover:bg-gray-400 py-0 px-2 rounded-full absolute right-1 top-1" title="Close new discussion">
             <i class="fas fa-close"></i>
         </button>
         <div class="discussion-content">
@@ -333,44 +284,45 @@ function getCommentsForDiscussion($discussion_id) {
             <?php $presenceclass = $auth->getUserPresence($user_id) ? "userpresent" : "userabsent"; ?>
             <?php echo $web->getAvatarHTML($user_id, "md", "avatar-float-left mr-2 object-cover {$presenceclass}"); ?>
             <div class='discussion-content'>
-                <div class="mr-2 new-discussion-form relative">
-                    <input type="text" id="showdiscussionform" placeholder="Start a new discussion..." class="w-full border rounded-lg px-4 py-2 my-2 ml-2 mr-4 cursor-pointer text-gray-500" title="Start a new discussion...">
+                <div class="mr-2 new-discussion-form relative <?= $discussionError !== '' ? 'hidden' : '' ?>">
+                    <input type="text" id="showdiscussionform" placeholder="Start a new discussion..." class="w-full border rounded-lg px-4 py-2 my-2 ml-2 mr-4 cursor-pointer text-gray-500 <?= $discussionError !== '' ? 'hidden' : '' ?>" title="Start a new discussion...">
                 </div>
-                <form method="POST" enctype="multipart/form-data" class="mt-4 new-discussion-form hidden" id="newDiscussionForm">
-                    <input type="hidden" name="user_id" value="<?= $_SESSION['user_id'] ?>"> <!-- Assuming user is logged in -->
+                <form method="POST" enctype="multipart/form-data" class="mt-4 new-discussion-form <?= $discussionError === '' ? 'hidden' : '' ?>" id="newDiscussionForm">
+                    <input type="hidden" name="new_discussion" value="1">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(RequestSecurity::token(), ENT_QUOTES, 'UTF-8') ?>">
                     <div id="additional-fields">
                         <div class="px-2 mt-1">
-                            <textarea id="content" name="content" rows="3" class="border w-full rounded-lg py-1 px-2" placeholder="Start a new discussion..." required></textarea>
+                            <textarea id="content" name="content" rows="3" class="border w-full rounded-lg py-1 px-2" placeholder="Start a new discussion..." required><?= htmlspecialchars($discussionDraft['content'], ENT_QUOTES, 'UTF-8') ?></textarea>
 
                         </div>
                         <div class="px-2 mt-1">
-                            <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)">
+                            <input type="text" name="title" class="w-full border rounded-lg p-2 mb-2" placeholder="Discussion Heading (optional)" maxlength="255" value="<?= htmlspecialchars($discussionDraft['title'], ENT_QUOTES, 'UTF-8') ?>">
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-8 text-sm text-gray-500">
                             <div class="p-2 text-center">
                                 <label for="is_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center discussion-toggle-label">
-                                    <input type="checkbox" id="is_event" name="is_event" class="mr-2">
+                                    <input type="checkbox" id="is_event" name="is_event" class="mr-2" <?= $discussionDraft['is_event'] ? 'checked' : '' ?>>
                                     <span class='block sm:hidden'>Family</span>
                                     <span class='hidden sm:block'>This is a Family Event</span>
                                 </label>
                             </div>
                             <div class="p-2 text-center">
                                 <label for="is_historical_event" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center discussion-toggle-label">
-                                    <input type="checkbox" id="is_historical_event" name="is_historical_event" class="mr-2">
+                                    <input type="checkbox" id="is_historical_event" name="is_historical_event" class="mr-2" <?= $discussionDraft['is_historical_event'] ? 'checked' : '' ?>>
                                     <span class='block sm:hidden'>History</span>
                                     <span class='hidden sm:block'>This is a Historical Event</span>
                                 </label>
                             </div>
                             <div class="p-2 text-center">
                                 <label for="is_news" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
-                                    <input type="checkbox" id="is_news" name="is_news" class="mr-2">
+                                    <input type="checkbox" id="is_news" name="is_news" class="mr-2" <?= $discussionDraft['is_news'] ? 'checked' : '' ?>>
                                     <span class='block sm:hidden'>News</span>
                                     <span class='hidden sm:block'>This is News</span>
                                 </label>
                             </div>
                             <div class="p-2 text-center">
                                 <label for="is_sticky" class="w-full max-w-max bg-gray-400 hover:bg-gray-800 text-white font-xs py-1 px-2 rounded cursor-pointer inline-flex items-center">
-                                    <input type="checkbox" id="is_sticky" name="is_sticky" class="mr-2">
+                                    <input type="checkbox" id="is_sticky" name="is_sticky" class="mr-2" <?= $discussionDraft['is_sticky'] ? 'checked' : '' ?>>
                                     <span class='block sm:hidden'>Pin</span>
                                     <span class='hidden sm:block'>Pin to top</span>
                                 </label>
@@ -385,13 +337,13 @@ function getCommentsForDiscussion($discussion_id) {
                         </div>
                         <div id="event_date_section" class="px-2 mt-1 hidden grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div class="text-center">
-                                <input type="text" name="event_date" id="event_date" class="w-full border rounded-lg p-2" placeholder="Event start date">
+                                <input type="text" name="event_date" id="event_date" class="w-full border rounded-lg p-2" placeholder="Event start date" value="<?= htmlspecialchars($discussionDraft['event_date'], ENT_QUOTES, 'UTF-8') ?>">
                             </div>
                             <div class="text-center hidden" id="event_date_finish_wrapper">
-                                <input type="text" name="event_date_finish" id="event_date_finish" class="w-full border rounded-lg p-2" placeholder="Event finish (optional)">
+                                <input type="text" name="event_date_finish" id="event_date_finish" class="w-full border rounded-lg p-2" placeholder="Event finish (optional)" value="<?= htmlspecialchars($discussionDraft['event_date_finish'], ENT_QUOTES, 'UTF-8') ?>">
                             </div>
                             <div class="text-center">
-                                <input type="text" name="event_location" id="event_location" class="w-full border rounded-lg p-2" placeholder="Event location">
+                                <input type="text" name="event_location" id="event_location" class="w-full border rounded-lg p-2" placeholder="Event location" value="<?= htmlspecialchars($discussionDraft['event_location'], ENT_QUOTES, 'UTF-8') ?>">
                             </div>
                         </div>
                         
@@ -400,7 +352,7 @@ function getCommentsForDiscussion($discussion_id) {
                             <div></div>
                             <div></div>
                             <div class="p-2 text-center">
-                                <button type="submit" name="new_discussion" class="w-full max-w-max font-bold text-xl bg-deep-green-800 hover:nv-bg-opacity-50 text-white py-2 px-4 rounded-lg">
+                                <button type="submit" class="w-full max-w-max font-bold text-xl bg-deep-green-800 hover:nv-bg-opacity-50 text-white py-2 px-4 rounded-lg">
                                     <i class="fas fa-paper-plane"></i> Submit
                                 </button>
                             </div>
