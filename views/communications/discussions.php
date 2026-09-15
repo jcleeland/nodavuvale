@@ -237,6 +237,10 @@ $discussions = $db->fetchAll("SELECT discussions.*, users.first_name, users.last
     INNER JOIN users ON discussions.user_id=users.id 
     WHERE COALESCE(discussions.individual_id, 0) < 1
     ORDER BY is_sticky DESC, created_at DESC");
+require_once dirname(__DIR__, 2) . '/system/DiscussionFilters.php';
+$discussionFilters = new DiscussionFilters($_GET);
+$discussionTotal = count($discussions);
+$discussions = $discussionFilters->apply($discussions);
 
 // Function to fetch comments for a discussion
 function getCommentsForDiscussion($discussion_id) {
@@ -264,6 +268,29 @@ function getCommentsForDiscussion($discussion_id) {
 
 <!-- New Discussion Section -->
 <section class="container mx-auto py-12 px-4 sm:px-6 lg:px-8 mb-0">
+    <form method="GET" action="index.php" class="bg-white shadow-lg rounded-lg p-6 mb-6" role="search" aria-label="Search and filter discussions">
+        <input type="hidden" name="to" value="communications/discussions">
+        <input type="hidden" name="filter" value="1">
+        <label for="discussion-search" class="block text-lg font-semibold mb-2">Search discussions</label>
+        <input type="search" id="discussion-search" name="q" maxlength="200" class="w-full border rounded-lg p-3 mb-4" placeholder="Search titles and post text" value="<?= htmlspecialchars($discussionFilters->search, ENT_QUOTES, 'UTF-8') ?>">
+        <fieldset aria-describedby="discussion-filter-help">
+            <legend class="font-semibold mb-2">Show categories</legend>
+            <div class="flex flex-wrap gap-4">
+                <?php foreach (DiscussionFilters::CATEGORIES as $category => $label): ?>
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="categories[]" value="<?= $category ?>" <?= in_array($category, $discussionFilters->categories, true) ? 'checked' : '' ?>>
+                        <?= $label ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <p id="discussion-filter-help" class="text-sm text-gray-500 mt-3">Show posts matching any selected category. Other includes posts without an event or news category.</p>
+        </fieldset>
+        <div class="flex flex-wrap items-center gap-4 mt-4">
+            <button type="submit" class="px-4 py-2 bg-warm-red text-white rounded-lg hover:bg-burnt-orange">Apply filters</button>
+            <a href="index.php?to=communications/discussions" class="text-ocean-blue hover:text-burnt-orange underline">Clear search and filters</a>
+        </div>
+        <p class="text-sm text-gray-600 mt-4" role="status">Showing <?= count($discussions) ?> of <?= $discussionTotal ?> discussions.</p>
+    </form>
     <?php if ($discussionError !== ''): ?>
         <div role="alert" class="bg-red-100 text-red-700 p-4 rounded mb-6">
             <?= htmlspecialchars($discussionError, ENT_QUOTES, 'UTF-8') ?>
@@ -725,7 +752,11 @@ function getCommentsForDiscussion($discussion_id) {
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <p>No discussions available at the moment. Be the first to start a conversation!</p>
+            <?php if ($discussionTotal > 0): ?>
+                <p class="bg-white p-6 rounded-lg shadow-lg">No discussions match your search and filters. Try a different search or select more categories.</p>
+            <?php else: ?>
+                <p>No discussions available at the moment. Be the first to start a conversation!</p>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </section>

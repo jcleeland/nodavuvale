@@ -276,6 +276,7 @@ PHP);
     integrationAssert($http('/uploads/private.txt',$matches[1])['status'] === 403, 'Unapproved member denied private media');
     require __DIR__ . '/discussion_submission_cases.php';
     require __DIR__ . '/public_discussion_cases.php';
+    require __DIR__ . '/discussion_filter_cases.php';
     echo "MariaDB migration, privacy, discussion submission, and HTTP integration tests passed.\n";
 } finally {
     if (is_resource($process)) { proc_terminate($process); proc_close($process); }
