@@ -184,7 +184,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
         height: 100vh;
         z-index: 2000;
         background: rgba(15, 23, 42, 0.96);
-        padding: 1.5rem;
+        padding: 4.5rem 1.5rem 1.5rem;
         overflow: auto;
     }
     .familytree-fullscreen svg {
@@ -194,12 +194,39 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     body.tree-no-scroll {
         overflow: hidden;
     }
+    #tree-fullscreen-controls {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 2001;
+    }
+    #tree-insights-panel {
+        position: fixed;
+        inset: 0;
+        z-index: 2100;
+        padding: 1rem;
+        background: rgba(15, 23, 42, .4);
+    }
+    #tree-insights-panel:not(.hidden) { display: flex; align-items: center; justify-content: center; }
+    .tree-insights-dialog {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 64rem;
+        max-height: calc(100vh - 2rem);
+        max-height: calc(100dvh - 2rem);
+        overflow: hidden;
+        background: white;
+        border-radius: 1rem;
+    }
+    .tree-insights-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0; }
+    .tree-insights-body { min-height: 0; overflow-y: auto; padding: 1.5rem; }
 </style>
 
 
 <section class="mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View insights" id="treeInsightsToggle"><i class="fas fa-chart-pie"></i></button>
-    <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View tree full screen" id="treeFullScreenToggle"><i class="fas fa-expand"></i></button>
+    <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View insights" aria-label="View insights" aria-controls="tree-insights-panel" aria-expanded="false" id="treeInsightsToggle"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
+    <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="View tree full screen" aria-label="View tree full screen" aria-pressed="false" id="treeFullScreenToggle"><i class="fas fa-expand" aria-hidden="true"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="How to use the family tree" onclick="showHelp()"><i class="fas fa-question-circle"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right" title="Find person in tree" onclick="viewTreeSearch()"><i class="fas fa-search"></i></button>
     <button class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 ml-1 rounded-lg float-right hidden" title="Print" id="exportTree" ><i class="fas fa-print"></i></button>
@@ -277,15 +304,15 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     </script>    
 
     <?php if (!empty($treeStats)): ?>
-    <div id="tree-insights-panel" class="hidden fixed inset-0 z-[2100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40">
-        <div class="relative max-w-5xl w-full max-h-[85vh] h-full overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200/70">
-            <div class="sticky top-0 z-10 flex justify-end bg-white rounded-t-3xl px-6 sm:px-8 pt-5 pb-3 border-b border-slate-200/60">
-                <button type="button" id="treeInsightsClose" class="text-slate-400 hover:text-slate-600">
-                    <i class="fas fa-times text-xl"></i>
+    <div id="tree-insights-panel" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tree-insights-title">
+        <div class="tree-insights-dialog shadow-2xl">
+            <div class="tree-insights-header">
+                <h2 id="tree-insights-title" class="text-2xl font-semibold">Tree Insights</h2>
+                <button type="button" id="treeInsightsClose" class="px-3 py-2 border rounded-lg" aria-label="Close tree insights">
+                    <i class="fas fa-times" aria-hidden="true"></i> Close
                 </button>
             </div>
-            <div class="px-6 pb-8 pt-2 sm:px-8">
-                <h2 class="text-2xl font-semibold text-slate-800 mb-6">Tree Insights</h2>
+            <div class="tree-insights-body">
                 <div class="grid gap-6 md:grid-cols-3">
                     <div class="rounded-2xl bg-slate-50 border border-slate-200/70 shadow-sm p-6">
                         <h3 class="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-3">Individuals in view</h3>
@@ -327,8 +354,14 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
     <?php endif; ?>
     
     <!-- Family Tree Display -->
+    <div id="tree-fullscreen-controls" hidden>
+        <button type="button" id="treeFullScreenExit" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg">
+            <i class="fas fa-compress" aria-hidden="true"></i> Exit full screen <span class="text-sm">(Esc)</span>
+        </button>
+    </div>
     <div id="family-tree" class="familytree bg-burnt-orange-800 nv-bg-opacity-10 border rounded"></div>
 
+    <script src="views/family/js/tree_display_controls.js?v=<?= filemtime(__DIR__ . '/js/tree_display_controls.js') ?>"></script>
     <script>
         var tree = <?= $tree_data; ?>;
         // Get the width of the current page
@@ -357,61 +390,7 @@ $tree_data = Utils::buildTreeData($rootId, $individuals, $relationships, $_SESSI
             }
         });
 
-var familyTreeContainer = document.getElementById('family-tree');
-var fullScreenToggleButton = document.getElementById('treeFullScreenToggle');
-var insightsPanel = document.getElementById('tree-insights-panel');
-var insightsToggleButton = document.getElementById('treeInsightsToggle');
-var insightsCloseButton = document.getElementById('treeInsightsClose');
-
-if (fullScreenToggleButton && familyTreeContainer) {
-    fullScreenToggleButton.addEventListener('click', function () {
-        var isFull = familyTreeContainer.classList.toggle('familytree-fullscreen');
-        if (isFull) {
-            document.body.classList.add('tree-no-scroll');
-                    this.innerHTML = "<i class='fas fa-compress'></i>";
-                    this.setAttribute('title', 'Exit full screen');
-                    setTimeout(function () {
-                        if (tree && tree.zoomToFit) {
-                            tree.zoomToFit(250);
-                        }
-                    }, 150);
-                } else {
-                    document.body.classList.remove('tree-no-scroll');
-                    this.innerHTML = "<i class='fas fa-expand'></i>";
-                    this.setAttribute('title', 'View tree full screen');
-                    setTimeout(function () {
-                        if (tree && tree.resetZoom) {
-                            tree.resetZoom(250);
-                        }
-                    }, 150);
-        }
-    });
-}
-
-if (insightsToggleButton && insightsPanel) {
-    insightsToggleButton.addEventListener('click', function () {
-        var willShow = insightsPanel.classList.toggle('hidden') === false;
-        this.setAttribute('aria-pressed', willShow ? 'true' : 'false');
-        if (willShow) {
-            this.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
-            this.innerHTML = "<i class='fas fa-chart-pie'></i>";
-        } else {
-            this.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
-            this.classList.add('bg-blue-500', 'hover:bg-blue-700');
-            this.innerHTML = "<i class='fas fa-chart-pie'></i>";
-        }
-    });
-}
-
-if (insightsCloseButton && insightsPanel) {
-    insightsCloseButton.addEventListener('click', function () {
-        insightsPanel.classList.add('hidden');
-        if (insightsToggleButton) {
-            insightsToggleButton.setAttribute('aria-pressed', 'false');
-            insightsToggleButton.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
-        }
-    });
-}
+initializeTreeDisplayControls(tree);
 
 window.addEventListener('resize', function () {
             if (tree && tree.zoomToFit) {
