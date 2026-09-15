@@ -99,7 +99,7 @@ if($auth->getUserRole() == 'admin') {
             <nav class="hidden sm:flex flex-grow justify-end text-right space-x-6">
                 <a href='?to=origins/' class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Origins</a>
                 <?php if (!empty($migrationNotice) || !empty($migrationError)): ?><a href="?to=admin/migrations" class="text-white px-2 pb-1 underline">Database updates<?= !empty($migrationNotice) ? ' (' . (int) $migrationNotice . ')' : '' ?></a><?php endif; ?>
-                <?php if ($publicAccess->enabled()): ?><a href="?to=public/ancestors" class="text-white px-2 pb-1 rounded-md">Ancestors</a><?php endif; ?>
+                <?php if (!$auth->isLoggedIn() && $publicAccess->enabled()): ?><a href="?to=public/ancestors" class="text-white px-2 pb-1 rounded-md">Ancestors</a><?php endif; ?>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md">Tree</a>
                 <span class="text-white hover:bg-burnt-orange-800 px-2 pb-1 rounded-md cursor-pointer" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>              
@@ -142,7 +142,7 @@ if($auth->getUserRole() == 'admin') {
             <div id="nav-menu" class="hidden sm:hidden flex-grow absolute top-[calc(100%+0.5rem)] right-0 w-full bg-deep-green text-white z-40 text-center rounded-b-lg shadow-lg">
                 <a href='?to=origins/' class="block px-4 py-2 text-white">Origins</a>
                 <?php if (!empty($migrationNotice) || !empty($migrationError)): ?><a href="?to=admin/migrations" class="block px-4 py-2 text-white">Database updates<?= !empty($migrationNotice) ? ' (' . (int) $migrationNotice . ')' : '' ?></a><?php endif; ?>
-                <?php if ($publicAccess->enabled()): ?><a href="?to=public/ancestors" class="block px-4 py-2 text-white">Ancestors</a><?php endif; ?>
+                <?php if (!$auth->isLoggedIn() && $publicAccess->enabled()): ?><a href="?to=public/ancestors" class="block px-4 py-2 text-white">Ancestors</a><?php endif; ?>
                 <?php if ($auth->isLoggedIn()) : ?>
                 <a href="?to=family/tree" class="block px-4 py-2 text-white">Tree</a>
                 <span class="block text-white hover:bg-burnt-orange-800 px-4 py-2" onClick="document.getElementById('findFamily').style.display = 'block';">Find</span>
