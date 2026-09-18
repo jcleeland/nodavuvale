@@ -4,6 +4,8 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
 
+require_once __DIR__ . '/../EmailTemplate.php';
+
 //Get website url location from $_SERVER
 // so that a link can be included in the email. 
 $site_url = $_SERVER['HTTP_HOST'];
@@ -79,50 +81,26 @@ try {
     $response['message']='Error resetting password: '.$e->getMessage();
 }
 
-$site_name=$db->getSiteSettings()['site_name'];
-$smtp_server=$db->getSiteSettings()['email_server'];
-$smtp_port=$db->getSiteSettings()['email_port'];
-$smtp_username=$db->getSiteSettings()['email_username'];
-$smtp_password=$db->getSiteSettings()['email_password'];
-
-$passwordResetEmailMessage='Hi '.$user['first_name'].',
-<p>Your '.$site_name.' password has been reset.</p>
-<p>Your new password is: '.$randomString.'</p>
-<p>Login here: '.$site_url.'</p>
-<p><i>Note: If you did not ask for your password to be reset, please contact the site administrator.</i></p
-<p>Lolomas,</p>
-<b><i>'.$site_name.' Admin</i></b>';
-$passwordResetSubject=$site_name.' - Password Reset';
-
-$welcomeEmailMessage='Hi '.$user['first_name'].',
-<p>Welcome! You have an account on the <a href="'.$site_url.'">'.$site_name.'</a> website.</p>
-<p>This is a site which has been set up for descendants of the family of Soli Losana Nataleira to record and view their family history.</p>
-<p>It also aims to keep us in touch with each other, with family in Nataleira and Navasau, and to learn more about each other across our full family diaspora.</p>
-<p>The site has been developed and is managed by me, Jason Cleeland, <i>(Soli->Mary Macdonald->William Macdonald->Alexander Macdonald->Jan Macdonald->Jason)</i>.</p>
-<p>It is hosted on my local home server in Melbourne, Australia. It\'s not as fast as it will eventually be when I move it to a more permanent web location.</p>
-<p>It\'s a work in progress, so please be patient and make sure you let me know of anything that you want or which doesn\'t work the way you\'d like it to.</p>
-<hr />
-<p><b>Your '.$site_name.' Account</b></p>
-<p>Login using the following details:</p>
-<p><b>Email/Login:</b> '.$user['email'].'</p>
-<p><b>Password:</b> '.$randomString.'<br /><i>(Note this is a <b>new</b> randomly generated password. You can change this once you have logged in, on your account page)</i></p>
-<p>Login here: '.$site_url.'</p>
-<hr />
-<p><i>Note: If you do not know what this is and didn\'t want an account on <i>'.$site_name.'</i>, please contact the site administrator.</i></p>
-<p>Lolomas,</p>
-<b><i>Jason ('.$site_name.' Admin)</i></b><br />
-jason@cleeland.org';
-$welcomeEmailSubject='Welcome to '.$site_name.'. This is your account information.';
-
-if(isset($data['action']) && $data['action'] === 'welcome') {
-    $emailMessage=$welcomeEmailMessage;
-    $emailSubject=$welcomeEmailSubject;
-} else {
-    $emailMessage=$passwordResetEmailMessage;
-    $emailSubject=$passwordResetSubject;
-}
-
 $site_settings=$db->getSiteSettings();
+$site_name=$site_settings['site_name'];
+$smtp_server=$site_settings['email_server'];
+$smtp_port=$site_settings['email_port'];
+$smtp_username=$site_settings['email_username'];
+$smtp_password=$site_settings['email_password'];
+
+$templateName = isset($data['action']) && $data['action'] === 'welcome'
+    ? 'new_account'
+    : 'password_reset';
+$renderedEmail = EmailTemplate::render($site_settings, $templateName, [
+    'first_name' => $user['first_name'],
+    'last_name' => $user['last_name'],
+    'email' => $user['email'],
+    'password' => $randomString,
+    'site_name' => $site_name,
+    'login_url' => $site_url,
+]);
+$emailMessage = $renderedEmail['body'];
+$emailSubject = $renderedEmail['subject'];
 
 //Send an email to the user with the new password
 if($response['status'] === 'success') {

@@ -189,6 +189,18 @@ class Database {
         }
     }
 
+    /**
+     * Set one site setting without requiring every setting to be resubmitted.
+     */
+    public function setSiteSetting($name, $value) {
+        $setting = $this->fetchOne("SELECT name FROM site_settings WHERE name = ? LIMIT 1", [$name]);
+        if($setting) {
+            return $this->update("UPDATE site_settings SET value = ? WHERE name = ?", [$value, $name]) !== false;
+        }
+
+        return $this->update("INSERT INTO site_settings (name, value) VALUES (?, ?)", [$name, $value]) !== false;
+    }
+
     // Function to read MySQL dump file and extract schema
     public function readDumpFile($filePath) {
         $fileContents = file_get_contents($filePath);

@@ -29,6 +29,7 @@ if (!$is_logged_in || !$is_admin) {
         <a href="?to=admin/migrations" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Database Migrations<?= !empty($migrationNotice) ? ' (' . (int) $migrationNotice . ' outstanding)' : '' ?></a>
         <a href="?to=admin/public_access" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Public Ancestor Access</a>
         <a href="?to=admin/&section=site" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Site Settings</a>
+        <a href="?to=admin/&section=email_templates" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Email Templates</a>
         <a href="?to=admin/&section=users" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">User Management</a>
         <a href="?to=admin/&section=familytree" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Family Tree Management</a>
         <a href="?to=admin/&section=database" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">Database Management</a>
@@ -40,7 +41,7 @@ if (!$is_logged_in || !$is_admin) {
 // Check if a section has been requested
 if(!isset($admin_backload) ||!$admin_backload) {
     $section = isset($_GET['section']) ? $_GET['section'] : 'site';
-    if (!in_array($section, ['site', 'users', 'familytree', 'database', 'feedtest', 'migrations', 'public_access'], true)) {
+    if (!in_array($section, ['site', 'email_templates', 'users', 'familytree', 'database', 'feedtest', 'migrations', 'public_access'], true)) {
         echo 'Unknown administration section.';
         return;
     }

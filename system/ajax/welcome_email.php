@@ -4,6 +4,8 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
 
+require_once __DIR__ . '/../EmailTemplate.php';
+
 //Get website url location from $_SERVER
 // so that a link can be included in the email. 
 $site_url = $_SERVER['HTTP_HOST'];
@@ -58,36 +60,22 @@ if($auth->getUserRole() !== 'admin') {
     }
 }
 
-$site_name=$db->getSiteSettings()['site_name'];
-$smtp_server=$db->getSiteSettings()['email_server'];
-$smtp_port=$db->getSiteSettings()['email_port'];
-$smtp_username=$db->getSiteSettings()['email_username'];
-$smtp_password=$db->getSiteSettings()['email_password'];
-
-$welcomeEmailMessage='Hi '.$user['first_name'].',
-<p>Welcome! Your account on the <a href="'.$site_url.'">'.$site_name.'</a> website has been activated.</p>
-<p>This is a site which has been set up for descendants of the family of Soli Losana Nataleira to record and view their family history.</p>
-<p>It also aims to keep us in touch with each other, with family in Nataleira and Navasau, and to learn more about each other across our full family diaspora.</p>
-<p>The site has been developed and is managed by me, <a href="mailto:jason@cleeland.org">Jason Cleeland</a>, <i>(Soli->Mary Macdonald->William Macdonald->Alexander Macdonald->Jan Macdonald->Jason)</i>.</p>
-<p>It is hosted on my local home server in Melbourne, Australia. It\'s not as fast as it will eventually be when I move it to a more permanent web location.</p>
-<p>It\'s a work in progress, so please be patient and make sure you let me know of anything that you want or which doesn\'t work the way you\'d like it to.</p>
-<hr />
-<p><b>Your '.$site_name.' Account</b></p>
-<p>Login using the following details:</p>
-<p><b>Email/Login:</b> '.$user['email'].'</p>
-<p><b>Password:</b> The password you created when you registered.</p>
-<p>Login here: '.$site_url.'</p>
-<hr />
-<p><i>Note: If you do not know what this is and didn\'t want an account on <i>'.$site_name.'</i>, please contact the site administrator.</i></p>
-<p>Lolomas,</p>
-<b><i>Jason ('.$site_name.' Admin)</i></b><br />
-jason@cleeland.org';
-$welcomeEmailSubject='Welcome to '.$site_name.'. This is your account information.';
-
-$emailMessage=$welcomeEmailMessage;
-$emailSubject=$welcomeEmailSubject;
-
 $site_settings=$db->getSiteSettings();
+$site_name=$site_settings['site_name'];
+$smtp_server=$site_settings['email_server'];
+$smtp_port=$site_settings['email_port'];
+$smtp_username=$site_settings['email_username'];
+$smtp_password=$site_settings['email_password'];
+
+$renderedEmail = EmailTemplate::render($site_settings, 'login_details', [
+    'first_name' => $user['first_name'],
+    'last_name' => $user['last_name'],
+    'email' => $user['email'],
+    'site_name' => $site_name,
+    'login_url' => $site_url,
+]);
+$emailMessage = $renderedEmail['body'];
+$emailSubject = $renderedEmail['subject'];
 
 //Send an email to the user 
 if($response['status'] === 'success') {

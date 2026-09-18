@@ -228,7 +228,7 @@ function passwordReset(userId) {
 
 function emailUserLoginDetails(userId) {
     
-    if(confirm("This will send the user an email with their login details. If they don't already have a password, it will also generate a new one of these. Are you sure you want to continue?")) {
+    if(confirm("This will send the user an email with their login details. It will not change or reset their password. Are you sure you want to continue?")) {
         //Send the email by ajax & 'email_login_details' method
         var formData = new FormData();
         formData.append('method', 'welcome_email');
