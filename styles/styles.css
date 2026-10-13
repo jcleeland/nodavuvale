@@ -1185,6 +1185,53 @@ section.content a {
     background-color: #f0f0f0;
 }
 
+/* Keep Find results inside the popup, with six rows and a next-row preview. */
+#findFamily .modal-content {
+    top: calc(var(--header-height, 72px) + 12px) !important;
+    transform: translateX(-50%);
+    margin: 0;
+    width: min(40rem, calc(100% - 2rem));
+    min-width: 0;
+    max-height: calc(100dvh - var(--header-height, 72px) - 24px);
+    display: flex;
+    flex-direction: column;
+}
+
+#findFamily .modal-header {
+    flex-shrink: 0;
+}
+
+#findFamily .modal-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#findFamily .modal-body > label,
+#lookupfamily_name {
+    flex-shrink: 0;
+}
+
+#lookupfamily_suggestions {
+    position: relative;
+    width: 100%;
+    max-height: 19.5rem;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+}
+
+#lookupfamily_suggestions:empty {
+    display: none;
+}
+
+#lookupfamily_suggestions .autocomplete-suggestion {
+    min-height: 3rem;
+    overflow-wrap: anywhere;
+}
+
 
 
 

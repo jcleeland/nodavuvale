@@ -31,7 +31,7 @@ if ($isIndividualPage) {
     <!-- Tailwind CSS -->
     <link href="styles/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/font-awesome/css/all.min.css">
-    <link href="styles/styles.css?v=6" rel="stylesheet">
+    <link href="styles/styles.css?v=7" rel="stylesheet">
 
     <!-- Link to dTree CSS -->
     <link rel="stylesheet" href="styles/dTree.css">
@@ -208,7 +208,7 @@ if($auth->getUserRole() == 'admin') {
                 <h2 id="findFamilyTitle" class="text-xl font-bold mb-4 text-center">Find family</h2>
             </div>
             <div class="modal-body">
-                <label for='lookupfamily_display'>
+                <label for='lookupfamily_name'>
                     Find someone
                 </label>
                 <input 
@@ -255,6 +255,7 @@ if($auth->getUserRole() == 'admin') {
                             suggestion.onclick = () => selectFamilySuggestion(ind);
                             suggestionsContainer.appendChild(suggestion);
                         });
+                        suggestionsContainer.scrollTop = 0;
                     }
 
                     function selectFamilySuggestion(individual) {
@@ -277,8 +278,6 @@ if($auth->getUserRole() == 'admin') {
                         window.location.href = '?to=family/individual&individual_id=' + individual.id;
                     }
                     </script>
-                <br />&nbsp;<br />
-            </div>
         </div>
     </div>      
 
